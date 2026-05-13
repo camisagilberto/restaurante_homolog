@@ -4,13 +4,14 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 
 from ..db import get_db
 from ..errors import ValidationError
-from ..security import csrf_token
+from ..security import csrf_token, login_required
 from ..services.auth_service import verify_manager_password
 from ..services.cart_service import add_item, clear_cart, find_item, get_cart, remove_item, save_cart, totals, update_item
 from ..services.catalog_service import list_products, validate_product_payload
 from ..services.menu_import_service import import_menu_uploads
 from ..services.onboarding_service import create_restaurant_account, get_restaurant_profile_for_admin
 from ..services.order_service import create_order_from_cart, list_orders_for_table
+from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
 from ..utils import parse_positive_int
 
 client_bp = Blueprint('client', __name__)
@@ -39,6 +40,7 @@ def _restaurant_context() -> dict[str, str]:
         'restaurant_address': session.get('restaurant_address', ''),
         'cell_phone': session.get('restaurant_cell_phone', ''),
         'username': session.get('admin_username', ''),
+        'table_count': session.get('restaurant_table_count', 0),
     }
 
     admin_id = session.get('admin_id')
@@ -55,6 +57,7 @@ def _restaurant_context() -> dict[str, str]:
                     'restaurant_address': profile['restaurant_address'],
                     'cell_phone': profile['cell_phone'],
                     'username': profile['username'],
+                    'table_count': profile['table_count'] if 'table_count' in profile.keys() else 0,
                 }
             )
     return context
@@ -86,6 +89,7 @@ def signup():
             session['restaurant_cnpj'] = account['cnpj']
             session['restaurant_address'] = account['restaurant_address']
             session['restaurant_cell_phone'] = account['cell_phone']
+            session['restaurant_table_count'] = account.get('table_count', 0)
             flash('Cadastro realizado com sucesso.', 'success')
             return redirect(url_for('client.products_start'))
 
@@ -98,6 +102,50 @@ def products_start():
     if not profile.get('restaurant_name'):
         return redirect(url_for('client.signup'))
     return render_template('client/products_start.html', profile=profile, csrf=csrf_token())
+
+
+@client_bp.route('/mesas', methods=['GET', 'POST'])
+@login_required
+def tables_setup():
+    profile = _restaurant_context()
+
+    if not profile.get('restaurant_name'):
+        return redirect(url_for('client.signup'))
+
+    db = get_db()
+
+    if request.method == 'POST':
+        try:
+            table_count = parse_table_count(request.form.get('table_count'))
+            save_table_count(db, session.get('admin_id'), table_count)
+        except ValidationError as exc:
+            flash(str(exc), 'error')
+        else:
+            session['restaurant_table_count'] = table_count
+            profile['table_count'] = table_count
+            flash(f'{table_count} QR Code(s) de mesa gerado(s) com sucesso.', 'success')
+            return redirect(url_for('client.tables_setup'))
+
+    table_count = int(profile.get('table_count') or 0)
+    table_cards = []
+
+    for table_number in range(1, table_count + 1):
+        table_url = url_for('client.table_menu', table_number=table_number, _external=True)
+        table_cards.append(
+            {
+                'number': table_number,
+                'url': table_url,
+                'qr_data_uri': build_qr_code_data_uri(table_url),
+            }
+        )
+
+    return render_template(
+        'client/tables_setup.html',
+        profile=profile,
+        table_count=table_count,
+        table_cards=table_cards,
+        csrf=csrf_token(),
+    )
 
 
 @client_bp.route('/produtos-inicio/manual')
@@ -299,7 +347,7 @@ def scan_menu_confirm():
     else:
         flash('Nenhum produto novo foi cadastrado porque todos já existiam.', 'warning')
 
-    return redirect(url_for('admin.products'))
+    return redirect(url_for('client.tables_setup'))
 
 
 @client_bp.route('/mesa/<table_number>')
