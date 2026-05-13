@@ -6,10 +6,26 @@ from ..db import get_db
 from ..security import csrf_token, login_required
 from ..services.auth_service import authenticate_admin
 from ..services.catalog_service import create_product, delete_product, get_product, list_products, toggle_product, update_product
+from ..services.onboarding_service import get_restaurant_profile_for_admin
 from ..utils import normalize_text
 from ..errors import ValidationError
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+def _profile_context(db):
+    profile = get_restaurant_profile_for_admin(db, session.get('admin_id'))
+    if profile:
+        return profile
+    return {
+        'owner_name': session.get('restaurant_owner_name', ''),
+        'restaurant_name': session.get('restaurant_name', ''),
+        'email': session.get('restaurant_email', ''),
+        'cnpj': session.get('restaurant_cnpj', ''),
+        'restaurant_address': session.get('restaurant_address', ''),
+        'cell_phone': session.get('restaurant_cell_phone', ''),
+        'username': session.get('admin_username', ''),
+    }
 
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
@@ -23,10 +39,18 @@ def login():
             db = get_db()
             admin = authenticate_admin(db, username, password)
             if admin:
+                profile = get_restaurant_profile_for_admin(db, admin['id'])
                 session.clear()
                 session['admin_logged_in'] = True
                 session['admin_id'] = admin['id']
                 session['admin_username'] = admin['username']
+                if profile:
+                    session['restaurant_owner_name'] = profile['owner_name']
+                    session['restaurant_name'] = profile['restaurant_name']
+                    session['restaurant_email'] = profile['email']
+                    session['restaurant_cnpj'] = profile['cnpj']
+                    session['restaurant_address'] = profile['restaurant_address']
+                    session['restaurant_cell_phone'] = profile['cell_phone']
                 flash('Login realizado com sucesso.', 'success')
                 return redirect(url_for('admin.products'))
             flash('Usuário ou senha inválidos.', 'error')
@@ -60,7 +84,15 @@ def products():
     db = get_db()
     products = list_products(db, active_only=False, query=query or None)
     active_count = sum(1 for p in products if p['active'])
-    return render_template('admin/products.html', products=products, query=query, active_count=active_count, csrf=csrf_token())
+    profile = _profile_context(db)
+    return render_template(
+        'admin/products.html',
+        products=products,
+        query=query,
+        active_count=active_count,
+        profile=profile,
+        csrf=csrf_token(),
+    )
 
 
 @admin_bp.route('/produtos/criar', methods=['POST'])
