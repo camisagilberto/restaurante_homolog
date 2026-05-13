@@ -4,3 +4,4 @@ gunicorn
 Pillow
 pytesseract
 requests
+qrcode[pil]
