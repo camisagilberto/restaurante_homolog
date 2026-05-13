@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block title %}Revisar importação{% endblock %}
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Revisão antes de salvar</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name }}</h2>
+      <span class="badge-inline">{{ profile.username }}</span>
+    </div>
+    <p class="muted">
+      Confira os itens encontrados. Você pode corrigir nome, categoria, preço, status e descrição antes de confirmar.
+    </p>
+  </div>
+</section>
+
+<section class="summary-strip">
+  <div class="summary-card">
+    <span class="summary-label">Arquivos analisados</span>
+    <strong>{{ processed_files }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Itens encontrados</span>
+    <strong>{{ recognized_items }}</strong>
+  </div>
+</section>
+
+{% if failures %}
+<section class="panel">
+  <h3>Avisos da leitura</h3>
+  <ul class="muted">
+    {% for failure in failures %}
+      <li>{{ failure }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<form method="post" action="{{ url_for('client.scan_menu_confirm') }}" class="panel stacked-form" id="scanMenuForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="section-heading">
+    <div>
+      <h3>Itens para importar</h3>
+      <p class="muted">Remova o que estiver errado, ajuste os campos e confirme a importação.</p>
+    </div>
+    <button type="button" class="btn btn-secondary" data-add-row>Adicionar item</button>
+  </div>
+
+  <div class="import-preview-list" id="scanMenuRows">
+    {% for item in items %}
+      <article class="import-preview-row" data-menu-row>
+        <div class="import-preview-row-head">
+          <strong>Item {{ loop.index }}</strong>
+          <button type="button" class="btn btn-secondary btn-sm" data-remove-row>Remover</button>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label>Nome</label>
+            <input type="text" name="item_name" value="{{ item.name }}" required>
+          </div>
+          <div>
+            <label>Categoria</label>
+            <input type="text" name="item_category" value="{{ item.category or 'Cardápio' }}" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label>Preço</label>
+            <input type="text" name="item_price" value="{{ '%.2f'|format(item.price or 0) }}" required>
+          </div>
+          <div>
+            <label>Status</label>
+            <select name="item_active">
+              <option value="1" {% if item.active %}selected{% endif %}>Ativo</option>
+              <option value="0" {% if not item.active %}selected{% endif %}>Inativo</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label>Descrição</label>
+          <textarea name="item_description" rows="2" placeholder="Opcional">{{ item.description or '' }}</textarea>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+
+  <div class="status-actions">
+    <a class="btn btn-secondary" href="{{ url_for('client.scan_menu') }}">Enviar outras fotos</a>
+    <button type="submit" class="btn btn-primary">Confirmar importação</button>
+  </div>
+</form>
+
+<template id="scanMenuRowTemplate">
+  <article class="import-preview-row" data-menu-row>
+    <div class="import-preview-row-head">
+      <strong>Novo item</strong>
+      <button type="button" class="btn btn-secondary btn-sm" data-remove-row>Remover</button>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="item_name" placeholder="Ex.: X-Burger" required>
+      </div>
+      <div>
+        <label>Categoria</label>
+        <input type="text" name="item_category" value="Cardápio" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Preço</label>
+        <input type="text" name="item_price" placeholder="29,90" required>
+      </div>
+      <div>
+        <label>Status</label>
+        <select name="item_active">
+          <option value="1" selected>Ativo</option>
+          <option value="0">Inativo</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label>Descrição</label>
+      <textarea name="item_description" rows="2" placeholder="Opcional"></textarea>
+    </div>
+  </article>
+</template>
+
+<script>
+  (function () {
+    const form = document.getElementById('scanMenuForm');
+    const list = document.getElementById('scanMenuRows');
+    const template = document.getElementById('scanMenuRowTemplate');
+    const addButton = form?.querySelector('[data-add-row]');
+
+    if (!form || !list || !template || !addButton) return;
+
+    function bindRemove(row) {
+      row.querySelector('[data-remove-row]')?.addEventListener('click', function () {
+        row.remove();
+
+        if (!list.children.length) {
+          const fresh = template.content.firstElementChild.cloneNode(true);
+          list.appendChild(fresh);
+          bindRemove(fresh);
+        }
+      });
+    }
+
+    list.querySelectorAll('[data-menu-row]').forEach(bindRemove);
+
+    addButton.addEventListener('click', function () {
+      const row = template.content.firstElementChild.cloneNode(true);
+      list.appendChild(row);
+      bindRemove(row);
+      row.querySelector('input, select, textarea')?.focus();
+    });
+  })();
+</script>
+{% endblock %}
