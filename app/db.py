@@ -108,6 +108,8 @@ def _table_exists(db: sqlite3.Connection, table: str) -> bool:
 
 
 def _table_info(db: sqlite3.Connection, table: str) -> set[str]:
+    if not _table_exists(db, table):
+        return set()
     return {row[1] for row in db.execute(f'PRAGMA table_info({table})').fetchall()}
 
 
@@ -132,6 +134,9 @@ def _slugify(value: str) -> str:
 
 
 def _unique_slug(db: sqlite3.Connection, base: str, current_id: int | None = None) -> str:
+    if 'slug' not in _table_info(db, 'restaurant_profiles'):
+        return _slugify(base)
+
     slug = _slugify(base)
     candidate = slug
     counter = 2
@@ -156,12 +161,19 @@ def _unique_slug(db: sqlite3.Connection, base: str, current_id: int | None = Non
 
 
 def _unique_token(db: sqlite3.Connection) -> str:
+    columns = _table_info(db, 'restaurant_profiles')
+
     while True:
         token = secrets.token_urlsafe(10).replace('-', '').replace('_', '')[:12]
+
+        if 'public_token' not in columns:
+            return token
+
         row = db.execute(
             'SELECT id FROM restaurant_profiles WHERE public_token = ?',
             (token,),
         ).fetchone()
+
         if not row:
             return token
 
@@ -207,6 +219,32 @@ def _migrate_admin_passwords(db: sqlite3.Connection) -> None:
                         row['id'],
                     ),
                 )
+
+
+def _migrate_restaurant_profiles(db: sqlite3.Connection) -> None:
+    if not _table_exists(db, 'restaurant_profiles'):
+        return
+
+    _ensure_column(db, 'restaurant_profiles', 'table_count INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'restaurant_profiles', 'public_token TEXT')
+    _ensure_column(db, 'restaurant_profiles', 'slug TEXT')
+
+    rows = db.execute(
+        'SELECT id, restaurant_name, public_token, slug FROM restaurant_profiles'
+    ).fetchall()
+
+    for row in rows:
+        token = row['public_token'] or _unique_token(db)
+        slug = row['slug'] or _unique_slug(db, row['restaurant_name'], row['id'])
+        db.execute(
+            '''
+            UPDATE restaurant_profiles
+               SET public_token = ?,
+                   slug = ?
+             WHERE id = ?
+            ''',
+            (token, slug, row['id']),
+        )
 
 
 def _ensure_default_profile(db: sqlite3.Connection) -> int:
@@ -256,68 +294,6 @@ def _ensure_default_profile(db: sqlite3.Connection) -> int:
         ),
     )
     return cursor.lastrowid
-
-
-def _seed_defaults(db: sqlite3.Connection) -> None:
-    default_admin_username = os.getenv('ADMIN_USERNAME', 'admin')
-    default_admin_password = os.getenv('ADMIN_PASSWORD', '123456')
-
-    if db.execute('SELECT COUNT(*) FROM admins').fetchone()[0] == 0:
-        db.execute(
-            'INSERT INTO admins (username, password_hash, is_active) VALUES (?, ?, 1)',
-            (default_admin_username, generate_password_hash(default_admin_password)),
-        )
-
-    default_restaurant_id = _ensure_default_profile(db)
-
-    if default_restaurant_id and db.execute('SELECT COUNT(*) FROM products').fetchone()[0] == 0:
-        for index, (name, price, category) in enumerate(DEFAULT_PRODUCTS):
-            db.execute(
-                '''
-                INSERT INTO products (
-                    restaurant_id,
-                    name,
-                    price,
-                    category,
-                    active,
-                    sort_order
-                )
-                VALUES (?, ?, ?, ?, 1, ?)
-                ''',
-                (
-                    default_restaurant_id,
-                    name,
-                    price,
-                    category,
-                    index,
-                ),
-            )
-
-
-def _migrate_restaurant_profiles(db: sqlite3.Connection) -> None:
-    if not _table_exists(db, 'restaurant_profiles'):
-        return
-
-    _ensure_column(db, 'restaurant_profiles', 'table_count INTEGER NOT NULL DEFAULT 0')
-    _ensure_column(db, 'restaurant_profiles', 'public_token TEXT')
-    _ensure_column(db, 'restaurant_profiles', 'slug TEXT')
-
-    rows = db.execute(
-        'SELECT id, restaurant_name, public_token, slug FROM restaurant_profiles'
-    ).fetchall()
-
-    for row in rows:
-        token = row['public_token'] or _unique_token(db)
-        slug = row['slug'] or _unique_slug(db, row['restaurant_name'], row['id'])
-        db.execute(
-            '''
-            UPDATE restaurant_profiles
-               SET public_token = ?,
-                   slug = ?
-             WHERE id = ?
-            ''',
-            (token, slug, row['id']),
-        )
 
 
 def _migrate_products(db: sqlite3.Connection) -> None:
@@ -371,13 +347,52 @@ def _migrate_order_items(db: sqlite3.Connection) -> None:
     _ensure_column(db, 'order_items', 'product_name_snapshot TEXT NOT NULL DEFAULT ""')
 
 
+def _seed_defaults(db: sqlite3.Connection) -> None:
+    default_admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+    default_admin_password = os.getenv('ADMIN_PASSWORD', '123456')
+
+    if db.execute('SELECT COUNT(*) FROM admins').fetchone()[0] == 0:
+        db.execute(
+            'INSERT INTO admins (username, password_hash, is_active) VALUES (?, ?, 1)',
+            (default_admin_username, generate_password_hash(default_admin_password)),
+        )
+
+    _migrate_restaurant_profiles(db)
+    default_restaurant_id = _ensure_default_profile(db)
+
+    if default_restaurant_id and db.execute('SELECT COUNT(*) FROM products').fetchone()[0] == 0:
+        for index, (name, price, category) in enumerate(DEFAULT_PRODUCTS):
+            db.execute(
+                '''
+                INSERT INTO products (
+                    restaurant_id,
+                    name,
+                    price,
+                    category,
+                    active,
+                    sort_order
+                )
+                VALUES (?, ?, ?, ?, 1, ?)
+                ''',
+                (
+                    default_restaurant_id,
+                    name,
+                    price,
+                    category,
+                    index,
+                ),
+            )
+
+
 def _create_indexes(db: sqlite3.Connection) -> None:
     if _table_exists(db, 'restaurant_profiles'):
         columns = _table_info(db, 'restaurant_profiles')
+
         if 'public_token' in columns:
             db.execute(
                 'CREATE UNIQUE INDEX IF NOT EXISTS idx_restaurant_profiles_public_token ON restaurant_profiles(public_token)'
             )
+
         if 'slug' in columns:
             db.execute(
                 'CREATE UNIQUE INDEX IF NOT EXISTS idx_restaurant_profiles_slug ON restaurant_profiles(slug)'
@@ -385,6 +400,7 @@ def _create_indexes(db: sqlite3.Connection) -> None:
 
     if _table_exists(db, 'products'):
         columns = _table_info(db, 'products')
+
         if {'restaurant_id', 'active', 'category', 'name'}.issubset(columns):
             db.execute(
                 'CREATE INDEX IF NOT EXISTS idx_products_restaurant_active_category ON products(restaurant_id, active, category, name)'
@@ -392,10 +408,12 @@ def _create_indexes(db: sqlite3.Connection) -> None:
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
+
         if {'restaurant_id', 'status', 'created_at'}.issubset(columns):
             db.execute(
                 'CREATE INDEX IF NOT EXISTS idx_orders_restaurant_status_created ON orders(restaurant_id, status, created_at)'
             )
+
         if {'restaurant_id', 'table_number', 'status'}.issubset(columns):
             db.execute(
                 'CREATE INDEX IF NOT EXISTS idx_orders_restaurant_table_status ON orders(restaurant_id, table_number, status)'
@@ -403,6 +421,7 @@ def _create_indexes(db: sqlite3.Connection) -> None:
 
     if _table_exists(db, 'order_items'):
         columns = _table_info(db, 'order_items')
+
         if 'order_id' in columns:
             db.execute(
                 'CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)'
@@ -422,13 +441,16 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
 
     if _table_exists(db, 'products'):
         columns = _table_info(db, 'products')
+
         if 'created_at' in columns:
             db.execute('UPDATE products SET created_at = COALESCE(created_at, ?)', (now,))
+
         if 'updated_at' in columns:
             db.execute('UPDATE products SET updated_at = COALESCE(updated_at, ?)', (now,))
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
+
         if 'updated_at' in columns:
             db.execute('UPDATE orders SET updated_at = COALESCE(updated_at, ?)', (now,))
 
@@ -444,6 +466,8 @@ def init_db(app):
         db = get_db()
 
         db.executescript(SCHEMA_SQL)
+
+        migrate_schema(db)
         _seed_defaults(db)
         migrate_schema(db)
         _backfill_timestamps(db)
