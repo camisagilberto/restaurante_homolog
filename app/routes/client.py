@@ -191,8 +191,8 @@ def scan_menu():
 
                 if not items:
                     flash(
-                        'O OCR conseguiu ler a imagem, mas não identificou produtos com preço. '
-                        'Use fotos mais próximas/nítidas ou adicione os itens manualmente na próxima tela.',
+                        'Não consegui identificar produtos com preço. '
+                        'Tente outra imagem ou cadastre manualmente.',
                         'warning',
                     )
                     session.pop(PENDING_MENU_IMPORT_SESSION_KEY, None)
