@@ -9,7 +9,12 @@ from ..services.auth_service import verify_manager_password
 from ..services.cart_service import add_item, clear_cart, find_item, get_cart, remove_item, save_cart, totals, update_item
 from ..services.catalog_service import list_products, validate_product_payload
 from ..services.menu_import_service import import_menu_uploads
-from ..services.onboarding_service import create_restaurant_account, get_restaurant_profile_for_admin, update_restaurant_profile
+from ..services.onboarding_service import (
+    create_restaurant_account,
+    get_restaurant_profile_by_token,
+    get_restaurant_profile_for_admin,
+    update_restaurant_profile,
+)
 from ..services.order_service import create_order_from_cart, list_orders_for_table
 from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
 from ..utils import parse_positive_int
@@ -17,6 +22,8 @@ from ..utils import parse_positive_int
 client_bp = Blueprint('client', __name__)
 
 PENDING_MENU_IMPORT_SESSION_KEY = 'pending_menu_import'
+CLIENT_RESTAURANT_SESSION_KEY = 'client_restaurant_id'
+CLIENT_RESTAURANT_TOKEN_SESSION_KEY = 'client_restaurant_token'
 
 
 def _wants_json() -> bool:
@@ -33,6 +40,7 @@ def _current_table() -> str:
 
 def _restaurant_context() -> dict:
     context = {
+        'id': session.get('restaurant_id'),
         'owner_name': session.get('restaurant_owner_name', ''),
         'age': session.get('restaurant_owner_age', ''),
         'restaurant_name': session.get('restaurant_name', ''),
@@ -42,15 +50,20 @@ def _restaurant_context() -> dict:
         'cell_phone': session.get('restaurant_cell_phone', ''),
         'username': session.get('admin_username', ''),
         'table_count': session.get('restaurant_table_count', 0),
+        'public_token': session.get('restaurant_public_token', ''),
+        'slug': session.get('restaurant_slug', ''),
     }
 
     admin_id = session.get('admin_id')
+
     if admin_id:
         db = get_db()
         profile = get_restaurant_profile_for_admin(db, admin_id)
+
         if profile:
             context.update(
                 {
+                    'id': profile['id'],
                     'owner_name': profile['owner_name'],
                     'age': profile['age'],
                     'restaurant_name': profile['restaurant_name'],
@@ -60,9 +73,57 @@ def _restaurant_context() -> dict:
                     'cell_phone': profile['cell_phone'],
                     'username': profile['username'],
                     'table_count': profile['table_count'] if 'table_count' in profile.keys() else 0,
+                    'public_token': profile['public_token'] if 'public_token' in profile.keys() else '',
+                    'slug': profile['slug'] if 'slug' in profile.keys() else '',
                 }
             )
+
     return context
+
+
+def _store_admin_profile_session(account: dict) -> None:
+    session['admin_logged_in'] = True
+    session['admin_id'] = account['admin_id']
+    session['admin_username'] = account['username']
+    session['restaurant_id'] = account.get('restaurant_id')
+    session['restaurant_owner_name'] = account['owner_name']
+    session['restaurant_owner_age'] = account['age']
+    session['restaurant_name'] = account['restaurant_name']
+    session['restaurant_email'] = account['email']
+    session['restaurant_cnpj'] = account['cnpj']
+    session['restaurant_address'] = account['restaurant_address']
+    session['restaurant_cell_phone'] = account['cell_phone']
+    session['restaurant_table_count'] = account.get('table_count', 0)
+    session['restaurant_public_token'] = account.get('public_token', '')
+    session['restaurant_slug'] = account.get('slug', '')
+
+
+def _client_restaurant_id() -> int | None:
+    value = session.get(CLIENT_RESTAURANT_SESSION_KEY) or session.get('restaurant_id')
+
+    try:
+        return int(value) if value else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _set_client_restaurant(profile) -> None:
+    current = session.get(CLIENT_RESTAURANT_SESSION_KEY)
+
+    if current and str(current) != str(profile['id']):
+        clear_cart(session)
+
+    session[CLIENT_RESTAURANT_SESSION_KEY] = profile['id']
+    session[CLIENT_RESTAURANT_TOKEN_SESSION_KEY] = profile['public_token']
+
+
+def _client_table_redirect(table_number: int | str):
+    token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
+
+    if token:
+        return redirect(url_for('client.restaurant_table_menu', public_token=token, table_number=table_number))
+
+    return redirect(url_for('client.home'))
 
 
 @client_bp.route('/')
@@ -74,6 +135,7 @@ def home():
 def signup():
     if request.method == 'POST':
         db = get_db()
+
         try:
             account = create_restaurant_account(db, request.form.to_dict(flat=True))
         except ValidationError as exc:
@@ -82,17 +144,7 @@ def signup():
             flash('Não foi possível criar o acesso agora.', 'error')
         else:
             session.clear()
-            session['admin_logged_in'] = True
-            session['admin_id'] = account['admin_id']
-            session['admin_username'] = account['username']
-            session['restaurant_owner_name'] = account['owner_name']
-            session['restaurant_owner_age'] = account['age']
-            session['restaurant_name'] = account['restaurant_name']
-            session['restaurant_email'] = account['email']
-            session['restaurant_cnpj'] = account['cnpj']
-            session['restaurant_address'] = account['restaurant_address']
-            session['restaurant_cell_phone'] = account['cell_phone']
-            session['restaurant_table_count'] = account.get('table_count', 0)
+            _store_admin_profile_session(account)
             flash('Cadastro realizado com sucesso.', 'success')
             return redirect(url_for('client.products_start'))
 
@@ -102,8 +154,10 @@ def signup():
 @client_bp.route('/produtos-inicio')
 def products_start():
     profile = _restaurant_context()
+
     if not profile.get('restaurant_name'):
         return redirect(url_for('client.signup'))
+
     return render_template('client/products_start.html', profile=profile, csrf=csrf_token())
 
 
@@ -130,6 +184,7 @@ def profile():
             session['restaurant_cnpj'] = updated['cnpj']
             session['restaurant_address'] = updated['restaurant_address']
             session['restaurant_cell_phone'] = updated['cell_phone']
+            session['restaurant_slug'] = updated.get('slug', session.get('restaurant_slug', ''))
             flash('Cadastro atualizado com sucesso.', 'success')
             return redirect(url_for('client.profile'))
 
@@ -163,7 +218,13 @@ def tables_setup():
     table_cards = []
 
     for table_number in range(1, table_count + 1):
-        table_url = url_for('client.table_menu', table_number=table_number, _external=True)
+        table_url = url_for(
+            'client.restaurant_table_menu',
+            public_token=profile.get('public_token'),
+            table_number=table_number,
+            _external=True,
+        )
+
         table_cards.append(
             {
                 'number': table_number,
@@ -200,17 +261,18 @@ def _pending_menu_import() -> dict | None:
     return pending
 
 
-def _existing_product(db, name: str, category: str, price: float) -> bool:
+def _existing_product(db, restaurant_id: int, name: str, category: str, price: float) -> bool:
     row = db.execute(
         '''
         SELECT 1
           FROM products
-         WHERE lower(name) = lower(?)
+         WHERE restaurant_id = ?
+           AND lower(name) = lower(?)
            AND lower(category) = lower(?)
            AND abs(price - ?) < 0.01
          LIMIT 1
         ''',
-        (name, category, price),
+        (restaurant_id, name, category, price),
     ).fetchone()
 
     return row is not None
@@ -258,7 +320,11 @@ def scan_menu():
         return redirect(url_for('client.signup'))
 
     if request.method == 'POST':
-        uploads = [file for file in request.files.getlist('menu_images') if file and file.filename]
+        uploads = [
+            file
+            for file in request.files.getlist('menu_images')
+            if file and file.filename
+        ]
 
         if not uploads:
             flash('Envie pelo menos uma imagem do cardápio.', 'error')
@@ -272,8 +338,7 @@ def scan_menu():
 
                 if not items:
                     flash(
-                        'Não consegui identificar produtos com preço. '
-                        'Tente outra imagem ou cadastre manualmente.',
+                        'Não consegui identificar produtos com preço. Tente outra imagem ou cadastre manualmente.',
                         'warning',
                     )
                     session.pop(PENDING_MENU_IMPORT_SESSION_KEY, None)
@@ -317,8 +382,9 @@ def scan_menu_review():
 @client_bp.route('/produtos-inicio/scannear/confirmar', methods=['POST'])
 def scan_menu_confirm():
     profile = _restaurant_context()
+    restaurant_id = profile.get('id')
 
-    if not profile.get('restaurant_name'):
+    if not profile.get('restaurant_name') or not restaurant_id:
         return redirect(url_for('client.signup'))
 
     pending = _pending_menu_import()
@@ -347,16 +413,25 @@ def scan_menu_confirm():
     skipped = 0
 
     for row in validated_rows:
-        if _existing_product(db, row['name'], row['category'], row['price']):
+        if _existing_product(db, restaurant_id, row['name'], row['category'], row['price']):
             skipped += 1
             continue
 
         db.execute(
             '''
-            INSERT INTO products (name, description, price, category, active, sort_order)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO products (
+                restaurant_id,
+                name,
+                description,
+                price,
+                category,
+                active,
+                sort_order
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ''',
             (
+                restaurant_id,
                 row['name'],
                 row['description'],
                 row['price'],
@@ -383,13 +458,20 @@ def scan_menu_confirm():
     return redirect(url_for('client.tables_setup'))
 
 
-@client_bp.route('/mesa/<table_number>')
-def table_menu(table_number):
+@client_bp.route('/r/<public_token>/mesa/<table_number>')
+def restaurant_table_menu(public_token, table_number):
     table_number = str(parse_positive_int(table_number, default=1, minimum=1, maximum=999))
+    db = get_db()
+    profile = get_restaurant_profile_by_token(db, public_token)
+
+    if not profile:
+        flash('Restaurante não encontrado.', 'error')
+        return redirect(url_for('client.home'))
+
+    _set_client_restaurant(profile)
     session['current_table'] = table_number
 
-    db = get_db()
-    products = list_products(db, active_only=True)
+    products = list_products(db, profile['id'], active_only=True)
 
     grouped: dict[str, list] = {}
     for product in products:
@@ -408,18 +490,24 @@ def table_menu(table_number):
     )
 
 
+@client_bp.route('/mesa/<table_number>')
+def table_menu(table_number):
+    return _client_table_redirect(parse_positive_int(table_number, default=1, minimum=1, maximum=999))
+
+
 @client_bp.route('/mesa/editar', methods=['POST'])
 def edit_table():
     data = _payload()
     new_table = str(data.get('table_number') or '').strip()
     manager_password = str(data.get('manager_password') or '').strip()
+    restaurant_id = _client_restaurant_id()
 
     if not new_table:
         message = 'Informe o número da mesa.'
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
-        return redirect(url_for('client.table_menu', table_number=_current_table()))
+        return _client_table_redirect(_current_table())
 
     try:
         table_number = parse_positive_int(new_table, minimum=1, maximum=999)
@@ -428,36 +516,41 @@ def edit_table():
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
-        return redirect(url_for('client.table_menu', table_number=_current_table()))
+        return _client_table_redirect(_current_table())
 
     if not manager_password:
         message = 'Informe a senha do gerente.'
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
-        return redirect(url_for('client.table_menu', table_number=_current_table()))
+        return _client_table_redirect(_current_table())
 
     db = get_db()
+    profile = db.execute(
+        'SELECT admin_id FROM restaurant_profiles WHERE id = ?',
+        (restaurant_id,),
+    ).fetchone()
 
-    if not verify_manager_password(db, manager_password):
+    if not profile or not verify_manager_password(db, manager_password, admin_id=profile['admin_id']):
         message = 'Senha do gerente inválida.'
         if _wants_json():
             return jsonify(success=False, message=message), 401
         flash(message, 'error')
-        return redirect(url_for('client.table_menu', table_number=_current_table()))
+        return _client_table_redirect(_current_table())
 
     session['current_table'] = str(table_number)
 
     if _wants_json():
+        token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
         return jsonify(
             success=True,
             message='Mesa atualizada com sucesso.',
             table_number=str(table_number),
-            redirect_url=url_for('client.table_menu', table_number=table_number),
+            redirect_url=url_for('client.restaurant_table_menu', public_token=token, table_number=table_number),
         )
 
     flash('Mesa atualizada com sucesso.', 'success')
-    return redirect(url_for('client.table_menu', table_number=table_number))
+    return _client_table_redirect(table_number)
 
 
 @client_bp.route('/carrinho')
@@ -478,8 +571,14 @@ def cart():
 @client_bp.route('/pedidos')
 def order_history():
     table_number = _current_table()
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id:
+        flash('Restaurante não identificado.', 'error')
+        return redirect(url_for('client.home'))
+
     db = get_db()
-    orders = list_orders_for_table(db, table_number)
+    orders = list_orders_for_table(db, restaurant_id, table_number)
 
     return render_template(
         'client/orders.html',
@@ -492,6 +591,14 @@ def order_history():
 @client_bp.route('/carrinho/adicionar', methods=['POST'])
 def add_to_cart():
     data = _payload()
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id:
+        message = 'Restaurante não identificado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
 
     try:
         product_id = int(data.get('product_id'))
@@ -508,12 +615,18 @@ def add_to_cart():
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
-        return redirect(url_for('client.table_menu', table_number=_current_table()))
+        return _client_table_redirect(_current_table())
 
     db = get_db()
     product = db.execute(
-        'SELECT * FROM products WHERE id = ? AND active = 1',
-        (product_id,),
+        '''
+        SELECT *
+          FROM products
+         WHERE id = ?
+           AND restaurant_id = ?
+           AND active = 1
+        ''',
+        (product_id, restaurant_id),
     ).fetchone()
 
     if not product:
@@ -521,7 +634,7 @@ def add_to_cart():
         if _wants_json():
             return jsonify(success=False, message=message), 404
         flash(message, 'error')
-        return redirect(url_for('client.table_menu', table_number=_current_table()))
+        return _client_table_redirect(_current_table())
 
     cart = get_cart(session)
     add_item(cart, product, quantity)
@@ -538,7 +651,7 @@ def add_to_cart():
         )
 
     flash('Produto adicionado ao carrinho.', 'success')
-    return redirect(url_for('client.table_menu', table_number=_current_table()))
+    return _client_table_redirect(_current_table())
 
 
 @client_bp.route('/carrinho/atualizar', methods=['POST'])
@@ -633,13 +746,21 @@ def finalize_order():
     customer_name = str(data.get('customer_name') or '').strip()
     notes = (data.get('notes') or '').strip() or None
     cart = get_cart(session)
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id:
+        message = 'Restaurante não identificado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
 
     if not cart:
         message = 'Seu carrinho está vazio.'
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
-        return redirect(url_for('client.table_menu', table_number=table_number))
+        return _client_table_redirect(table_number)
 
     if not customer_name:
         message = 'Informe seu nome para finalizar o pedido.'
@@ -651,6 +772,7 @@ def finalize_order():
     db = get_db()
     order_id = create_order_from_cart(
         db,
+        restaurant_id,
         str(table_number),
         cart,
         customer_name=customer_name,
@@ -662,12 +784,13 @@ def finalize_order():
     success_message = 'vá ao caixa, e diga seu nome para fazer o pagamento'
 
     if _wants_json():
+        token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
         return jsonify(
             success=True,
             message=success_message,
             order_id=order_id,
-            redirect_url=url_for('client.table_menu', table_number=table_number),
+            redirect_url=url_for('client.restaurant_table_menu', public_token=token, table_number=table_number),
         )
 
     flash(success_message, 'success')
-    return redirect(url_for('client.table_menu', table_number=table_number))
+    return _client_table_redirect(table_number)
