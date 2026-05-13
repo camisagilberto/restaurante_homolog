@@ -69,7 +69,7 @@
         <div class="form-row">
           <div>
             <label>Preço</label>
-            <input type="text" name="item_price" value="{{ '%.2f'|format(item.price or 0) }}" required>
+            <input type="text" name="item_price" value="{{ ('%.2f'|format(item.price or 0))|replace('.', ',') }}" required>
           </div>
           <div>
             <label>Status</label>
