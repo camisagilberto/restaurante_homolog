@@ -15,10 +15,19 @@
         <p class="eyebrow">Gerenciamento</p>
         <h1 class="brand-title">Sistema de pedidos</h1>
       </div>
+
       <nav class="app-nav">
         <a href="{{ url_for('client.home') }}">Cliente</a>
         <a href="{{ url_for('admin.login') }}">Admin</a>
         <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
+
+        <details class="profile-menu">
+          <summary>Perfil</summary>
+          <div class="profile-menu-panel">
+            <a href="{{ url_for('client.profile') }}">Editar cadastro</a>
+            <a href="{{ url_for('client.tables_setup') }}">Editar mesas</a>
+          </div>
+        </details>
       </nav>
     </header>
 
