@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Cadastrar mesas{% endblock %}
+{% block title %}Editar mesas{% endblock %}
 {% block content %}
 <section class="hero-card hero-card--table">
   <div class="hero-card-copy">
@@ -9,11 +9,12 @@
       <span class="badge-inline">{{ profile.username }}</span>
     </div>
     <p class="muted">
-      Informe quantas mesas existem no restaurante. Cada mesa terá um QR Code próprio, apontando para o cardápio já identificado com o número da mesa.
+      Informe a quantidade de mesas. Cada mesa terá um QR Code exclusivo para abrir o cardápio já com o número da mesa.
     </p>
   </div>
 
   <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('client.profile') }}">Editar cadastro</a>
     <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Voltar aos produtos</a>
     <a class="btn btn-secondary" href="{{ url_for('kitchen.orders') }}">Ver cozinha</a>
   </div>
@@ -36,7 +37,7 @@
     </div>
 
     <div class="status-actions">
-      <button type="submit" class="btn btn-primary">Gerar QR Codes</button>
+      <button type="submit" class="btn btn-primary">Gerar / atualizar QR Codes</button>
     </div>
   </form>
 </section>
