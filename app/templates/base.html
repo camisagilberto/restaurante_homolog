@@ -3,20 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8fafc">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>{% block title %}Restaurante{% endblock %}</title>
+  <title>{% block title %}QR Totem{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
 </head>
 <body>
+  <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
+
   <div class="app-shell">
     <header class="app-header">
-      <div>
-        <p class="eyebrow">Gerenciamento</p>
-        <h1 class="brand-title">Sistema de pedidos</h1>
-      </div>
+      <a class="brand-area" href="{{ url_for('client.home') }}" aria-label="Ir para a página inicial">
+        <span class="brand-mark">QT</span>
+        <span>
+          <span class="eyebrow brand-eyebrow">QR Totem</span>
+          <strong class="brand-title">Sistema de pedidos</strong>
+        </span>
+      </a>
 
-      <nav class="app-nav">
+      <nav class="app-nav" aria-label="Menu principal">
         <a href="{{ url_for('client.home') }}">Cliente</a>
         <a href="{{ url_for('admin.login') }}">Admin</a>
         <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
@@ -33,7 +41,7 @@
 
     {% include 'partials/messages.html' %}
 
-    <main class="content-grid">
+    <main id="conteudo-principal" class="content-grid">
       {% block content %}{% endblock %}
     </main>
   </div>
