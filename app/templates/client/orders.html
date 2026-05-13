@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Pedidos da Mesa {{ table_number }}{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Acompanhamento do cliente</p>
+    <h2>Pedidos em andamento</h2>
+    <p class="muted">Veja os pedidos feitos na mesa {{ table_number }}. Esta tela é apenas para consulta.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('client.table_menu', table_number=table_number) }}">Voltar ao cardápio</a>
+</section>
+
+<div class="orders-grid">
+  {% for entry in orders %}
+    <article class="order-card status-{{ entry.order['status'] }}">
+      <div class="order-head">
+        <div>
+          <p class="order-id">Pedido #{{ entry.order['id'] }}</p>
+          <h3>{{ entry.order['customer_name'] }}</h3>
+        </div>
+        <span class="status-pill status-{{ entry.order['status'] }}">{{ entry.status_label }}</span>
+      </div>
+
+      <div class="order-meta">
+        <span>{{ entry.created_at_display }}</span>
+        <strong>{{ entry.order['total_amount']|currency }}</strong>
+      </div>
+
+      <p class="order-notes"><strong>Mesa:</strong> {{ entry.order['table_number'] }}</p>
+
+      {% if entry.order['notes'] %}
+        <p class="order-notes"><strong>Observações:</strong> {{ entry.order['notes'] }}</p>
+      {% endif %}
+
+      <ul class="order-items">
+        {% for item in entry['items'] %}
+          <li><strong>{{ item['quantity'] }}x</strong> {{ item['name'] }} <span>{{ item['unit_price']|currency }}</span></li>
+        {% endfor %}
+      </ul>
+    </article>
+  {% else %}
+    <div class="empty-state panel">
+      <h3>Nenhum pedido encontrado</h3>
+      <p class="muted">Quando você finalizar um pedido, ele aparecerá aqui com o status atualizado.</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

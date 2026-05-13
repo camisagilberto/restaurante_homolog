@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Carrinho da Mesa {{ table_number }}{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Resumo do pedido</p>
+    <h2>Mesa {{ table_number }}</h2>
+    <p class="muted">Revise os itens antes de enviar para a cozinha.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('client.table_menu', table_number=table_number) }}">Voltar ao cardápio</a>
+</section>
+
+<div class="cart-layout">
+  <section class="panel">
+    {% if cart %}
+      <div class="cart-list">
+        {% for item in cart %}
+          <article class="cart-item" data-cart-item data-product-id="{{ item['product_id'] }}">
+            <div class="cart-item-main">
+              <div>
+                <h4>{{ item['name'] }}</h4>
+                <p class="muted">{{ item['price']|currency }} cada</p>
+              </div>
+            </div>
+
+            <div class="cart-item-actions">
+              <div class="quantity-control compact">
+                <button type="button" class="icon-btn" data-cart-dec>−</button>
+                <input type="number" min="0" value="{{ item['quantity'] }}" class="qty-input" data-cart-qty>
+                <button type="button" class="icon-btn" data-cart-inc>+</button>
+              </div>
+              <button type="button" class="btn btn-secondary" data-cart-update>Atualizar</button>
+              <button type="button" class="btn btn-danger" data-cart-remove>Remover</button>
+              <p class="product-feedback" data-feedback></p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h3>Seu carrinho está vazio</h3>
+        <p class="muted">Adicione produtos no cardápio para continuar.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <aside class="panel summary-panel">
+    <h3>Resumo</h3>
+    <div class="summary-line"><span>Itens</span><strong id="cart-quantity">{{ cart_quantity }}</strong></div>
+    <div class="summary-line"><span>Total</span><strong id="cart-total">{{ cart_total|currency }}</strong></div>
+    <form id="finalize-order-form" class="stacked-form" method="post" action="{{ url_for('client.finalize_order') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <input type="hidden" name="table_number" value="{{ table_number }}">
+      <label for="customer_name">Seu nome</label>
+      <input id="customer_name" name="customer_name" type="text" placeholder="Digite seu nome completo" required>
+      <label for="notes">Observações</label>
+      <textarea id="notes" name="notes" rows="4" placeholder="Ex.: sem cebola, ponto da carne..."></textarea>
+      <button type="submit" class="btn btn-primary btn-block">Finalizar pedido</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}

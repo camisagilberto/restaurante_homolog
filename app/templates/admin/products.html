@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Produtos{% endblock %}
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Administração do cardápio</p>
+    <h2>Produtos</h2>
+    <p class="muted">Crie, edite e controle a disponibilidade dos itens do restaurante.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('admin.logout') }}">Sair</a>
+</section>
+
+<section class="summary-strip">
+  <div class="summary-card">
+    <span class="summary-label">Itens cadastrados</span>
+    <strong>{{ products|length }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Itens ativos</span>
+    <strong>{{ active_count }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" action="{{ url_for('admin.create_product_route') }}" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="name" placeholder="Ex.: Pizza Calabresa" required>
+      </div>
+      <div>
+        <label>Categoria</label>
+        <input type="text" name="category" placeholder="Ex.: Pizzas" required>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Preço</label>
+        <input type="text" name="price" placeholder="29,90" required>
+      </div>
+      <div>
+        <label>Ordem</label>
+        <input type="number" name="sort_order" value="0">
+      </div>
+    </div>
+    <div>
+      <label>Descrição</label>
+      <textarea name="description" rows="3" placeholder="Descrição opcional"></textarea>
+    </div>
+    <label class="check-inline"><input type="checkbox" name="active" checked> Produto ativo</label>
+    <button type="submit" class="btn btn-primary">Salvar produto</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Catálogo</h3>
+    <form method="get" class="search-form">
+      <input type="search" name="q" value="{{ query }}" placeholder="Buscar produto...">
+      <button class="btn btn-secondary" type="submit">Buscar</button>
+    </form>
+  </div>
+
+  <div class="admin-list">
+    {% for product in products %}
+      <article class="admin-row {% if not product['active'] %}is-muted{% endif %}">
+        <div class="admin-row-main">
+          <div>
+            <h4>{{ product['name'] }}</h4>
+            <p class="muted">{{ product['category'] }} · {{ product['price']|currency }}</p>
+            {% if product['description'] %}<p class="product-desc">{{ product['description'] }}</p>{% endif %}
+          </div>
+          <span class="status-pill {% if product['active'] %}status-success{% else %}status-muted{% endif %}">
+            {{ 'Ativo' if product['active'] else 'Inativo' }}
+          </span>
+        </div>
+
+        <div class="admin-row-actions">
+          <a class="btn btn-secondary" href="{{ url_for('admin.edit_product', product_id=product['id']) }}">Editar</a>
+          <form method="post" action="{{ url_for('admin.toggle_product_route', product_id=product['id']) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-secondary" type="submit">{{ 'Desativar' if product['active'] else 'Ativar' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.delete_product_route', product_id=product['id']) }}" onsubmit="return confirm('Remover este produto?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger" type="submit">Excluir</button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <h3>Nenhum produto encontrado</h3>
+        <p class="muted">Tente outro termo de busca ou cadastre um novo item.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

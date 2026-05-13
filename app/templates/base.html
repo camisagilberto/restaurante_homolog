@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Restaurante{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Gerenciamento</p>
+        <h1 class="brand-title">Sistema de pedidos</h1>
+      </div>
+      <nav class="app-nav">
+        <a href="{{ url_for('client.home') }}">Cliente</a>
+        <a href="{{ url_for('admin.login') }}">Admin</a>
+        <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
+      </nav>
+    </header>
+
+    {% include 'partials/messages.html' %}
+
+    <main class="content-grid">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

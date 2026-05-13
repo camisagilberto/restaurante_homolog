@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Editar produto{% endblock %}
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Administração do cardápio</p>
+    <h2>Editar produto</h2>
+    <p class="muted">Atualize nome, preço, categoria, ordem e descrição.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Voltar</a>
+</section>
+
+<section class="panel">
+  <form method="post" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="name" value="{{ product['name'] }}" required>
+      </div>
+      <div>
+        <label>Categoria</label>
+        <input type="text" name="category" value="{{ product['category'] }}" required>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Preço</label>
+        <input type="text" name="price" value="{{ '%.2f'|format(product['price']) }}" required>
+      </div>
+      <div>
+        <label>Ordem</label>
+        <input type="number" name="sort_order" value="{{ product['sort_order'] }}">
+      </div>
+    </div>
+    <div>
+      <label>Descrição</label>
+      <textarea name="description" rows="4">{{ product['description'] or '' }}</textarea>
+    </div>
+    <label class="check-inline"><input type="checkbox" name="active" {% if product['active'] %}checked{% endif %}> Produto ativo</label>
+    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+  </form>
+</section>
+{% endblock %}

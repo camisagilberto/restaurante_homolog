@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Cozinha{% endblock %}
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Operação em tempo real</p>
+    <h2>Cozinha</h2>
+    <p class="muted">Pedidos organizados do mais recente ao mais antigo, com ações rápidas por status.</p>
+  </div>
+  <button type="button" class="btn btn-danger" data-delete-orders>Apagar pedidos</button>
+</section>
+
+<div class="kitchen-grid">
+  {% for entry in orders %}
+    <article class="order-card status-{{ entry.order['status'] }}">
+      <div class="order-head">
+        <div>
+          <p class="order-id">Pedido #{{ entry.order['id'] }}</p>
+          <h3>Mesa {{ entry.order['table_number'] }}{% if entry.order['customer_name'] %} — {{ entry.order['customer_name'] }}{% endif %}</h3>
+        </div>
+        <span class="status-pill status-{{ entry.order['status'] }}">{{ entry.status_label }}</span>
+      </div>
+
+      <div class="order-meta">
+        <span>{{ entry.created_at_display }}</span>
+        <strong>{{ entry.order['total_amount']|currency }}</strong>
+      </div>
+
+      {% if entry.order['notes'] %}
+        <p class="order-notes"><strong>Observações:</strong> {{ entry.order['notes'] }}</p>
+      {% endif %}
+
+      <ul class="order-items">
+        {% for item in entry['items'] %}
+          <li><strong>{{ item['quantity'] }}x</strong> {{ item['name'] }} <span>{{ item['unit_price']|currency }}</span></li>
+        {% endfor %}
+      </ul>
+
+      <form method="post" action="{{ url_for('kitchen.update_status', order_id=entry.order['id']) }}" class="status-actions">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-secondary" name="status" value="preparando" type="submit">Preparando</button>
+        <button class="btn btn-secondary" name="status" value="pronto" type="submit">Pronto</button>
+        <button class="btn btn-secondary" name="status" value="entregue" type="submit">Entregue</button>
+      </form>
+    </article>
+  {% else %}
+    <div class="empty-state panel">
+      <h3>Nenhum pedido ainda</h3>
+      <p class="muted">Quando os clientes enviarem pedidos, eles aparecerão aqui.</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
