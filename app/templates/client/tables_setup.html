@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Cadastrar mesas{% endblock %}
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">QR Code das mesas</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name }}</h2>
+      <span class="badge-inline">{{ profile.username }}</span>
+    </div>
+    <p class="muted">
+      Informe quantas mesas existem no restaurante. Cada mesa terá um QR Code próprio, apontando para o cardápio já identificado com o número da mesa.
+    </p>
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Voltar aos produtos</a>
+    <a class="btn btn-secondary" href="{{ url_for('kitchen.orders') }}">Ver cozinha</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" class="stacked-form table-count-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-row">
+      <div>
+        <label for="table_count">Quantidade de mesas</label>
+        <input id="table_count" type="number" name="table_count" min="1" max="300" value="{{ table_count or '' }}" placeholder="Ex.: 20" required>
+      </div>
+      <div class="table-count-help">
+        <span class="summary-label">Como funciona</span>
+        <strong>1 mesa = 1 QR Code exclusivo</strong>
+        <p class="muted">Exemplo: a mesa 1 abre o link da mesa 1; a mesa 2 abre o link da mesa 2.</p>
+      </div>
+    </div>
+
+    <div class="status-actions">
+      <button type="submit" class="btn btn-primary">Gerar QR Codes</button>
+    </div>
+  </form>
+</section>
+
+{% if table_cards %}
+<section class="panel">
+  <div class="section-heading">
+    <div>
+      <h3>QR Codes gerados</h3>
+      <p class="muted">Imprima ou salve cada QR Code e coloque na mesa correspondente.</p>
+    </div>
+  </div>
+
+  <div class="qr-grid">
+    {% for table in table_cards %}
+      <article class="qr-card">
+        <div class="qr-card-head">
+          <strong>Mesa {{ table.number }}</strong>
+          <span class="status-pill status-success">Ativo</span>
+        </div>
+
+        <img class="qr-image" src="{{ table.qr_data_uri }}" alt="QR Code da mesa {{ table.number }}">
+
+        <p class="qr-url">{{ table.url }}</p>
+
+        <div class="status-actions">
+          <a class="btn btn-secondary btn-block" href="{{ table.qr_data_uri }}" download="mesa-{{ table.number }}-qrcode.png">Baixar QR</a>
+          <a class="btn btn-secondary btn-block" href="{{ table.url }}" target="_blank" rel="noopener">Testar link</a>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
