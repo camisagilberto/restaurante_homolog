@@ -207,3 +207,42 @@ input:focus, textarea:focus { border-color: rgba(37,99,235,.72); box-shadow: 0 0
   border-color: rgba(37, 99, 235, .72);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
 }
+.import-preview-list {
+  display: grid;
+  gap: 14px;
+}
+
+.import-preview-row {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  display: grid;
+  gap: 12px;
+}
+
+.import-preview-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.import-preview-row textarea {
+  min-height: 88px;
+}
+
+.import-preview-row select {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, .4);
+  background: #fff;
+  color: var(--text);
+  padding: 12px 14px;
+  outline: none;
+}
+
+.import-preview-row select:focus {
+  border-color: rgba(37, 99, 235, .72);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
+}
