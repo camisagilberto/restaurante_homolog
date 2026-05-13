@@ -8,7 +8,9 @@
       <h2>{{ profile.restaurant_name }}</h2>
       <span class="badge-inline">{{ profile.username }}</span>
     </div>
-    <p class="muted">Envie fotos nítidas das páginas do cardápio. O sistema vai tentar identificar os itens e já cadastrar os produtos.</p>
+    <p class="muted">
+      Envie fotos nítidas das páginas do cardápio. O sistema vai ler as imagens e abrir uma tela de revisão antes de salvar os produtos.
+    </p>
   </div>
 </section>
 
@@ -21,11 +23,15 @@
       <input id="menu_images" type="file" name="menu_images" accept="image/*" multiple required>
     </div>
 
-    <p class="muted note">Dica: envie uma foto por página, com boa luz e o cardápio ocupando quase toda a imagem.</p>
+    <p class="muted note">
+      Dicas para melhorar a leitura: envie uma foto por página, sem cortes, com boa luz e com o cardápio ocupando quase toda a imagem.
+      O sistema aceita padrões como “produto + preço na mesma linha”, preço embaixo do produto e categorias separadas.
+    </p>
 
     <div class="status-actions">
-      <button type="submit" class="btn btn-primary">Importar produtos</button>
+      <button type="submit" class="btn btn-primary">Ler imagens</button>
       <a class="btn btn-secondary" href="{{ url_for('client.products_start') }}">Voltar</a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Cadastrar manualmente</a>
     </div>
   </form>
 </section>
