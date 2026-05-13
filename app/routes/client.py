@@ -9,7 +9,7 @@ from ..services.auth_service import verify_manager_password
 from ..services.cart_service import add_item, clear_cart, find_item, get_cart, remove_item, save_cart, totals, update_item
 from ..services.catalog_service import list_products, validate_product_payload
 from ..services.menu_import_service import import_menu_uploads
-from ..services.onboarding_service import create_restaurant_account, get_restaurant_profile_for_admin
+from ..services.onboarding_service import create_restaurant_account, get_restaurant_profile_for_admin, update_restaurant_profile
 from ..services.order_service import create_order_from_cart, list_orders_for_table
 from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
 from ..utils import parse_positive_int
@@ -31,9 +31,10 @@ def _current_table() -> str:
     return str(session.get('current_table') or '1')
 
 
-def _restaurant_context() -> dict[str, str]:
+def _restaurant_context() -> dict:
     context = {
         'owner_name': session.get('restaurant_owner_name', ''),
+        'age': session.get('restaurant_owner_age', ''),
         'restaurant_name': session.get('restaurant_name', ''),
         'email': session.get('restaurant_email', ''),
         'cnpj': session.get('restaurant_cnpj', ''),
@@ -51,6 +52,7 @@ def _restaurant_context() -> dict[str, str]:
             context.update(
                 {
                     'owner_name': profile['owner_name'],
+                    'age': profile['age'],
                     'restaurant_name': profile['restaurant_name'],
                     'email': profile['email'],
                     'cnpj': profile['cnpj'],
@@ -84,6 +86,7 @@ def signup():
             session['admin_id'] = account['admin_id']
             session['admin_username'] = account['username']
             session['restaurant_owner_name'] = account['owner_name']
+            session['restaurant_owner_age'] = account['age']
             session['restaurant_name'] = account['restaurant_name']
             session['restaurant_email'] = account['email']
             session['restaurant_cnpj'] = account['cnpj']
@@ -102,6 +105,36 @@ def products_start():
     if not profile.get('restaurant_name'):
         return redirect(url_for('client.signup'))
     return render_template('client/products_start.html', profile=profile, csrf=csrf_token())
+
+
+@client_bp.route('/perfil', methods=['GET', 'POST'])
+@login_required
+def profile():
+    profile_data = _restaurant_context()
+
+    if not profile_data.get('restaurant_name'):
+        return redirect(url_for('client.signup'))
+
+    db = get_db()
+
+    if request.method == 'POST':
+        try:
+            updated = update_restaurant_profile(db, session.get('admin_id'), request.form.to_dict(flat=True))
+        except ValidationError as exc:
+            flash(str(exc), 'error')
+        else:
+            session['restaurant_owner_name'] = updated['owner_name']
+            session['restaurant_owner_age'] = updated['age']
+            session['restaurant_name'] = updated['restaurant_name']
+            session['restaurant_email'] = updated['email']
+            session['restaurant_cnpj'] = updated['cnpj']
+            session['restaurant_address'] = updated['restaurant_address']
+            session['restaurant_cell_phone'] = updated['cell_phone']
+            flash('Cadastro atualizado com sucesso.', 'success')
+            return redirect(url_for('client.profile'))
+
+    profile_data = _restaurant_context()
+    return render_template('client/profile.html', profile=profile_data, csrf=csrf_token())
 
 
 @client_bp.route('/mesas', methods=['GET', 'POST'])
