@@ -168,7 +168,7 @@ def tables_setup():
             {
                 'number': table_number,
                 'url': table_url,
-                'qr_data_uri': build_qr_code_data_uri(table_url),
+                'qr_data_uri': build_qr_code_data_uri(table_url, table_number),
             }
         )
 
