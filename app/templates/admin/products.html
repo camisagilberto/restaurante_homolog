@@ -1,13 +1,22 @@
 {% extends 'base.html' %}
 {% block title %}Produtos{% endblock %}
 {% block content %}
-<section class="hero-card">
-  <div>
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
     <p class="eyebrow">Administração do cardápio</p>
-    <h2>Produtos</h2>
-    <p class="muted">Crie, edite e controle a disponibilidade dos itens do restaurante.</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name or 'Produtos' }}</h2>
+      <span class="badge-inline">{{ profile.username or 'Usuário' }}</span>
+    </div>
+    <p class="muted">Responsável: <strong>{{ profile.owner_name or '—' }}</strong></p>
+    <p class="muted">Endereço: {{ profile.restaurant_address or '—' }}</p>
   </div>
-  <a class="btn btn-secondary" href="{{ url_for('admin.logout') }}">Sair</a>
+
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="{{ url_for('client.scan_menu') }}">Scannear cardápio</a>
+    <a class="btn btn-secondary" href="{{ url_for('client.products_start') }}">Voltar ao início</a>
+    <a class="btn btn-secondary" href="{{ url_for('admin.logout') }}">Sair</a>
+  </div>
 </section>
 
 <section class="summary-strip">
