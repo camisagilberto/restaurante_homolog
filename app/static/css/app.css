@@ -664,70 +664,54 @@ textarea:focus {
   box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
 }
 
-@media (max-width: 920px) {
-  .hero-card,
-  .cart-layout,
-  .auth-layout,
-  .form-row,
-  .summary-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-card,
-  .auth-layout,
-  .cart-layout {
-    display: grid;
-  }
-
-  .summary-panel {
-    position: static;
-  }
+.profile-menu {
+  position: relative;
 }
 
-@media (max-width: 640px) {
-  .app-shell {
-    width: min(100% - 20px, 1180px);
-    padding-top: 12px;
-  }
+.profile-menu summary {
+  list-style: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
 
-  .app-header {
-    padding: 16px;
-  }
+.profile-menu summary::-webkit-details-marker {
+  display: none;
+}
 
-  .section-block,
-  .panel,
-  .hero-card {
-    padding: 18px;
-  }
+.profile-menu[open] summary {
+  background: var(--secondary);
+}
 
-  .app-nav {
-    width: 100%;
-  }
+.profile-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 190px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: white;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 6px;
+}
 
-  .app-nav a {
-    flex: 1 1 0;
-    text-align: center;
-  }
+.profile-menu-panel a {
+  display: block;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+}
 
-  .cart-item-actions,
-  .admin-row-actions,
-  .status-actions,
-  .section-heading,
-  .order-head,
-  .order-meta,
-  .product-head,
-  .cart-item-main {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .product-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-actions {
-    width: 100%;
-  }
+.profile-menu-panel a:hover {
+  background: rgba(148, 163, 184, .16);
 }
 
 .table-count-form {
@@ -791,12 +775,84 @@ textarea:focus {
 }
 
 @media (max-width: 920px) {
+  .hero-card,
+  .cart-layout,
+  .auth-layout,
+  .form-row,
+  .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-card,
+  .auth-layout,
+  .cart-layout {
+    display: grid;
+  }
+
+  .summary-panel {
+    position: static;
+  }
+
   .qr-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
+  .app-shell {
+    width: min(100% - 20px, 1180px);
+    padding-top: 12px;
+  }
+
+  .app-header {
+    padding: 16px;
+  }
+
+  .section-block,
+  .panel,
+  .hero-card {
+    padding: 18px;
+  }
+
+  .app-nav {
+    width: 100%;
+  }
+
+  .app-nav a,
+  .profile-menu {
+    flex: 1 1 0;
+    text-align: center;
+  }
+
+  .profile-menu summary {
+    text-align: center;
+  }
+
+  .profile-menu-panel {
+    position: static;
+    margin-top: 8px;
+  }
+
+  .cart-item-actions,
+  .admin-row-actions,
+  .status-actions,
+  .section-heading,
+  .order-head,
+  .order-meta,
+  .product-head,
+  .cart-item-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
   .qr-grid {
     grid-template-columns: 1fr;
   }
