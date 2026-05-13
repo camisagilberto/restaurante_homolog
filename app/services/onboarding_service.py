@@ -129,7 +129,75 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
         'restaurant_address': data['restaurant_address'],
         'cell_phone': data['cell_phone'],
         'age': data['age'],
+        'table_count': 0,
     }
+
+
+def validate_profile_update_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    owner_name = normalize_text(payload.get('owner_name'))
+    restaurant_name = normalize_text(payload.get('restaurant_name'))
+    restaurant_address = normalize_text(payload.get('restaurant_address'))
+
+    email = normalize_text(payload.get('email')).lower()
+    cnpj = _only_digits(payload.get('cnpj'))
+    cell_phone = _only_digits(payload.get('cell_phone'))
+    age = _validate_age(payload.get('age'))
+
+    if not owner_name:
+        raise ValidationError('Informe o nome.')
+    if not restaurant_name:
+        raise ValidationError('Informe o nome do restaurante.')
+    if not restaurant_address:
+        raise ValidationError('Informe o endereço do restaurante.')
+    if not email:
+        raise ValidationError('Informe o e-mail.')
+    _validate_email(email)
+    if len(cnpj) != 14:
+        raise ValidationError('Informe um CNPJ válido.')
+    if len(cell_phone) < 10:
+        raise ValidationError('Informe um celular válido.')
+
+    return {
+        'owner_name': owner_name,
+        'age': age,
+        'email': email,
+        'restaurant_name': restaurant_name,
+        'cnpj': cnpj,
+        'restaurant_address': restaurant_address,
+        'cell_phone': cell_phone,
+    }
+
+
+def update_restaurant_profile(db, admin_id: int | None, payload: dict[str, Any]) -> dict[str, Any]:
+    if not admin_id:
+        raise ValidationError('Sessão inválida. Faça login novamente.')
+
+    data = validate_profile_update_payload(payload)
+    db.execute(
+        '''
+        UPDATE restaurant_profiles
+           SET owner_name = ?,
+               age = ?,
+               email = ?,
+               restaurant_name = ?,
+               cnpj = ?,
+               restaurant_address = ?,
+               cell_phone = ?
+         WHERE admin_id = ?
+        ''',
+        (
+            data['owner_name'],
+            data['age'],
+            data['email'],
+            data['restaurant_name'],
+            data['cnpj'],
+            data['restaurant_address'],
+            data['cell_phone'],
+            admin_id,
+        ),
+    )
+    db.commit()
+    return data
 
 
 def get_restaurant_profile_for_admin(db, admin_id: int | None):
