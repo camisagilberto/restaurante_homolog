@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS restaurant_profiles (
     cnpj TEXT NOT NULL,
     restaurant_address TEXT NOT NULL,
     cell_phone TEXT NOT NULL,
+    table_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
 );
@@ -165,6 +166,9 @@ def _seed_defaults(db: sqlite3.Connection) -> None:
 
 
 def migrate_schema(db: sqlite3.Connection) -> None:
+    if _table_exists(db, 'restaurant_profiles'):
+        _ensure_column(db, 'restaurant_profiles', 'table_count INTEGER NOT NULL DEFAULT 0')
+
     if _table_exists(db, 'products'):
         for column_def in [
             'description TEXT',
