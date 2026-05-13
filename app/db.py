@@ -19,6 +19,20 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS restaurant_profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id INTEGER NOT NULL UNIQUE,
+    owner_name TEXT NOT NULL,
+    age INTEGER NOT NULL,
+    email TEXT NOT NULL,
+    restaurant_name TEXT NOT NULL,
+    cnpj TEXT NOT NULL,
+    restaurant_address TEXT NOT NULL,
+    cell_phone TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
