@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Perfil{% endblock %}
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Perfil</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name }}</h2>
+      <span class="badge-inline">{{ profile.username }}</span>
+    </div>
+    <p class="muted">Atualize os dados do responsável e do restaurante.</p>
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('client.tables_setup') }}">Editar mesas</a>
+    <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Voltar aos produtos</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-row">
+      <div>
+        <label for="owner_name">Nome</label>
+        <input id="owner_name" type="text" name="owner_name" value="{{ profile.owner_name }}" required>
+      </div>
+      <div>
+        <label for="age">Idade</label>
+        <input id="age" type="number" name="age" min="1" max="120" value="{{ profile.age }}" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label for="email">E-mail</label>
+        <input id="email" type="email" name="email" value="{{ profile.email }}" required>
+      </div>
+      <div>
+        <label for="restaurant_name">Nome do restaurante</label>
+        <input id="restaurant_name" type="text" name="restaurant_name" value="{{ profile.restaurant_name }}" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label for="cnpj">CNPJ</label>
+        <input id="cnpj" type="text" name="cnpj" value="{{ profile.cnpj }}" required>
+      </div>
+      <div>
+        <label for="cell_phone">Celular</label>
+        <input id="cell_phone" type="tel" name="cell_phone" value="{{ profile.cell_phone }}" required>
+      </div>
+    </div>
+
+    <div>
+      <label for="restaurant_address">Endereço do restaurante</label>
+      <input id="restaurant_address" type="text" name="restaurant_address" value="{{ profile.restaurant_address }}" required>
+    </div>
+
+    <div class="status-actions">
+      <button type="submit" class="btn btn-primary">Salvar cadastro</button>
+      <a class="btn btn-secondary" href="{{ url_for('client.products_start') }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
