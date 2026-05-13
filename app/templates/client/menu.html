@@ -1,96 +1,38 @@
 {% extends 'base.html' %}
-{% block title %}Mesa {{ table_number }}{% endblock %}
-
+{% block title %}Scannear cardápio{% endblock %}
 {% block content %}
 <section class="hero-card hero-card--table">
   <div class="hero-card-copy">
-    <p class="eyebrow">Atendimento da mesa</p>
+    <p class="eyebrow">Importação automática</p>
     <div class="table-title-row">
-      <h2>Mesa <span id="table-number-label">{{ table_number }}</span></h2>
-      <button type="button" class="btn btn-secondary btn-sm table-edit-trigger" data-open-table-editor>
-        Editar mesa
-      </button>
+      <h2>{{ profile.restaurant_name }}</h2>
+      <span class="badge-inline">{{ profile.username }}</span>
     </div>
-    <p class="muted">Escolha os itens, ajuste quantidades e finalize quando estiver pronto.</p>
-  </div>
-  <div class="hero-actions">
-    <a class="btn btn-secondary" href="{{ url_for('client.cart') }}">
-      Ver Carrinho <span class="badge-inline" id="cart-count">{{ cart_quantity }}</span>
-    </a>
-    <a class="btn btn-secondary" href="{{ url_for('client.order_history') }}">Ver pedidos em andamento</a>
+    <p class="muted">
+      Envie fotos nítidas das páginas do cardápio. O sistema vai tentar identificar produtos, categorias, preços e descrições.
+      Depois, você revisa tudo antes de salvar.
+    </p>
   </div>
 </section>
 
-<section class="summary-strip">
-  <div class="summary-card">
-    <span class="summary-label">Itens do Carrinho</span>
-    <strong id="menu-cart-quantity">{{ cart_quantity }}</strong>
-  </div>
-  <div class="summary-card">
-    <span class="summary-label">Total Parcial</span>
-    <strong id="menu-cart-total">{{ cart_total|currency }}</strong>
-  </div>
+<section class="panel">
+  <form method="post" enctype="multipart/form-data" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label for="menu_images">Fotos do cardápio</label>
+      <input id="menu_images" type="file" name="menu_images" accept="image/*" multiple required>
+    </div>
+
+    <p class="muted note">
+      O sistema aceita cardápios com categorias, produtos numerados, descrição abaixo do item, preço em coluna e cardápios promocionais com nome + preço próximos.
+    </p>
+
+    <div class="status-actions">
+      <button type="submit" class="btn btn-primary">Ler imagens</button>
+      <a class="btn btn-secondary" href="{{ url_for('client.products_start') }}">Voltar</a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Cadastrar manualmente</a>
+    </div>
+  </form>
 </section>
-
-{% for category, items in grouped_products.items() %}
-  <section class="section-block">
-    <div class="section-heading">
-      <h3>{{ category }}</h3>
-      <span class="muted">{{ items|length }} item(ns)</span>
-    </div>
-
-    <div class="product-grid">
-      {% for product in items %}
-        <article class="product-card" data-product-id="{{ product['id'] }}">
-          <div class="product-head">
-            <div>
-              <h4>{{ product['name'] }}</h4>
-              {% if product['description'] %}<p class="muted product-desc">{{ product['description'] }}</p>{% endif %}
-            </div>
-            <div class="product-price">{{ product['price']|currency }}</div>
-          </div>
-
-          <div class="quantity-control">
-            <button type="button" class="icon-btn" data-qty-dec aria-label="Diminuir">−</button>
-            <input type="number" min="0" value="0" class="qty-input" data-qty-input>
-            <button type="button" class="icon-btn" data-qty-inc aria-label="Aumentar">+</button>
-          </div>
-
-          <button type="button" class="btn btn-primary btn-block" data-add-to-cart>
-            Adicionar ao carrinho
-          </button>
-          <p class="product-feedback" data-feedback></p>
-        </article>
-      {% endfor %}
-    </div>
-  </section>
-{% endfor %}
-
-<dialog class="table-edit-dialog" data-table-editor>
-  <form method="dialog" class="dialog-backdrop" data-close-table-editor></form>
-  <div class="dialog-panel panel">
-    <div class="dialog-header">
-      <div>
-        <p class="eyebrow">Gestão da mesa</p>
-        <h3>Editar mesa atual</h3>
-        <p class="muted">Informe o novo número e a senha do gerente para confirmar.</p>
-      </div>
-      <button type="button" class="icon-btn" aria-label="Fechar" data-close-table-editor>×</button>
-    </div>
-
-    <form class="stacked-form" data-table-editor-form>
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label for="table_number">Número da mesa</label>
-      <input id="table_number" name="table_number" type="number" min="1" max="999" value="{{ table_number }}" required>
-
-      <label for="manager_password">Senha do gerente</label>
-      <input id="manager_password" name="manager_password" type="password" autocomplete="current-password" required>
-
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-secondary" data-close-table-editor>Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar alteração</button>
-      </div>
-    </form>
-  </div>
-</dialog>
 {% endblock %}
