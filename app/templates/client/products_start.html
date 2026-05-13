@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Produtos início{% endblock %}
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Cadastro inicial</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name }}</h2>
+      <span class="badge-inline">{{ profile.username }}</span>
+    </div>
+    <p class="muted">Responsável: <strong>{{ profile.owner_name }}</strong></p>
+    <p class="muted">Endereço: {{ profile.restaurant_address }}</p>
+  </div>
+</section>
+
+<section class="summary-strip">
+  <div class="summary-card">
+    <span class="summary-label">Usuário</span>
+    <strong>{{ profile.username }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Restaurante</span>
+    <strong>{{ profile.restaurant_name }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Celular</span>
+    <strong>{{ profile.cell_phone }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">CNPJ</span>
+    <strong>{{ profile.cnpj }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Como deseja cadastrar os produtos?</h3>
+    <p class="muted">Escolha uma opção para seguir para a primeira carga do cardápio.</p>
+  </div>
+
+  <div class="status-actions">
+    <a class="btn btn-primary" href="{{ url_for('client.scan_menu') }}">Scannear cardápio</a>
+    <a class="btn btn-secondary" href="{{ url_for('client.products_manual') }}">Cadastrar manualmente</a>
+  </div>
+</section>
+{% endblock %}
