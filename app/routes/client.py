@@ -3,10 +3,13 @@ from __future__ import annotations
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 
 from ..db import get_db
+from ..errors import ValidationError
 from ..security import csrf_token
 from ..services.auth_service import verify_manager_password
 from ..services.cart_service import add_item, clear_cart, find_item, get_cart, remove_item, save_cart, totals, update_item
 from ..services.catalog_service import list_products
+from ..services.menu_import_service import import_menu_uploads
+from ..services.onboarding_service import create_restaurant_account, get_restaurant_profile_for_admin
 from ..services.order_service import create_order_from_cart, list_orders_for_table
 from ..utils import parse_positive_int
 
@@ -25,9 +28,102 @@ def _current_table() -> str:
     return str(session.get('current_table') or '1')
 
 
-@client_bp.route("/")
+def _restaurant_context() -> dict[str, str]:
+    context = {
+        'owner_name': session.get('restaurant_owner_name', ''),
+        'restaurant_name': session.get('restaurant_name', ''),
+        'email': session.get('restaurant_email', ''),
+        'cnpj': session.get('restaurant_cnpj', ''),
+        'restaurant_address': session.get('restaurant_address', ''),
+        'cell_phone': session.get('restaurant_cell_phone', ''),
+        'username': session.get('admin_username', ''),
+    }
+
+    admin_id = session.get('admin_id')
+    if admin_id:
+        db = get_db()
+        profile = get_restaurant_profile_for_admin(db, admin_id)
+        if profile:
+            context.update(
+                {
+                    'owner_name': profile['owner_name'],
+                    'restaurant_name': profile['restaurant_name'],
+                    'email': profile['email'],
+                    'cnpj': profile['cnpj'],
+                    'restaurant_address': profile['restaurant_address'],
+                    'cell_phone': profile['cell_phone'],
+                    'username': profile['username'],
+                }
+            )
+    return context
+
+
+@client_bp.route('/')
 def home():
-    return render_template("landing.html")
+    return render_template('landing.html')
+
+
+@client_bp.route('/cadastro', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        db = get_db()
+        try:
+            account = create_restaurant_account(db, request.form.to_dict(flat=True))
+        except ValidationError as exc:
+            flash(str(exc), 'error')
+        except Exception:
+            flash('Não foi possível criar o acesso agora.', 'error')
+        else:
+            session.clear()
+            session['admin_logged_in'] = True
+            session['admin_id'] = account['admin_id']
+            session['admin_username'] = account['username']
+            session['restaurant_owner_name'] = account['owner_name']
+            session['restaurant_name'] = account['restaurant_name']
+            session['restaurant_email'] = account['email']
+            session['restaurant_cnpj'] = account['cnpj']
+            session['restaurant_address'] = account['restaurant_address']
+            session['restaurant_cell_phone'] = account['cell_phone']
+            flash('Cadastro realizado com sucesso.', 'success')
+            return redirect(url_for('client.products_start'))
+
+    return render_template('client/signup.html', csrf=csrf_token())
+
+
+@client_bp.route('/produtos-inicio')
+def products_start():
+    profile = _restaurant_context()
+    if not profile.get('restaurant_name'):
+        return redirect(url_for('client.signup'))
+    return render_template('client/products_start.html', profile=profile, csrf=csrf_token())
+
+
+@client_bp.route('/produtos-inicio/manual')
+def products_manual():
+    return redirect(url_for('admin.products'))
+
+
+@client_bp.route('/produtos-inicio/scannear', methods=['GET', 'POST'])
+def scan_menu():
+    profile = _restaurant_context()
+    if not profile.get('restaurant_name'):
+        return redirect(url_for('client.signup'))
+
+    if request.method == 'POST':
+        uploads = request.files.getlist('menu_images')
+        db = get_db()
+        try:
+            result = import_menu_uploads(db, uploads)
+        except ValidationError as exc:
+            flash(str(exc), 'error')
+        else:
+            flash(
+                f'{result["created"]} produto(s) importado(s). {result["skipped"]} já existiam e foram ignorados.',
+                'success',
+            )
+            return redirect(url_for('admin.products'))
+
+    return render_template('client/scan_menu.html', profile=profile, csrf=csrf_token())
 
 
 @client_bp.route('/mesa/<table_number>')
