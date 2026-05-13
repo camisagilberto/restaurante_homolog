@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Scannear cardápio{% endblock %}
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Importação automática</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name }}</h2>
+      <span class="badge-inline">{{ profile.username }}</span>
+    </div>
+    <p class="muted">Envie fotos nítidas das páginas do cardápio. O sistema vai tentar identificar os itens e já cadastrar os produtos.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" enctype="multipart/form-data" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label for="menu_images">Fotos do cardápio</label>
+      <input id="menu_images" type="file" name="menu_images" accept="image/*" multiple required>
+    </div>
+
+    <p class="muted note">Dica: envie uma foto por página, com boa luz e o cardápio ocupando quase toda a imagem.</p>
+
+    <div class="status-actions">
+      <button type="submit" class="btn btn-primary">Importar produtos</button>
+      <a class="btn btn-secondary" href="{{ url_for('client.products_start') }}">Voltar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
