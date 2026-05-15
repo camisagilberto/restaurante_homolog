@@ -11,6 +11,18 @@
     :root {
       --page-bg: #ffffff;
       --focus-color: #ff7a00;
+      --orange: #ff5a00;
+      --orange-2: #ff8a00;
+      --yellow: #ffd400;
+      --text: #071126;
+      --muted: #4b5563;
+      --soft: #fff7ed;
+      --line: #f0e5dc;
+      --green: #22c55e;
+      --red: #ef4444;
+      --shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
+      --shadow-soft: 0 14px 35px rgba(15, 23, 42, 0.08);
+      --radius: 28px;
     }
 
     * {
@@ -29,8 +41,34 @@
 
     body {
       overflow-x: hidden;
+      color: var(--text);
     }
 
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /*
+      Controle das versões:
+      - Mobile fica exatamente como a landing atual.
+      - Desktop aparece apenas em telas grandes.
+    */
+    .landing-mobile {
+      display: block;
+    }
+
+    .landing-desktop {
+      display: none;
+    }
+
+    /*
+      =========================================================
+      VERSÃO MOBILE ORIGINAL
+      =========================================================
+      Esta parte mantém a landing atual baseada na imagem.
+      Não altere esta estrutura se quiser preservar o celular.
+    */
     .landing-page {
       width: 100%;
       min-height: 100vh;
@@ -57,15 +95,6 @@
       -webkit-user-drag: none;
     }
 
-    /*
-      Botões reais sobre a imagem.
-
-      Eles ficam transparentes para manter a landing exatamente com o visual
-      da imagem original, mas continuam clicáveis.
-
-      Todos estão apontando para /cadastro, que é a rota já existente
-      do seu projeto para criar conta.
-    */
     .landing-hotspot {
       position: absolute;
       display: block;
@@ -86,14 +115,6 @@
       background: rgba(255, 122, 0, 0.08);
     }
 
-    /*
-      Coordenadas baseadas na imagem 760x1600.
-
-      left/top/width/height estão em porcentagem para manter a proporção
-      perfeita em desktop e celular.
-    */
-
-    /* Botão "Criar conta" no passo 1 */
     .hotspot-create-account-step {
       left: 4.3%;
       top: 45.7%;
@@ -101,7 +122,6 @@
       height: 2.4%;
     }
 
-    /* Botão "Salvar chave" no passo 3 */
     .hotspot-save-pix {
       left: 42.4%;
       top: 45.7%;
@@ -109,7 +129,6 @@
       height: 2.4%;
     }
 
-    /* Botão "Salvar" no passo 4 */
     .hotspot-save-tables {
       left: 61.7%;
       top: 45.7%;
@@ -117,7 +136,6 @@
       height: 2.4%;
     }
 
-    /* Botão "Baixar QR Codes" no passo 5 */
     .hotspot-download-qrcodes {
       left: 80.2%;
       top: 45.7%;
@@ -125,27 +143,12 @@
       height: 2.4%;
     }
 
-    /* Botão grande "COMEÇAR AGORA" no rodapé */
     .hotspot-main-cta {
       left: 53.8%;
       top: 92.5%;
       width: 37.2%;
       height: 5.0%;
       border-radius: 18px;
-    }
-
-    /*
-      Em telas maiores, mantém a imagem no tamanho original.
-      Em telas menores, a imagem reduz proporcionalmente.
-    */
-    @media (min-width: 761px) {
-      .landing-page {
-        padding: 0;
-      }
-
-      .landing-art {
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.02);
-      }
     }
 
     @media (max-width: 480px) {
@@ -158,11 +161,755 @@
         outline-offset: 2px;
       }
     }
+
+    /*
+      =========================================================
+      VERSÃO DESKTOP / NOTEBOOK
+      =========================================================
+    */
+    @media (min-width: 900px) {
+      body {
+        background:
+          radial-gradient(circle at 12% 8%, rgba(255, 122, 0, 0.14), transparent 28%),
+          radial-gradient(circle at 86% 12%, rgba(255, 212, 0, 0.12), transparent 25%),
+          linear-gradient(180deg, #ffffff 0%, #fffaf5 48%, #ffffff 100%);
+      }
+
+      .landing-mobile {
+        display: none;
+      }
+
+      .landing-desktop {
+        display: block;
+        width: 100%;
+        min-height: 100vh;
+      }
+
+      .desktop-shell {
+        width: min(1220px, calc(100% - 64px));
+        margin: 0 auto;
+        padding: 28px 0 34px;
+      }
+
+      .desktop-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 26px;
+      }
+
+      .desktop-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        font-size: 1.35rem;
+      }
+
+      .desktop-brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--orange), var(--orange-2));
+        box-shadow: 0 12px 26px rgba(255, 90, 0, 0.28);
+      }
+
+      .desktop-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .desktop-header-link {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 90, 0, 0.22);
+        background: rgba(255, 255, 255, 0.82);
+        color: var(--text);
+        font-weight: 800;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+        transition: transform .18s ease, box-shadow .18s ease;
+      }
+
+      .desktop-header-link:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .desktop-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.02fr) minmax(430px, 0.98fr);
+        gap: 34px;
+        align-items: center;
+        min-height: calc(100vh - 120px);
+      }
+
+      .desktop-copy {
+        padding: 18px 0 18px;
+      }
+
+      .desktop-badge {
+        width: fit-content;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        margin-bottom: 18px;
+        border-radius: 999px;
+        background: rgba(255, 90, 0, 0.09);
+        color: #c2410c;
+        font-size: .86rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+      }
+
+      .desktop-badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--orange);
+        box-shadow: 0 0 0 6px rgba(255, 90, 0, 0.14);
+      }
+
+      .desktop-title {
+        margin: 0;
+        max-width: 680px;
+        font-size: clamp(3rem, 5vw, 5.2rem);
+        line-height: .96;
+        letter-spacing: -0.075em;
+        color: var(--text);
+      }
+
+      .desktop-title span {
+        color: var(--orange);
+      }
+
+      .desktop-subtitle {
+        max-width: 610px;
+        margin: 22px 0 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 1.3vw, 1.25rem);
+        line-height: 1.5;
+        font-weight: 700;
+      }
+
+      .desktop-subtitle strong {
+        color: var(--orange);
+      }
+
+      .desktop-price-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 22px;
+        align-items: center;
+        max-width: 700px;
+        margin: 28px 0 0;
+        padding: 22px 26px;
+        border: 2px solid rgba(255, 90, 0, 0.58);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .desktop-price-kicker {
+        margin: 0 0 8px;
+        font-size: .98rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+      }
+
+      .desktop-price-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        line-height: .9;
+      }
+
+      .desktop-price-currency {
+        font-size: 2.2rem;
+        font-weight: 900;
+        letter-spacing: -0.07em;
+      }
+
+      .desktop-price-value {
+        font-size: clamp(4.1rem, 6vw, 6.8rem);
+        color: var(--orange);
+        font-weight: 950;
+        letter-spacing: -0.095em;
+      }
+
+      .desktop-price-cents {
+        align-self: flex-start;
+        padding-top: 8px;
+        color: var(--orange);
+        font-size: 2.2rem;
+        font-weight: 950;
+        letter-spacing: -0.08em;
+      }
+
+      .desktop-price-month {
+        padding-bottom: 6px;
+        font-size: 1.7rem;
+        font-weight: 900;
+      }
+
+      .desktop-benefits {
+        display: grid;
+        gap: 10px;
+        min-width: 215px;
+      }
+
+      .desktop-benefit {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #1f2937;
+        font-size: .98rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .desktop-check {
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
+        border-radius: 999px;
+        border: 2px solid var(--green);
+        color: var(--green);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .82rem;
+        font-weight: 950;
+      }
+
+      .desktop-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-top: 26px;
+      }
+
+      .desktop-main-button {
+        min-height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 16px 30px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, var(--yellow), #ffbc00);
+        color: #111827;
+        font-size: 1.05rem;
+        font-weight: 950;
+        text-transform: uppercase;
+        letter-spacing: .01em;
+        box-shadow: 0 16px 35px rgba(255, 188, 0, 0.28);
+        transition: transform .18s ease, box-shadow .18s ease;
+      }
+
+      .desktop-main-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 42px rgba(255, 188, 0, 0.38);
+      }
+
+      .desktop-secondary-note {
+        color: var(--muted);
+        font-weight: 800;
+        font-size: .98rem;
+      }
+
+      .desktop-visual {
+        position: relative;
+        min-height: 620px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .desktop-visual-card {
+        position: relative;
+        width: 100%;
+        max-width: 540px;
+        min-height: 585px;
+        border-radius: 42px;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,247,237,0.9)),
+          radial-gradient(circle at 20% 15%, rgba(255, 90, 0, .18), transparent 30%);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .desktop-visual-card::before {
+        content: "";
+        position: absolute;
+        width: 340px;
+        height: 340px;
+        right: -120px;
+        top: -105px;
+        border-radius: 999px;
+        background: rgba(255, 90, 0, 0.10);
+      }
+
+      .desktop-visual-card::after {
+        content: "";
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        left: -120px;
+        bottom: -95px;
+        border-radius: 999px;
+        background: rgba(255, 212, 0, 0.18);
+      }
+
+      .desktop-phone {
+        position: absolute;
+        right: 42px;
+        top: 58px;
+        width: 205px;
+        height: 395px;
+        border-radius: 34px;
+        background: #101827;
+        padding: 12px;
+        box-shadow: 0 28px 52px rgba(15, 23, 42, 0.26);
+        transform: rotate(5deg);
+        z-index: 3;
+      }
+
+      .desktop-phone-screen {
+        width: 100%;
+        height: 100%;
+        border-radius: 25px;
+        background: #ffffff;
+        padding: 20px 14px;
+        overflow: hidden;
+      }
+
+      .desktop-phone-brand {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 15px;
+        font-size: .76rem;
+        font-weight: 950;
+      }
+
+      .desktop-phone-brand span {
+        color: var(--orange);
+      }
+
+      .desktop-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 9px 0;
+        border-bottom: 1px solid #eef2f7;
+      }
+
+      .desktop-food {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        background:
+          radial-gradient(circle at 36% 35%, #facc15 0 22%, transparent 23%),
+          linear-gradient(135deg, #fb923c, #c2410c);
+      }
+
+      .desktop-menu-lines {
+        flex: 1;
+        display: grid;
+        gap: 5px;
+      }
+
+      .desktop-menu-lines i {
+        display: block;
+        height: 7px;
+        border-radius: 999px;
+        background: #e5e7eb;
+      }
+
+      .desktop-menu-lines i:first-child {
+        width: 82%;
+        background: #cbd5e1;
+      }
+
+      .desktop-menu-plus {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: var(--orange);
+        font-size: .86rem;
+        font-weight: 900;
+      }
+
+      .desktop-phone-button {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 20px;
+        min-height: 42px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: var(--orange);
+        font-size: .78rem;
+        font-weight: 900;
+      }
+
+      .desktop-qr-stand {
+        position: absolute;
+        left: 58px;
+        bottom: 92px;
+        width: 190px;
+        min-height: 240px;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 22px 42px rgba(15, 23, 42, 0.13);
+        border: 1px solid #eef2f7;
+        padding: 19px 18px 18px;
+        z-index: 4;
+        transform: rotate(-3deg);
+      }
+
+      .desktop-qr-brand {
+        margin-bottom: 13px;
+        font-weight: 950;
+        font-size: 1rem;
+        letter-spacing: -0.04em;
+      }
+
+      .desktop-qr-brand span {
+        color: var(--orange);
+      }
+
+      .desktop-qr {
+        width: 132px;
+        height: 132px;
+        margin: 0 auto;
+        background:
+          linear-gradient(90deg, #111827 10px, transparent 10px) 0 0 / 24px 24px,
+          linear-gradient(#111827 10px, transparent 10px) 0 0 / 24px 24px,
+          linear-gradient(90deg, transparent 8px, #111827 8px 14px, transparent 14px) 0 0 / 32px 32px,
+          #ffffff;
+        border: 9px solid #ffffff;
+        outline: 7px solid #111827;
+        box-shadow: inset 0 0 0 6px #ffffff;
+      }
+
+      .desktop-table-label {
+        margin: 18px 0 0;
+        text-align: center;
+        color: var(--orange);
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .desktop-people {
+        position: absolute;
+        left: 52px;
+        right: 52px;
+        bottom: 26px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        z-index: 2;
+        opacity: .95;
+      }
+
+      .person {
+        position: relative;
+        width: 72px;
+        height: 118px;
+        border-radius: 35px 35px 18px 18px;
+        background: linear-gradient(180deg, #1f2937, #111827);
+      }
+
+      .person::before {
+        content: "";
+        position: absolute;
+        left: 17px;
+        top: -38px;
+        width: 42px;
+        height: 48px;
+        border-radius: 50% 50% 44% 44%;
+        background: #f6b17a;
+      }
+
+      .person.person-orange {
+        background: linear-gradient(180deg, #f97316, #c2410c);
+      }
+
+      .person.person-green {
+        width: 84px;
+        height: 145px;
+        background: linear-gradient(180deg, #1f8a4c, #166534);
+      }
+
+      .person.person-blue {
+        height: 130px;
+        background: linear-gradient(180deg, #0f172a, #1e293b);
+      }
+
+      .desktop-steps {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 13px;
+        margin-top: 22px;
+      }
+
+      .desktop-step {
+        position: relative;
+        min-height: 132px;
+        padding: 22px 14px 16px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid #f1e7df;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+        text-align: center;
+      }
+
+      .desktop-step-number {
+        position: absolute;
+        left: 50%;
+        top: -18px;
+        transform: translateX(-50%);
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: var(--orange);
+        font-size: 1.2rem;
+        font-weight: 950;
+        box-shadow: 0 10px 20px rgba(255, 90, 0, 0.22);
+      }
+
+      .desktop-step h3 {
+        margin: 4px 0 7px;
+        font-size: .98rem;
+        line-height: 1.15;
+        letter-spacing: -0.04em;
+      }
+
+      .desktop-step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: .84rem;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      .desktop-problems {
+        margin-top: 24px;
+        padding: 24px;
+        border-radius: 32px;
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .desktop-problems-title {
+        margin: 0 0 18px;
+        text-align: center;
+        font-size: 1.55rem;
+        letter-spacing: -0.05em;
+      }
+
+      .desktop-problems-title span {
+        color: var(--orange);
+      }
+
+      .desktop-problems-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .desktop-problem {
+        padding: 18px 15px;
+        border-radius: 22px;
+        background: #ffffff;
+        border: 1px solid #f1e7df;
+        text-align: center;
+      }
+
+      .desktop-problem-icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 12px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 1.6rem;
+        font-weight: 950;
+      }
+
+      .desktop-problem-icon.red {
+        background: var(--red);
+      }
+
+      .desktop-problem-icon.orange {
+        background: var(--orange);
+      }
+
+      .desktop-problem-icon.yellow {
+        background: #facc15;
+      }
+
+      .desktop-problem-icon.green {
+        background: #3daf4a;
+      }
+
+      .desktop-problem h3 {
+        margin: 0 0 8px;
+        font-size: 1.02rem;
+        line-height: 1.15;
+        letter-spacing: -0.04em;
+      }
+
+      .desktop-problem p {
+        margin: 0;
+        color: #374151;
+        font-size: .82rem;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      .desktop-footer-cta {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 18px;
+        margin-top: 20px;
+        padding: 18px 22px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, var(--orange), #ff7a00);
+        color: #ffffff;
+        box-shadow: 0 18px 36px rgba(255, 90, 0, 0.22);
+      }
+
+      .desktop-clock {
+        width: 62px;
+        height: 62px;
+        border: 5px solid #ffffff;
+        border-radius: 999px;
+        position: relative;
+      }
+
+      .desktop-clock::before {
+        content: "";
+        position: absolute;
+        left: 27px;
+        top: 12px;
+        width: 5px;
+        height: 21px;
+        border-radius: 999px;
+        background: #ffffff;
+      }
+
+      .desktop-clock::after {
+        content: "";
+        position: absolute;
+        left: 28px;
+        top: 30px;
+        width: 18px;
+        height: 5px;
+        border-radius: 999px;
+        background: #ffffff;
+        transform: rotate(28deg);
+        transform-origin: left center;
+      }
+
+      .desktop-footer-text strong {
+        display: block;
+        font-size: 1.4rem;
+        line-height: 1.1;
+        letter-spacing: -0.05em;
+      }
+
+      .desktop-footer-text span {
+        display: block;
+        margin-top: 4px;
+        color: rgba(255,255,255,.9);
+        font-weight: 800;
+      }
+
+      .desktop-footer-button {
+        min-height: 54px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 14px 24px;
+        border-radius: 16px;
+        background: var(--yellow);
+        color: #111827;
+        font-weight: 950;
+        text-transform: uppercase;
+        box-shadow: inset 0 -3px 0 rgba(0,0,0,0.08);
+      }
+    }
+
+    @media (min-width: 900px) and (max-width: 1120px) {
+      .desktop-shell {
+        width: min(100% - 40px, 1040px);
+      }
+
+      .desktop-hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .desktop-visual {
+        min-height: 560px;
+      }
+
+      .desktop-visual-card {
+        max-width: 680px;
+      }
+
+      .desktop-steps {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
+      .desktop-problems-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 
 <body>
-  <main class="landing-page" aria-label="QRTotem - Totem de autoatendimento no celular">
+  <!--
+    VERSÃO MOBILE ORIGINAL
+    Esta é a landing baseada na imagem atual.
+    Em telas menores que 900px, ela continua aparecendo.
+  -->
+  <main class="landing-mobile landing-page" aria-label="QRTotem - Totem de autoatendimento no celular">
     <section class="landing-art">
       <img
         src="{{ url_for('static', filename='img/landing-qrtotem.png') }}"
@@ -209,6 +956,226 @@
         Começar agora
       </a>
     </section>
+  </main>
+
+  <!--
+    VERSÃO DESKTOP / NOTEBOOK
+    Esta versão só aparece em telas a partir de 900px.
+  -->
+  <main class="landing-desktop" aria-label="QRTotem - Landing desktop">
+    <div class="desktop-shell">
+      <header class="desktop-header">
+        <a class="desktop-brand" href="{{ url_for('client.index') }}" aria-label="QRTotem">
+          <span class="desktop-brand-mark">QR</span>
+          <span>QRTotem</span>
+        </a>
+
+        <nav class="desktop-header-actions" aria-label="Ações principais">
+          <a class="desktop-header-link" href="{{ url_for('client.signup') }}">
+            Criar conta
+          </a>
+          <a class="desktop-header-link" href="{{ url_for('client.signup') }}">
+            Começar agora
+          </a>
+        </nav>
+      </header>
+
+      <section class="desktop-hero">
+        <div class="desktop-copy">
+          <div class="desktop-badge">
+            <span class="desktop-badge-dot"></span>
+            Autoatendimento para restaurantes
+          </div>
+
+          <h1 class="desktop-title">
+            Totem de autoatendimento no celular do <span>seu cliente</span>
+          </h1>
+
+          <p class="desktop-subtitle">
+            Inicie sua operação em <strong>5 minutos</strong> e transforme a experiência do seu restaurante com pedidos por QR Code direto na mesa.
+          </p>
+
+          <div class="desktop-price-card">
+            <div>
+              <p class="desktop-price-kicker">Planos a partir de</p>
+
+              <div class="desktop-price-row" aria-label="R$ 149,90 por mês">
+                <span class="desktop-price-currency">R$</span>
+                <span class="desktop-price-value">149</span>
+                <span class="desktop-price-cents">,90</span>
+                <span class="desktop-price-month">/mês</span>
+              </div>
+            </div>
+
+            <div class="desktop-benefits">
+              <div class="desktop-benefit">
+                <span class="desktop-check">✓</span>
+                Sem taxa de adesão
+              </div>
+              <div class="desktop-benefit">
+                <span class="desktop-check">✓</span>
+                Cancelamento fácil
+              </div>
+              <div class="desktop-benefit">
+                <span class="desktop-check">✓</span>
+                Suporte humanizado
+              </div>
+              <div class="desktop-benefit">
+                <span class="desktop-check">✓</span>
+                Atualizações inclusas
+              </div>
+            </div>
+          </div>
+
+          <div class="desktop-actions">
+            <a class="desktop-main-button" href="{{ url_for('client.signup') }}">
+              Começar agora
+              <span aria-hidden="true">›</span>
+            </a>
+
+            <span class="desktop-secondary-note">
+              Simples, rápido e sem burocracia.
+            </span>
+          </div>
+
+          <div class="desktop-steps" aria-label="Passos para começar">
+            <article class="desktop-step">
+              <span class="desktop-step-number">1</span>
+              <h3>Crie seu usuário</h3>
+              <p>Faça seu cadastro inicial em poucos segundos.</p>
+            </article>
+
+            <article class="desktop-step">
+              <span class="desktop-step-number">2</span>
+              <h3>Escaneie seu cardápio</h3>
+              <p>Use seu cardápio físico para iniciar o cadastro.</p>
+            </article>
+
+            <article class="desktop-step">
+              <span class="desktop-step-number">3</span>
+              <h3>Cadastre sua chave Pix</h3>
+              <p>Configure a chave para receber pagamentos.</p>
+            </article>
+
+            <article class="desktop-step">
+              <span class="desktop-step-number">4</span>
+              <h3>Digite quantas mesas tem</h3>
+              <p>Informe a quantidade de mesas do restaurante.</p>
+            </article>
+
+            <article class="desktop-step">
+              <span class="desktop-step-number">5</span>
+              <h3>Receba os QR Codes</h3>
+              <p>Baixe os QR Codes das mesas e comece a vender.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="desktop-visual" aria-hidden="true">
+          <div class="desktop-visual-card">
+            <div class="desktop-phone">
+              <div class="desktop-phone-screen">
+                <div class="desktop-phone-brand">
+                  <span>QR</span>Totem
+                </div>
+
+                <div class="desktop-menu-item">
+                  <div class="desktop-food"></div>
+                  <div class="desktop-menu-lines">
+                    <i></i>
+                    <i></i>
+                  </div>
+                  <span class="desktop-menu-plus">+</span>
+                </div>
+
+                <div class="desktop-menu-item">
+                  <div class="desktop-food"></div>
+                  <div class="desktop-menu-lines">
+                    <i></i>
+                    <i></i>
+                  </div>
+                  <span class="desktop-menu-plus">+</span>
+                </div>
+
+                <div class="desktop-menu-item">
+                  <div class="desktop-food"></div>
+                  <div class="desktop-menu-lines">
+                    <i></i>
+                    <i></i>
+                  </div>
+                  <span class="desktop-menu-plus">+</span>
+                </div>
+
+                <div class="desktop-phone-button">
+                  Ver carrinho
+                </div>
+              </div>
+            </div>
+
+            <div class="desktop-qr-stand">
+              <div class="desktop-qr-brand">
+                <span>QR</span>Totem
+              </div>
+              <div class="desktop-qr"></div>
+              <p class="desktop-table-label">Mesa 07</p>
+            </div>
+
+            <div class="desktop-people">
+              <div class="person person-blue"></div>
+              <div class="person person-orange"></div>
+              <div class="person person-green"></div>
+              <div class="person person-blue"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="desktop-problems" aria-label="Problemas resolvidos pelo QRTotem">
+        <h2 class="desktop-problems-title">
+          Resolva os principais <span>problemas</span> do seu restaurante
+        </h2>
+
+        <div class="desktop-problems-grid">
+          <article class="desktop-problem">
+            <div class="desktop-problem-icon red">×</div>
+            <h3>Pedidos errados</h3>
+            <p>Reduza falhas na comunicação e garanta que o cliente receba exatamente o que pediu.</p>
+          </article>
+
+          <article class="desktop-problem">
+            <div class="desktop-problem-icon orange">☹</div>
+            <h3>Excesso de garçom freelance</h3>
+            <p>Diminua custos com freelancers e tenha mais controle sobre o atendimento.</p>
+          </article>
+
+          <article class="desktop-problem">
+            <div class="desktop-problem-icon yellow">○</div>
+            <h3>Falta de garçom</h3>
+            <p>Atenda mais clientes mesmo com menos equipe, sem perder qualidade do serviço.</p>
+          </article>
+
+          <article class="desktop-problem">
+            <div class="desktop-problem-icon green">ϟ</div>
+            <h3>Mais agilidade no pedido</h3>
+            <p>Clientes fazem o pedido direto do celular e o atendimento se torna muito mais rápido.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="desktop-footer-cta" aria-label="Comece sua operação">
+        <div class="desktop-clock" aria-hidden="true"></div>
+
+        <div class="desktop-footer-text">
+          <strong>Inicie sua operação em 5 minutos</strong>
+          <span>Simples, rápido e sem burocracia.</span>
+        </div>
+
+        <a class="desktop-footer-button" href="{{ url_for('client.signup') }}">
+          Começar agora
+          <span aria-hidden="true">›</span>
+        </a>
+      </section>
+    </div>
   </main>
 </body>
 </html>
