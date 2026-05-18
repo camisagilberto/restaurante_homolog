@@ -11,6 +11,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='img/favicon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+
   <style>
     :root {
       --graphite: #1E1E1E;
@@ -20,11 +23,10 @@
       --orange: #F97316;
       --orange-dark: #EA580C;
       --line: rgba(30, 30, 30, 0.08);
-      --muted: rgba(64, 64, 64, 0.78);
+      --muted: rgba(64, 64, 64, 0.74);
       --shadow: 0 24px 70px rgba(30, 30, 30, 0.08);
       --shadow-soft: 0 14px 34px rgba(30, 30, 30, 0.06);
       --radius: 28px;
-      --radius-sm: 18px;
       --container: 1180px;
     }
 
@@ -40,10 +42,11 @@
       margin: 0;
       min-height: 100vh;
       font-family: "Manrope", sans-serif;
-      background: var(--white);
       color: var(--graphite);
+      background: var(--white);
       letter-spacing: -0.025em;
       line-height: 1.6;
+      overflow-x: hidden;
     }
 
     a {
@@ -52,8 +55,8 @@
     }
 
     img {
-      max-width: 100%;
       display: block;
+      max-width: 100%;
     }
 
     .landing-shell {
@@ -74,22 +77,11 @@
     .landing-brand {
       display: inline-flex;
       align-items: center;
-      gap: 12px;
-      font-weight: 800;
-      letter-spacing: -0.045em;
     }
 
     .landing-brand img {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      object-fit: cover;
-      background: var(--graphite);
-    }
-
-    .landing-brand strong {
-      font-size: 1.12rem;
-      line-height: 1;
+      width: 150px;
+      height: auto;
     }
 
     .landing-nav {
@@ -170,7 +162,7 @@
     .hero h1 {
       margin: 0;
       max-width: 720px;
-      font-size: clamp(2.7rem, 5.2vw, 5.15rem);
+      font-size: clamp(2.75rem, 5.2vw, 5.15rem);
       line-height: .98;
       letter-spacing: -0.075em;
       font-weight: 800;
@@ -576,7 +568,6 @@
       .landing-header {
         min-height: auto;
         padding: 16px 0;
-        align-items: flex-start;
       }
 
       .landing-nav {
@@ -610,6 +601,10 @@
     @media (max-width: 640px) {
       .landing-shell {
         width: min(100% - 24px, var(--container));
+      }
+
+      .landing-brand img {
+        width: 138px;
       }
 
       .hero h1 {
@@ -663,9 +658,8 @@
 
 <body>
   <header class="landing-shell landing-header">
-    <a class="landing-brand" href="{{ url_for('client.index') if false else '/' }}" aria-label="QRTotem">
-      <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="QRTotem">
-      <strong>QRTotem</strong>
+    <a class="landing-brand" href="{{ url_for('client.home') }}" aria-label="QRTotem">
+      <img src="{{ url_for('static', filename='img/logo-horizontal-light.png') }}" alt="QRTotem">
     </a>
 
     <nav class="landing-nav" aria-label="Navegação principal">
@@ -790,7 +784,7 @@
 
           <div class="metric">
             <strong>100%</strong>
-            <span>operação mais organizada</span>
+            <span>operação organizada</span>
           </div>
         </div>
       </div>
