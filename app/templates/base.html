@@ -20,6 +20,15 @@
 <body>
   <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
 
+  {% set client_table = session.get('current_table') or 1 %}
+  {% set client_token = session.get('client_restaurant_token') or session.get('restaurant_public_token') %}
+
+  {% if client_token %}
+    {% set client_order_url = url_for('client.restaurant_table_menu', public_token=client_token, table_number=client_table) %}
+  {% else %}
+    {% set client_order_url = url_for('client.table_menu', table_number=client_table) %}
+  {% endif %}
+
   <div class="app-layout">
     <aside class="app-sidebar" aria-label="Menu lateral">
       <a class="sidebar-brand" href="{{ url_for('client.home') }}" aria-label="Ir para a página inicial">
@@ -27,7 +36,7 @@
       </a>
 
       <nav class="sidebar-nav" aria-label="Menu principal">
-        <a href="{{ url_for('client.home') }}">
+        <a href="{{ client_order_url }}">
           <span class="nav-icon" aria-hidden="true">⌂</span>
           <span>Cliente</span>
         </a>
@@ -73,7 +82,7 @@
         </a>
 
         <nav class="app-nav" aria-label="Menu principal">
-          <a href="{{ url_for('client.home') }}">Cliente</a>
+          <a href="{{ client_order_url }}">Cliente</a>
           <a href="{{ url_for('admin.login') }}">Admin</a>
           <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
 
