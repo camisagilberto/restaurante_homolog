@@ -145,7 +145,6 @@ def update_status(order_id):
 
     try:
         update_order_status(db, order_id, status, restaurant_id)
-        message = 'Status atualizado.'
     except ValidationError as exc:
         message = str(exc)
 
@@ -156,9 +155,13 @@ def update_status(order_id):
         return redirect(url_for('kitchen.orders'))
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify(success=True, message=message)
+        return jsonify(
+            success=True,
+            message='Status atualizado.',
+            signature=get_kitchen_orders_signature(db, restaurant_id),
+        )
 
-    flash(message, 'success')
+    flash('Status atualizado.', 'success')
     return redirect(url_for('kitchen.orders'))
 
 
