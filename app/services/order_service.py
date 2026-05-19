@@ -12,7 +12,7 @@ ORDER_STATUS_LABELS = {
     'cancelado': 'Cancelado',
 }
 
-ACTIVE_ORDER_STATUSES = ('novo', 'preparando', 'pronto')
+ACTIVE_ORDER_STATUSES = ('novo', 'preparando', 'pronto', 'entregue')
 
 
 def _require_restaurant_id(restaurant_id: int | None) -> int:
@@ -20,6 +20,10 @@ def _require_restaurant_id(restaurant_id: int | None) -> int:
         raise ValidationError('Restaurante não identificado.')
 
     return int(restaurant_id)
+
+
+def _now_iso() -> str:
+    return datetime.utcnow().isoformat(timespec='microseconds')
 
 
 def _format_created_at(value) -> str:
@@ -72,7 +76,7 @@ def create_order_from_cart(
     notes: str | None = None,
 ) -> int:
     restaurant_id = _require_restaurant_id(restaurant_id)
-    now = datetime.utcnow().isoformat(timespec='seconds')
+    now = _now_iso()
 
     cursor = db.execute(
         '''
@@ -148,12 +152,14 @@ def create_order_from_cart(
     db.execute(
         '''
         UPDATE orders
-           SET total_amount = ?
+           SET total_amount = ?,
+               updated_at = ?
          WHERE id = ?
            AND restaurant_id = ?
         ''',
         (
             round(total, 2),
+            _now_iso(),
             order_id,
             restaurant_id,
         ),
@@ -201,7 +207,7 @@ def list_orders_for_kitchen(db, restaurant_id: int):
 def get_kitchen_orders_signature(db, restaurant_id: int) -> str:
     restaurant_id = _require_restaurant_id(restaurant_id)
 
-    row = db.execute(
+    summary = db.execute(
         '''
         SELECT
             COUNT(*) AS total_orders,
@@ -213,7 +219,27 @@ def get_kitchen_orders_signature(db, restaurant_id: int) -> str:
         (restaurant_id,),
     ).fetchone()
 
-    return f"{row['total_orders']}:{row['last_order_id']}:{row['last_update']}"
+    status_rows = db.execute(
+        '''
+        SELECT id, status, COALESCE(updated_at, '') AS updated_at
+          FROM orders
+         WHERE restaurant_id = ?
+         ORDER BY id ASC
+        ''',
+        (restaurant_id,),
+    ).fetchall()
+
+    status_signature = '|'.join(
+        f"{row['id']}:{row['status']}:{row['updated_at']}"
+        for row in status_rows
+    )
+
+    return (
+        f"{summary['total_orders']}:"
+        f"{summary['last_order_id']}:"
+        f"{summary['last_update']}:"
+        f"{status_signature}"
+    )
 
 
 def update_order_status(db, order_id: int, status: str, restaurant_id: int):
@@ -222,20 +248,25 @@ def update_order_status(db, order_id: int, status: str, restaurant_id: int):
     if status not in ORDER_STATUS_LABELS:
         raise ValidationError('Status inválido.')
 
-    db.execute(
+    cursor = db.execute(
         '''
         UPDATE orders
            SET status = ?,
-               updated_at = CURRENT_TIMESTAMP
+               updated_at = ?
          WHERE id = ?
            AND restaurant_id = ?
         ''',
         (
             status,
+            _now_iso(),
             order_id,
             restaurant_id,
         ),
     )
+
+    if cursor.rowcount == 0:
+        raise ValidationError('Pedido não encontrado para este restaurante.')
+
     db.commit()
 
 
