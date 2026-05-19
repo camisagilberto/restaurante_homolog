@@ -198,6 +198,24 @@ def list_orders_for_kitchen(db, restaurant_id: int):
     return [_decorate_order(db, order) for order in orders]
 
 
+def get_kitchen_orders_signature(db, restaurant_id: int) -> str:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    row = db.execute(
+        '''
+        SELECT
+            COUNT(*) AS total_orders,
+            COALESCE(MAX(id), 0) AS last_order_id,
+            COALESCE(MAX(updated_at), '') AS last_update
+          FROM orders
+         WHERE restaurant_id = ?
+        ''',
+        (restaurant_id,),
+    ).fetchone()
+
+    return f"{row['total_orders']}:{row['last_order_id']}:{row['last_update']}"
+
+
 def update_order_status(db, order_id: int, status: str, restaurant_id: int):
     restaurant_id = _require_restaurant_id(restaurant_id)
 
