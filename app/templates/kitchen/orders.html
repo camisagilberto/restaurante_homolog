@@ -75,9 +75,12 @@
         const html = await response.text();
 
         wrapper.innerHTML = html;
-        currentSignature = newSignature;
-        lastUpdateAt = new Date();
 
+        if (newSignature) {
+          currentSignature = newSignature;
+        }
+
+        lastUpdateAt = new Date();
         updateLiveStatusOk();
       } catch (error) {
         setLiveStatus('Falha ao atualizar os pedidos. Tentando novamente...');
@@ -86,8 +89,8 @@
       }
     }
 
-    async function checkForKitchenUpdates() {
-      if (isChecking || isRefreshing || document.hidden) return;
+    async function checkForKitchenUpdates(forceRefresh) {
+      if (isChecking || isRefreshing || (!forceRefresh && document.hidden)) return;
 
       isChecking = true;
 
@@ -110,7 +113,7 @@
           throw new Error('Resposta inválida do servidor.');
         }
 
-        if (data.signature !== currentSignature) {
+        if (forceRefresh || data.signature !== currentSignature) {
           await refreshKitchenOrders(data.signature);
         } else {
           lastUpdateAt = new Date();
@@ -123,7 +126,7 @@
       }
     }
 
-    async function submitStatusForm(form) {
+    async function submitStatusForm(form, clickedButton) {
       const submitButtons = form.querySelectorAll('button[type="submit"]');
 
       submitButtons.forEach(function (button) {
@@ -132,6 +135,10 @@
 
       try {
         const formData = new FormData(form);
+
+        if (clickedButton && clickedButton.name) {
+          formData.set(clickedButton.name, clickedButton.value);
+        }
 
         const response = await fetch(form.action, {
           method: 'POST',
@@ -153,7 +160,7 @@
           throw new Error(data.message || 'Não foi possível atualizar o status.');
         }
 
-        await checkForKitchenUpdates();
+        await refreshKitchenOrders(data.signature);
       } catch (error) {
         alert(error.message || 'Erro ao atualizar o status do pedido.');
       } finally {
@@ -163,23 +170,38 @@
       }
     }
 
+    document.addEventListener('click', function (event) {
+      const clickedButton = event.target.closest('form.status-actions button[type="submit"]');
+
+      if (!clickedButton) return;
+
+      const form = clickedButton.closest('form.status-actions');
+
+      if (!form) return;
+
+      event.preventDefault();
+      submitStatusForm(form, clickedButton);
+    });
+
     document.addEventListener('submit', function (event) {
       const form = event.target.closest('form.status-actions');
 
       if (!form) return;
 
       event.preventDefault();
-      submitStatusForm(form);
+      submitStatusForm(form, document.activeElement);
     });
 
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) {
-        checkForKitchenUpdates();
+        checkForKitchenUpdates(true);
       }
     });
 
     updateLiveStatusOk();
-    window.setInterval(checkForKitchenUpdates, CHECK_INTERVAL_MS);
+    window.setInterval(function () {
+      checkForKitchenUpdates(false);
+    }, CHECK_INTERVAL_MS);
   })();
 </script>
 {% endblock %}
