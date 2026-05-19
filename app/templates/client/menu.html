@@ -7,9 +7,11 @@
     <p class="eyebrow">Atendimento da mesa</p>
     <div class="table-title-row">
       <h2>Mesa <span id="table-number-label">{{ table_number }}</span></h2>
-      <button type="button" class="btn btn-secondary btn-sm table-edit-trigger" data-open-table-editor>
-        Editar mesa
-      </button>
+      {% if can_manage_table %}
+        <button type="button" class="btn btn-secondary btn-sm table-edit-trigger" data-open-table-editor>
+          Editar mesa
+        </button>
+      {% endif %}
     </div>
     <p class="muted">Escolha os itens, ajuste quantidades e finalize quando estiver pronto.</p>
   </div>
