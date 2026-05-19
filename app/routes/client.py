@@ -479,7 +479,7 @@ def restaurant_table_menu(public_token, table_number):
 
     grouped: dict[str, list] = {}
     for product in products:
-        grouped.setdefault(product['category']).append(product)
+        grouped.setdefault(product['category'] or 'Cardápio', []).append(product)
 
     cart = get_cart(session)
     cart_total, cart_quantity = totals(cart)
