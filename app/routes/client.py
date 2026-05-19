@@ -24,6 +24,7 @@ client_bp = Blueprint('client', __name__)
 PENDING_MENU_IMPORT_SESSION_KEY = 'pending_menu_import'
 CLIENT_RESTAURANT_SESSION_KEY = 'client_restaurant_id'
 CLIENT_RESTAURANT_TOKEN_SESSION_KEY = 'client_restaurant_token'
+PUBLIC_CLIENT_MODE_SESSION_KEY = 'public_client_mode'
 
 
 def _wants_json() -> bool:
@@ -468,14 +469,17 @@ def restaurant_table_menu(public_token, table_number):
         flash('Restaurante não encontrado.', 'error')
         return redirect(url_for('client.home'))
 
-    _set_client_restaurant(profile)
     session['current_table'] = table_number
+    _set_client_restaurant(profile)
+
+    if not session.get('admin_logged_in'):
+        session[PUBLIC_CLIENT_MODE_SESSION_KEY] = True
 
     products = list_products(db, profile['id'], active_only=True)
 
     grouped: dict[str, list] = {}
     for product in products:
-        grouped.setdefault(product['category'], []).append(product)
+        grouped.setdefault(product['category']).append(product)
 
     cart = get_cart(session)
     cart_total, cart_quantity = totals(cart)
@@ -487,6 +491,7 @@ def restaurant_table_menu(public_token, table_number):
         cart_quantity=cart_quantity,
         cart_total=cart_total,
         csrf=csrf_token(),
+        can_manage_table=bool(session.get('admin_logged_in')),
     )
 
 
@@ -558,12 +563,21 @@ def cart():
     cart = get_cart(session)
     cart_total, cart_quantity = totals(cart)
 
+    table_number = _current_table()
+    token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
+    menu_url = (
+        url_for('client.restaurant_table_menu', public_token=token, table_number=table_number)
+        if token
+        else url_for('client.home')
+    )
+
     return render_template(
         'client/cart.html',
         cart=cart,
         cart_total=cart_total,
         cart_quantity=cart_quantity,
-        table_number=_current_table(),
+        table_number=table_number,
+        menu_url=menu_url,
         csrf=csrf_token(),
     )
 
@@ -580,10 +594,18 @@ def order_history():
     db = get_db()
     orders = list_orders_for_table(db, restaurant_id, table_number)
 
+    token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
+    menu_url = (
+        url_for('client.restaurant_table_menu', public_token=token, table_number=table_number)
+        if token
+        else url_for('client.home')
+    )
+
     return render_template(
         'client/orders.html',
         orders=orders,
         table_number=table_number,
+        menu_url=menu_url,
         csrf=csrf_token(),
     )
 
