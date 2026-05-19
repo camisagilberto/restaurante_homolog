@@ -1,53 +1,185 @@
 {% extends 'base.html' %}
 {% block title %}Cozinha{% endblock %}
+
 {% block content %}
 <section class="hero-card">
   <div>
     <p class="eyebrow">Operação em tempo real</p>
     <h2>Cozinha</h2>
-    <p class="muted">Pedidos organizados do mais recente ao mais antigo, com ações rápidas por status.</p>
+    <p class="muted">
+      Pedidos organizados do mais recente ao mais antigo, com atualização automática sem recarregar a página.
+    </p>
+    <p class="muted" id="kitchen-live-status">
+      Monitorando novos pedidos...
+    </p>
   </div>
-  <button type="button" class="btn btn-danger" data-delete-orders>Apagar pedidos</button>
+
+  <button type="button" class="btn btn-danger" data-delete-orders>
+    Apagar pedidos
+  </button>
 </section>
 
-<div class="kitchen-grid">
-  {% for entry in orders %}
-    <article class="order-card status-{{ entry.order['status'] }}">
-      <div class="order-head">
-        <div>
-          <p class="order-id">Pedido #{{ entry.order['id'] }}</p>
-          <h3>Mesa {{ entry.order['table_number'] }}{% if entry.order['customer_name'] %} — {{ entry.order['customer_name'] }}{% endif %}</h3>
-        </div>
-        <span class="status-pill status-{{ entry.order['status'] }}">{{ entry.status_label }}</span>
-      </div>
-
-      <div class="order-meta">
-        <span>{{ entry.created_at_display }}</span>
-        <strong>{{ entry.order['total_amount']|currency }}</strong>
-      </div>
-
-      {% if entry.order['notes'] %}
-        <p class="order-notes"><strong>Observações:</strong> {{ entry.order['notes'] }}</p>
-      {% endif %}
-
-      <ul class="order-items">
-        {% for item in entry['items'] %}
-          <li><strong>{{ item['quantity'] }}x</strong> {{ item['name'] }} <span>{{ item['unit_price']|currency }}</span></li>
-        {% endfor %}
-      </ul>
-
-      <form method="post" action="{{ url_for('kitchen.update_status', order_id=entry.order['id']) }}" class="status-actions">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-secondary" name="status" value="preparando" type="submit">Preparando</button>
-        <button class="btn btn-secondary" name="status" value="pronto" type="submit">Pronto</button>
-        <button class="btn btn-secondary" name="status" value="entregue" type="submit">Entregue</button>
-      </form>
-    </article>
-  {% else %}
-    <div class="empty-state panel">
-      <h3>Nenhum pedido ainda</h3>
-      <p class="muted">Quando os clientes enviarem pedidos, eles aparecerão aqui.</p>
-    </div>
-  {% endfor %}
+<div id="kitchen-orders-wrapper">
+  {% include 'kitchen/_orders_grid.html' %}
 </div>
+
+<script>
+  (function () {
+    const wrapper = document.getElementById('kitchen-orders-wrapper');
+    const liveStatus = document.getElementById('kitchen-live-status');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    const SIGNATURE_URL = '{{ url_for("kitchen.orders_signature") }}';
+    const ORDERS_PARTIAL_URL = '{{ url_for("kitchen.orders_partial") }}';
+    const CHECK_INTERVAL_MS = 2000;
+
+    let currentSignature = '{{ initial_signature }}';
+    let isChecking = false;
+    let isRefreshing = false;
+    let lastUpdateAt = new Date();
+
+    function setLiveStatus(message) {
+      if (liveStatus) {
+        liveStatus.textContent = message;
+      }
+    }
+
+    function updateLiveStatusOk() {
+      const time = lastUpdateAt.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      setLiveStatus(`Atualização automática ativa. Última verificação: ${time}`);
+    }
+
+    async function refreshKitchenOrders(newSignature) {
+      if (!wrapper || isRefreshing) return;
+
+      isRefreshing = true;
+
+      try {
+        const response = await fetch(ORDERS_PARTIAL_URL, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error('Não foi possível atualizar os pedidos.');
+        }
+
+        const html = await response.text();
+
+        wrapper.innerHTML = html;
+        currentSignature = newSignature;
+        lastUpdateAt = new Date();
+
+        updateLiveStatusOk();
+      } catch (error) {
+        setLiveStatus('Falha ao atualizar os pedidos. Tentando novamente...');
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    async function checkForKitchenUpdates() {
+      if (isChecking || isRefreshing || document.hidden) return;
+
+      isChecking = true;
+
+      try {
+        const response = await fetch(SIGNATURE_URL, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error('Falha ao consultar atualizações.');
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error('Resposta inválida do servidor.');
+        }
+
+        if (data.signature !== currentSignature) {
+          await refreshKitchenOrders(data.signature);
+        } else {
+          lastUpdateAt = new Date();
+          updateLiveStatusOk();
+        }
+      } catch (error) {
+        setLiveStatus('Conexão instável. Tentando novamente automaticamente...');
+      } finally {
+        isChecking = false;
+      }
+    }
+
+    async function submitStatusForm(form) {
+      const submitButtons = form.querySelectorAll('button[type="submit"]');
+
+      submitButtons.forEach(function (button) {
+        button.disabled = true;
+      });
+
+      try {
+        const formData = new FormData(form);
+
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken
+          },
+          cache: 'no-store'
+        });
+
+        let data = {};
+
+        try {
+          data = await response.json();
+        } catch (_) {}
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Não foi possível atualizar o status.');
+        }
+
+        await checkForKitchenUpdates();
+      } catch (error) {
+        alert(error.message || 'Erro ao atualizar o status do pedido.');
+      } finally {
+        submitButtons.forEach(function (button) {
+          button.disabled = false;
+        });
+      }
+    }
+
+    document.addEventListener('submit', function (event) {
+      const form = event.target.closest('form.status-actions');
+
+      if (!form) return;
+
+      event.preventDefault();
+      submitStatusForm(form);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) {
+        checkForKitchenUpdates();
+      }
+    });
+
+    updateLiveStatusOk();
+    window.setInterval(checkForKitchenUpdates, CHECK_INTERVAL_MS);
+  })();
+</script>
 {% endblock %}
