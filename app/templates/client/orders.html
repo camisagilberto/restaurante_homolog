@@ -6,44 +6,148 @@
   <div>
     <p class="eyebrow">Acompanhamento do cliente</p>
     <h2>Pedidos em andamento</h2>
-    <p class="muted">Veja os pedidos feitos na mesa {{ table_number }}. Esta tela é apenas para consulta.</p>
+    <p class="muted">
+      Veja os pedidos feitos na mesa {{ table_number }}. Esta tela é atualizada automaticamente.
+    </p>
+    <p class="muted" id="client-orders-live-status">
+      Monitorando atualizações do pedido...
+    </p>
   </div>
-  <a class="btn btn-secondary" href="{{ url_for('client.table_menu', table_number=table_number) }}">Voltar ao cardápio</a>
+
+  <a class="btn btn-secondary" href="{{ url_for('client.table_menu', table_number=table_number) }}">
+    Voltar ao cardápio
+  </a>
 </section>
 
-<div class="orders-grid">
-  {% for entry in orders %}
-    <article class="order-card status-{{ entry.order['status'] }}">
-      <div class="order-head">
-        <div>
-          <p class="order-id">Pedido #{{ entry.order['id'] }}</p>
-          <h3>{{ entry.order['customer_name'] }}</h3>
+<div id="client-orders-wrapper">
+  <div class="orders-grid">
+    {% for entry in orders %}
+      <article class="order-card status-{{ entry.order['status'] }}">
+        <div class="order-head">
+          <div>
+            <p class="order-id">Pedido #{{ entry.order['id'] }}</p>
+            <h3>{{ entry.order['customer_name'] }}</h3>
+          </div>
+
+          <span class="status-pill status-{{ entry.order['status'] }}">
+            {{ entry.status_label }}
+          </span>
         </div>
-        <span class="status-pill status-{{ entry.order['status'] }}">{{ entry.status_label }}</span>
+
+        <div class="order-meta">
+          <span>{{ entry.created_at_display }}</span>
+          <strong>{{ entry.order['total_amount']|currency }}</strong>
+        </div>
+
+        <p class="order-notes">
+          <strong>Mesa:</strong> {{ entry.order['table_number'] }}
+        </p>
+
+        {% if entry.order['notes'] %}
+          <p class="order-notes">
+            <strong>Observações:</strong> {{ entry.order['notes'] }}
+          </p>
+        {% endif %}
+
+        <ul class="order-items">
+          {% for item in entry['items'] %}
+            <li>
+              <strong>{{ item['quantity'] }}x</strong>
+              {{ item['name'] }}
+              <span>{{ item['unit_price']|currency }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </article>
+    {% else %}
+      <div class="empty-state panel">
+        <h3>Nenhum pedido encontrado</h3>
+        <p class="muted">Quando você finalizar um pedido, ele aparecerá aqui com o status atualizado.</p>
       </div>
-
-      <div class="order-meta">
-        <span>{{ entry.created_at_display }}</span>
-        <strong>{{ entry.order['total_amount']|currency }}</strong>
-      </div>
-
-      <p class="order-notes"><strong>Mesa:</strong> {{ entry.order['table_number'] }}</p>
-
-      {% if entry.order['notes'] %}
-        <p class="order-notes"><strong>Observações:</strong> {{ entry.order['notes'] }}</p>
-      {% endif %}
-
-      <ul class="order-items">
-        {% for item in entry['items'] %}
-          <li><strong>{{ item['quantity'] }}x</strong> {{ item['name'] }} <span>{{ item['unit_price']|currency }}</span></li>
-        {% endfor %}
-      </ul>
-    </article>
-  {% else %}
-    <div class="empty-state panel">
-      <h3>Nenhum pedido encontrado</h3>
-      <p class="muted">Quando você finalizar um pedido, ele aparecerá aqui com o status atualizado.</p>
-    </div>
-  {% endfor %}
+    {% endfor %}
+  </div>
 </div>
+
+<script>
+  (function () {
+    const wrapper = document.getElementById('client-orders-wrapper');
+    const liveStatus = document.getElementById('client-orders-live-status');
+    const CHECK_INTERVAL_MS = 2000;
+
+    let isRefreshing = false;
+    let currentHtml = wrapper ? wrapper.innerHTML : '';
+    let lastUpdateAt = new Date();
+
+    function setLiveStatus(message) {
+      if (liveStatus) {
+        liveStatus.textContent = message;
+      }
+    }
+
+    function updateLiveStatusOk() {
+      const time = lastUpdateAt.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+
+      setLiveStatus(`Atualização automática ativa. Última verificação: ${time}`);
+    }
+
+    async function refreshClientOrders() {
+      if (!wrapper || isRefreshing || document.hidden) return;
+
+      isRefreshing = true;
+
+      try {
+        const response = await fetch(window.location.href, {
+          method: 'GET',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error('Não foi possível consultar os pedidos.');
+        }
+
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const nextWrapper = doc.getElementById('client-orders-wrapper');
+
+        if (!nextWrapper) {
+          throw new Error('Conteúdo dos pedidos não encontrado.');
+        }
+
+        const nextHtml = nextWrapper.innerHTML;
+
+        if (nextHtml !== currentHtml) {
+          wrapper.innerHTML = nextHtml;
+          currentHtml = nextHtml;
+        }
+
+        lastUpdateAt = new Date();
+        updateLiveStatusOk();
+      } catch (error) {
+        setLiveStatus('Conexão instável. Tentando atualizar novamente...');
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) {
+        refreshClientOrders();
+      }
+    });
+
+    updateLiveStatusOk();
+
+    window.setInterval(function () {
+      refreshClientOrders();
+    }, CHECK_INTERVAL_MS);
+  })();
+</script>
 {% endblock %}
