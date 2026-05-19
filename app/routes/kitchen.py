@@ -2,14 +2,30 @@ from __future__ import annotations
 
 from functools import wraps
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    flash,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from ..db import get_db
 from ..errors import ValidationError
 from ..security import csrf_token
 from ..services.auth_service import verify_manager_password
 from ..services.onboarding_service import get_restaurant_profile_for_admin
-from ..services.order_service import ORDER_STATUS_LABELS, delete_all_orders, list_orders_for_kitchen, update_order_status
+from ..services.order_service import (
+    ORDER_STATUS_LABELS,
+    delete_all_orders,
+    get_kitchen_orders_signature,
+    list_orders_for_kitchen,
+    update_order_status,
+)
 
 kitchen_bp = Blueprint('kitchen', __name__, url_prefix='/cozinha')
 
@@ -32,6 +48,13 @@ def kitchen_required(view):
         return view(*args, **kwargs)
 
     return wrapped
+
+
+def _no_cache_response(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @kitchen_bp.route('/validar', methods=['POST'])
@@ -69,7 +92,48 @@ def orders():
         orders=detailed_orders,
         status_labels=ORDER_STATUS_LABELS,
         csrf=csrf_token(),
+        initial_signature=get_kitchen_orders_signature(db, restaurant_id),
     )
+
+
+@kitchen_bp.route('/pedidos')
+@kitchen_required
+def orders_partial():
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        return jsonify(success=False, message='Perfil do restaurante não encontrado.'), 400
+
+    detailed_orders = list_orders_for_kitchen(db, restaurant_id)
+
+    response = make_response(
+        render_template(
+            'kitchen/_orders_grid.html',
+            orders=detailed_orders,
+            status_labels=ORDER_STATUS_LABELS,
+            csrf=csrf_token(),
+        )
+    )
+
+    return _no_cache_response(response)
+
+
+@kitchen_bp.route('/assinatura')
+@kitchen_required
+def orders_signature():
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        return jsonify(success=False, message='Perfil do restaurante não encontrado.'), 400
+
+    response = jsonify(
+        success=True,
+        signature=get_kitchen_orders_signature(db, restaurant_id),
+    )
+
+    return _no_cache_response(response)
 
 
 @kitchen_bp.route('/<int:order_id>/status', methods=['POST'])
@@ -81,10 +145,20 @@ def update_status(order_id):
 
     try:
         update_order_status(db, order_id, status, restaurant_id)
-        flash('Status atualizado.', 'success')
+        message = 'Status atualizado.'
     except ValidationError as exc:
-        flash(str(exc), 'error')
+        message = str(exc)
 
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message=message), 400
+
+        flash(message, 'error')
+        return redirect(url_for('kitchen.orders'))
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify(success=True, message=message)
+
+    flash(message, 'success')
     return redirect(url_for('kitchen.orders'))
 
 
