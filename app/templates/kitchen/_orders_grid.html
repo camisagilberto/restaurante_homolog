@@ -40,9 +40,33 @@
 
       <form method="post" action="{{ url_for('kitchen.update_status', order_id=entry.order['id']) }}" class="status-actions">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-secondary" name="status" value="preparando" type="submit">Preparando</button>
-        <button class="btn btn-secondary" name="status" value="pronto" type="submit">Pronto</button>
-        <button class="btn btn-secondary" name="status" value="entregue" type="submit">Entregue</button>
+
+        <button
+          class="btn {% if entry.order['status'] == 'preparando' %}btn-primary{% else %}btn-secondary{% endif %}"
+          name="status"
+          value="preparando"
+          type="submit"
+        >
+          Preparando
+        </button>
+
+        <button
+          class="btn {% if entry.order['status'] == 'pronto' %}btn-primary{% else %}btn-secondary{% endif %}"
+          name="status"
+          value="pronto"
+          type="submit"
+        >
+          Pronto
+        </button>
+
+        <button
+          class="btn {% if entry.order['status'] == 'entregue' %}btn-primary{% else %}btn-secondary{% endif %}"
+          name="status"
+          value="entregue"
+          type="submit"
+        >
+          Entregue
+        </button>
       </form>
     </article>
   {% else %}
