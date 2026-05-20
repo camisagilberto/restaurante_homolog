@@ -15,7 +15,7 @@ from ..services.onboarding_service import (
     get_restaurant_profile_for_admin,
     update_restaurant_profile,
 )
-from ..services.order_service import create_order_from_cart, list_orders_for_table
+from ..services.order_service import count_open_orders_for_table, create_order_from_cart, list_orders_for_table
 from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
 from ..utils import parse_positive_int
 
@@ -483,6 +483,8 @@ def restaurant_table_menu(public_token, table_number):
 
     cart = get_cart(session)
     cart_total, cart_quantity = totals(cart)
+    cart_quantities = {int(item['product_id']): int(item['quantity']) for item in cart}
+    open_orders_count = count_open_orders_for_table(db, profile['id'], table_number)
 
     return render_template(
         'client/menu.html',
@@ -490,6 +492,8 @@ def restaurant_table_menu(public_token, table_number):
         grouped_products=grouped,
         cart_quantity=cart_quantity,
         cart_total=cart_total,
+        cart_quantities=cart_quantities,
+        open_orders_count=open_orders_count,
         csrf=csrf_token(),
         can_manage_table=bool(session.get('admin_logged_in')),
     )
