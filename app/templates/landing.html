@@ -65,13 +65,17 @@
     }
 
     .landing-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
       min-height: 82px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 24px;
       border-bottom: 1px solid var(--line);
-      background: var(--white);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(18px);
     }
 
     .landing-brand {
@@ -790,35 +794,6 @@
       </div>
     </section>
 
-    <section id="beneficios" class="landing-shell section">
-      <div class="section-head">
-        <h2>Uma experiência limpa, rápida e profissional.</h2>
-        <p>
-          O visual minimalista ajuda o cliente a pedir com facilidade e dá ao restaurante uma imagem mais sólida, moderna e confiável.
-        </p>
-      </div>
-
-      <div class="benefits-grid">
-        <article class="benefit-card">
-          <div class="benefit-icon">↯</div>
-          <h3>Pedido rápido</h3>
-          <p>O cliente acessa o cardápio pelo QR Code e faz o pedido em poucos toques, sem complicação.</p>
-        </article>
-
-        <article class="benefit-card">
-          <div class="benefit-icon">▦</div>
-          <h3>Gestão fácil</h3>
-          <p>Organize produtos, mesas e pedidos em um fluxo simples, visual e eficiente.</p>
-        </article>
-
-        <article class="benefit-card">
-          <div class="benefit-icon">◎</div>
-          <h3>Sem fila</h3>
-          <p>Reduza tempo de espera, melhore o atendimento e aumente a agilidade da operação.</p>
-        </article>
-      </div>
-    </section>
-
     <section id="como-funciona" class="steps section">
       <div class="landing-shell">
         <div class="section-head">
@@ -859,6 +834,36 @@
             <p>Acompanhe os pedidos e envie para a cozinha.</p>
           </article>
         </div>
+      </div>
+    </section>
+
+
+    <section id="beneficios" class="landing-shell section">
+      <div class="section-head">
+        <h2>Uma experiência limpa, rápida e profissional.</h2>
+        <p>
+          O visual minimalista ajuda o cliente a pedir com facilidade e dá ao restaurante uma imagem mais sólida, moderna e confiável.
+        </p>
+      </div>
+
+      <div class="benefits-grid">
+        <article class="benefit-card">
+          <div class="benefit-icon">↯</div>
+          <h3>Pedido rápido</h3>
+          <p>O cliente acessa o cardápio pelo QR Code e faz o pedido em poucos toques, sem complicação.</p>
+        </article>
+
+        <article class="benefit-card">
+          <div class="benefit-icon">▦</div>
+          <h3>Gestão fácil</h3>
+          <p>Organize produtos, mesas e pedidos em um fluxo simples, visual e eficiente.</p>
+        </article>
+
+        <article class="benefit-card">
+          <div class="benefit-icon">◎</div>
+          <h3>Sem fila</h3>
+          <p>Reduza tempo de espera, melhore o atendimento e aumente a agilidade da operação.</p>
+        </article>
       </div>
     </section>
 
