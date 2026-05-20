@@ -109,7 +109,7 @@ def add_item(cart: list[dict], product: dict, quantity: int) -> list[dict]:
     item = find_item(cart, product['id'])
 
     if item:
-        item['quantity'] += quantity
+        item['quantity'] = quantity
     else:
         cart.append(
             {
