@@ -3,7 +3,7 @@
 {% block content %}
 <section class="hero-card hero-card--table">
   <div class="hero-card-copy">
-    <p class="eyebrow">Administração do cardápio</p>
+    <p class="eyebrow">Produtos do cardápio</p>
     <div class="table-title-row">
       <h2>{{ profile.restaurant_name or 'Produtos' }}</h2>
       <span class="badge-inline">{{ profile.username or 'Usuário' }}</span>
@@ -14,9 +14,6 @@
 
   <div class="hero-actions">
     <a class="btn btn-primary" href="{{ url_for('client.scan_menu') }}">Scannear cardápio</a>
-    <a class="btn btn-secondary" href="{{ url_for('client.tables_setup') }}">Cadastrar mesas</a>
-    <a class="btn btn-secondary" href="{{ url_for('client.products_start') }}">Voltar ao início</a>
-    <a class="btn btn-secondary" href="{{ url_for('admin.logout') }}">Sair</a>
   </div>
 </section>
 
@@ -51,7 +48,7 @@
       </div>
       <div>
         <label>Ordem</label>
-        <input type="number" name="sort_order" value="0">
+        <input type="number" name="sort_order" min="1" placeholder="Última posição se vazio">
       </div>
     </div>
     <div>
