@@ -1,5 +1,217 @@
 from __future__ import annotations
 
+from ..errors import ValidationError
+from ..utils import normalize_text, parse_price
+
+
+def _require_restaurant_id(restaurant_id: int | None) -> int:
+    if not restaurant_id:
+        raise ValidationError('Restaurante não identificado.')
+
+    return int(restaurant_id)
+
+
+def list_products(db, restaurant_id: int, *, active_only: bool = False, query: str | None = None):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    sql = 'SELECT * FROM products WHERE restaurant_id = ?'
+    params: list[object] = [restaurant_id]
+
+    if active_only:
+        sql += ' AND active = 1'
+
+    if query:
+        sql += ' AND (name LIKE ? OR category LIKE ? OR COALESCE(description, "") LIKE ?)'
+        like = f'%{query.strip()}%'
+        params.extend([like, like, like])
+
+    sql += ' ORDER BY active DESC, category ASC, sort_order ASC, name ASC'
+    return db.execute(sql, params).fetchall()
+
+
+def get_product(db, product_id: int, restaurant_id: int):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    return db.execute(
+        'SELECT * FROM products WHERE id = ? AND restaurant_id = ?',
+        (product_id, restaurant_id),
+    ).fetchone()
+
+
+def _requested_sort_order(payload: dict) -> int | None:
+    raw_value = payload.get('sort_order')
+
+    if raw_value is None or str(raw_value).strip() == '':
+        return None
+
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+
+    return value if value > 0 else None
+
+
+def _last_sort_order(db, restaurant_id: int, category: str, *, exclude_product_id: int | None = None) -> int:
+    params: list[object] = [restaurant_id, category]
+    sql = 'SELECT COALESCE(MAX(sort_order), 0) FROM products WHERE restaurant_id = ? AND category = ?'
+
+    if exclude_product_id is not None:
+        sql += ' AND id <> ?'
+        params.append(exclude_product_id)
+
+    return int(db.execute(sql, params).fetchone()[0] or 0)
+
+
+def _shift_category_from(db, restaurant_id: int, category: str, target_order: int, *, exclude_product_id: int | None = None) -> None:
+    params: list[object] = [restaurant_id, category, target_order]
+    sql = '''
+        UPDATE products
+           SET sort_order = sort_order + 1,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE restaurant_id = ?
+           AND category = ?
+           AND sort_order >= ?
+    '''
+
+    if exclude_product_id is not None:
+        sql += ' AND id <> ?'
+        params.append(exclude_product_id)
+
+    db.execute(sql, params)
+
+
+def _reindex_category(db, restaurant_id: int, category: str) -> None:
+    rows = db.execute(
+        '''
+        SELECT id
+          FROM products
+         WHERE restaurant_id = ?
+           AND category = ?
+         ORDER BY sort_order ASC, name ASC, id ASC
+        ''',
+        (restaurant_id, category),
+    ).fetchall()
+
+    for index, row in enumerate(rows, start=1):
+        db.execute(
+            '''
+            UPDATE products
+               SET sort_order = ?,
+                   updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?
+               AND restaurant_id = ?
+            ''',
+            (index, row['id'], restaurant_id),
+        )
+
+
+def validate_product_payload(payload: dict) -> dict:
+    name = normalize_text(payload.get('name'))
+    category = normalize_text(payload.get('category'))
+    description = normalize_text(payload.get('description'))
+
+    if not name:
+        raise ValidationError('Informe o nome do produto.')
+    if not category:
+        raise ValidationError('Informe a categoria.')
+    if len(name) < 2 or len(name) > 80:
+        raise ValidationError('O nome deve ter entre 2 e 80 caracteres.')
+    if len(category) < 2 or len(category) > 50:
+        raise ValidationError('A categoria deve ter entre 2 e 50 caracteres.')
+
+    price = parse_price(payload.get('price'))
+
+    if price <= 0:
+        raise ValidationError('O preço deve ser maior que zero.')
+
+    return {
+        'name': name,
+        'description': description or None,
+        'price': price,
+        'category': category,
+        'active': 1 if str(payload.get('active', '1')).lower() in {'1', 'true', 'on', 'yes'} else 0,
+        'sort_order': _requested_sort_order(payload),
+    }
+
+
+def create_product(db, payload: dict, restaurant_id: int) -> int:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    data = validate_product_payload(payload)
+
+    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category']) + 1)
+    target_order = max(1, int(target_order))
+
+    _shift_category_from(db, restaurant_id, data['category'], target_order)
+
+    cursor = db.execute(
+        '''
+        INSERT INTO products (
+            restaurant_id,
+            name,
+            description,
+            price,
+            category,
+            active,
+            sort_order
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''',
+        (
+            restaurant_id,
+            data['name'],
+            data['description'],
+            data['price'],
+            data['category'],
+            data['active'],
+            target_order,
+        ),
+    )
+
+    _reindex_category(db, restaurant_id, data['category'])
+    db.commit()
+    return cursor.lastrowid
+
+
+def update_product(db, product_id: int, payload: dict, restaurant_id: int) -> None:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    data = validate_product_payload(payload)
+    current_product = get_product(db, product_id, restaurant_id)
+
+    if not current_product:
+        raise ValidationError('Produto não encontrado.')
+
+    old_category = current_product['category']
+    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category'], exclude_product_id=product_id) + 1)
+    target_order = max(1, int(target_order))
+
+    _shift_category_from(db, restaurant_id, data['category'], target_order, exclude_product_id=product_id)
+
+    db.execute(
+        '''
+        UPDATE products
+           SET name = ?,
+               description = ?,
+               price = ?,
+               category = ?,
+               active = ?,
+               sort_order = ?,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?
+           AND restaurant_id = ?
+        ''',
+        (
+            data['name'],
+            data['description'],
+            data['price'],
+            data['category'],
+            data['active'],
+            target_order,
+            product_id,
+            restaurant_id,
+        ),
+    )
+
     _reindex_category(db, restaurant_id, data['category'])
 
     if old_category != data['category']:
@@ -60,6 +272,7 @@ def delete_product(db, product_id: int, restaurant_id: int) -> tuple[bool, str]:
         'DELETE FROM products WHERE id = ? AND restaurant_id = ?',
         (product_id, restaurant_id),
     )
+
     _reindex_category(db, restaurant_id, product['category'])
     db.commit()
     return True, 'Produto removido com sucesso.'
