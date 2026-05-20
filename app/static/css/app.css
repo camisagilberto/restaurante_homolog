@@ -1159,6 +1159,34 @@ summary:focus-visible {
 }
 
 @media (max-width: 1100px) {
+  .public-client-layout .app-main {
+    padding-top: 88px;
+  }
+
+  .public-client-layout .app-header {
+    position: fixed;
+    top: 10px;
+    left: 18px;
+    right: 18px;
+    z-index: 300;
+    width: auto;
+    max-width: calc(100vw - 36px);
+  }
+}
+
+@media (max-width: 640px) {
+  .public-client-layout .app-main {
+    padding-top: 84px;
+  }
+
+  .public-client-layout .app-header {
+    left: 14px;
+    right: 14px;
+    max-width: calc(100vw - 28px);
+  }
+}
+
+@media (max-width: 1100px) {
   .app-layout {
     grid-template-columns: 1fr;
   }
