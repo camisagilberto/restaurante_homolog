@@ -1321,6 +1321,33 @@ summary:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .section-block .product-grid {
+    display: flex;
+    grid-template-columns: none;
+    gap: 12px;
+    margin-right: -18px;
+    padding: 2px 18px 10px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .section-block .product-grid::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .section-block .product-grid::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(30, 30, 30, .16);
+  }
+
+  .section-block .product-card {
+    flex: 0 0 82%;
+    max-width: 340px;
+    scroll-snap-align: start;
+  }
+
   .order-items li {
     display: grid;
     grid-template-columns: auto 1fr auto;
