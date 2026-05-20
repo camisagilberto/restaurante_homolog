@@ -72,21 +72,31 @@
 
       dec?.addEventListener('click', () => sync(-1));
       inc?.addEventListener('click', () => sync(1));
+
       add?.addEventListener('click', async () => {
         const quantity = Math.max(0, parseInt(input?.value || '0', 10) || 0);
+
         if (quantity <= 0) {
           setFeedback(feedback, 'Selecione pelo menos 1 item.', 'error');
           window.setTimeout(() => setFeedback(feedback, '', ''), 2500);
           return;
         }
+
         add.disabled = true;
         setFeedback(feedback, 'Adicionando...', 'loading');
+
         try {
-          const { response, data } = await requestJSON('/carrinho/adicionar', { product_id: Number(productId), quantity });
-          if (!response.ok || !data.success) throw new Error(data.message || 'Falha ao adicionar.');
+          const { response, data } = await requestJSON('/carrinho/adicionar', {
+            product_id: Number(productId),
+            quantity,
+          });
+
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Falha ao adicionar.');
+          }
+
           updateMenuSummary(data);
           setFeedback(feedback, data.message || 'Adicionado ao carrinho.', 'success');
-          if (input) input.value = '0';
         } catch (error) {
           setFeedback(feedback, error.message || 'Não foi possível adicionar.', 'error');
         } finally {
@@ -108,12 +118,7 @@
       const removeButton = itemCard.querySelector('[data-cart-remove]');
       const productId = itemCard.dataset.productId;
 
-      const sync = (delta) => {
-        const current = parseInt(input?.value || '0', 10) || 0;
-        if (input) {
-          input.value = String(Math.max(0, current + delta));
-        }
-      };
+      let updateTimer = null;
 
       const removeCardIfEmpty = () => {
         const remaining = document.querySelectorAll('[data-cart-item]').length;
@@ -122,14 +127,13 @@
         }
       };
 
-      dec?.addEventListener('click', () => sync(-1));
-      inc?.addEventListener('click', () => sync(1));
-
-      updateButton?.addEventListener('click', async () => {
+      const persistQuantity = async () => {
         const quantity = Math.max(0, parseInt(input?.value || '0', 10) || 0);
-        updateButton.disabled = true;
+
+        if (updateButton) updateButton.disabled = true;
         if (removeButton) removeButton.disabled = true;
         setFeedback(itemCard.querySelector('[data-feedback]'), 'Atualizando...', 'loading');
+
         try {
           const { response, data } = await requestJSON('/carrinho/atualizar', {
             product_id: Number(productId),
@@ -153,16 +157,39 @@
         } catch (error) {
           setFeedback(itemCard.querySelector('[data-feedback]'), error.message || 'Erro ao atualizar.', 'error');
         } finally {
-          updateButton.disabled = false;
+          if (updateButton) updateButton.disabled = false;
           if (removeButton) removeButton.disabled = false;
-          window.setTimeout(() => setFeedback(itemCard.querySelector('[data-feedback]'), '', ''), 2500);
+          window.setTimeout(() => setFeedback(itemCard.querySelector('[data-feedback]'), '', ''), 1800);
         }
-      });
+      };
+
+      const scheduleUpdate = () => {
+        window.clearTimeout(updateTimer);
+        updateTimer = window.setTimeout(() => {
+          persistQuantity();
+        }, 350);
+      };
+
+      const sync = (delta) => {
+        const current = parseInt(input?.value || '0', 10) || 0;
+        if (input) {
+          input.value = String(Math.max(0, current + delta));
+          scheduleUpdate();
+        }
+      };
+
+      dec?.addEventListener('click', () => sync(-1));
+      inc?.addEventListener('click', () => sync(1));
+      input?.addEventListener('change', scheduleUpdate);
+      input?.addEventListener('blur', scheduleUpdate);
+
+      updateButton?.addEventListener('click', persistQuantity);
 
       removeButton?.addEventListener('click', async () => {
         updateButton && (updateButton.disabled = true);
         removeButton.disabled = true;
         setFeedback(itemCard.querySelector('[data-feedback]'), 'Removendo...', 'loading');
+
         try {
           const { response, data } = await requestJSON('/carrinho/excluir', {
             product_id: Number(productId),
@@ -187,9 +214,11 @@
 
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
+
       const customerName = form.querySelector('[name="customer_name"]')?.value || '';
       const notes = form.querySelector('[name="notes"]')?.value || '';
       const submitButton = form.querySelector('button[type="submit"]');
+
       submitButton.disabled = true;
       submitButton.textContent = 'Enviando...';
 
@@ -198,7 +227,11 @@
           customer_name: customerName,
           notes,
         });
-        if (!response.ok || !data.success) throw new Error(data.message || 'Não foi possível finalizar.');
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Não foi possível finalizar.');
+        }
+
         window.alert(data.message || 'Pedido enviado com sucesso.');
         window.location.href = data.redirect_url || '/mesa/1';
       } catch (error) {
