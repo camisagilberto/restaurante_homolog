@@ -22,7 +22,7 @@
 
   {% set is_admin_session = session.get('admin_logged_in') %}
   {% set is_public_qr_access = session.get('public_client_mode') and not is_admin_session %}
-  {% set show_navigation = not is_public_qr_access %}
+  {% set show_navigation = (not is_public_qr_access) and request.endpoint != 'admin.login' %}
 
   {% set client_table = session.get('current_table') or 1 %}
   {% set client_token = session.get('client_restaurant_token') or session.get('restaurant_public_token') %}
@@ -48,7 +48,7 @@
 
           <a href="{{ url_for('admin.login') }}">
             <span class="nav-icon" aria-hidden="true">▦</span>
-            <span>Admin</span>
+            <span>Produtos</span>
           </a>
 
           <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>
@@ -90,16 +90,10 @@
         {% if show_navigation %}
           <nav class="app-nav" aria-label="Menu principal">
             <a href="{{ client_order_url }}">Cliente</a>
-            <a href="{{ url_for('admin.login') }}">Admin</a>
+            <a href="{{ url_for('admin.login') }}">Produtos</a>
             <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
-
-            <details class="profile-menu">
-              <summary>Perfil</summary>
-              <div class="profile-menu-panel">
-                <a href="{{ url_for('client.profile') }}">Editar cadastro</a>
-                <a href="{{ url_for('client.tables_setup') }}">Editar mesas</a>
-              </div>
-            </details>
+            <a href="{{ url_for('client.profile') }}">Perfil</a>
+            <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
           </nav>
         {% endif %}
       </header>
