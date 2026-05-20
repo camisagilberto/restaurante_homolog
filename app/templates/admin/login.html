@@ -1,3 +1,128 @@
+# Scripts completos ajustados — QRTotem
+
+Abaixo estão os arquivos completos para substituir no projeto.
+
+---
+
+## `app/templates/base.html`
+
+```html
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}QRTotem{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='img/favicon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
+
+  {% set is_admin_session = session.get('admin_logged_in') %}
+  {% set is_public_qr_access = session.get('public_client_mode') and not is_admin_session %}
+  {% set show_navigation = (not is_public_qr_access) and request.endpoint != 'admin.login' %}
+
+  {% set client_table = session.get('current_table') or 1 %}
+  {% set client_token = session.get('client_restaurant_token') or session.get('restaurant_public_token') %}
+
+  {% if client_token %}
+    {% set client_order_url = url_for('client.restaurant_table_menu', public_token=client_token, table_number=client_table) %}
+  {% else %}
+    {% set client_order_url = url_for('client.table_menu', table_number=client_table) %}
+  {% endif %}
+
+  <div class="app-layout">
+    <aside class="app-sidebar" aria-label="Menu lateral">
+      <a class="sidebar-brand" href="{{ url_for('client.home') }}" aria-label="Ir para a página inicial">
+        <img src="{{ url_for('static', filename='img/logo-horizontal-dark.png') }}" alt="QRTotem">
+      </a>
+
+      {% if show_navigation %}
+        <nav class="sidebar-nav" aria-label="Menu principal">
+          <a href="{{ client_order_url }}">
+            <span class="nav-icon" aria-hidden="true">⌂</span>
+            <span>Cliente</span>
+          </a>
+
+          <a href="{{ url_for('admin.login') }}">
+            <span class="nav-icon" aria-hidden="true">▦</span>
+            <span>Produtos</span>
+          </a>
+
+          <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>
+            <span class="nav-icon" aria-hidden="true">◷</span>
+            <span>Cozinha</span>
+          </a>
+
+          <a href="{{ url_for('client.profile') }}">
+            <span class="nav-icon" aria-hidden="true">◌</span>
+            <span>Cadastro</span>
+          </a>
+
+          <a href="{{ url_for('client.tables_setup') }}">
+            <span class="nav-icon" aria-hidden="true">□</span>
+            <span>Mesas</span>
+          </a>
+        </nav>
+      {% endif %}
+
+      <div class="sidebar-footer">
+        <span class="sidebar-caption">Sistema de pedidos</span>
+        <strong>QR Code para restaurantes</strong>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="app-header">
+        <a class="brand-area" href="{{ url_for('client.home') }}" aria-label="Ir para a página inicial">
+          <span class="brand-logo">
+            <img src="{{ url_for('static', filename='img/logo-icon-light.png') }}" alt="">
+          </span>
+
+          <span class="brand-text">
+            <strong class="brand-title">QRTotem</strong>
+            <span class="brand-subtitle">Sistema de pedidos</span>
+          </span>
+        </a>
+
+        {% if show_navigation %}
+          <nav class="app-nav" aria-label="Menu principal">
+            <a href="{{ client_order_url }}">Cliente</a>
+            <a href="{{ url_for('admin.login') }}">Produtos</a>
+            <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
+            <a href="{{ url_for('client.profile') }}">Perfil</a>
+            <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
+          </nav>
+        {% endif %}
+      </header>
+
+      {% include 'partials/messages.html' %}
+
+      <main id="conteudo-principal" class="content-grid">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+</body>
+</html>
+```
+
+---
+
+## `app/templates/admin/login.html`
+
+```html
 {% extends 'base.html' %}
 {% block title %}Login de Produtos{% endblock %}
 {% block content %}
@@ -20,3 +145,457 @@
   </form>
 </section>
 {% endblock %}
+```
+
+---
+
+## `app/templates/admin/products.html`
+
+```html
+{% extends 'base.html' %}
+{% block title %}Produtos{% endblock %}
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Produtos do cardápio</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name or 'Produtos' }}</h2>
+      <span class="badge-inline">{{ profile.username or 'Usuário' }}</span>
+    </div>
+    <p class="muted">Responsável: <strong>{{ profile.owner_name or '—' }}</strong></p>
+    <p class="muted">Endereço: {{ profile.restaurant_address or '—' }}</p>
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="{{ url_for('client.scan_menu') }}">Scannear cardápio</a>
+  </div>
+</section>
+
+<section class="summary-strip">
+  <div class="summary-card">
+    <span class="summary-label">Itens cadastrados</span>
+    <strong>{{ products|length }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Itens ativos</span>
+    <strong>{{ active_count }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" action="{{ url_for('admin.create_product_route') }}" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="name" placeholder="Ex.: Pizza Calabresa" required>
+      </div>
+      <div>
+        <label>Categoria</label>
+        <input type="text" name="category" placeholder="Ex.: Pizzas" required>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Preço</label>
+        <input type="text" name="price" placeholder="29,90" required>
+      </div>
+      <div>
+        <label>Ordem</label>
+        <input type="number" name="sort_order" min="1" placeholder="Última posição se vazio">
+      </div>
+    </div>
+    <div>
+      <label>Descrição</label>
+      <textarea name="description" rows="3" placeholder="Descrição opcional"></textarea>
+    </div>
+    <label class="check-inline"><input type="checkbox" name="active" checked> Produto ativo</label>
+    <button type="submit" class="btn btn-primary">Salvar produto</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Catálogo</h3>
+    <form method="get" class="search-form">
+      <input type="search" name="q" value="{{ query }}" placeholder="Buscar produto...">
+      <button class="btn btn-secondary" type="submit">Buscar</button>
+    </form>
+  </div>
+
+  <div class="admin-list">
+    {% for product in products %}
+      <article class="admin-row {% if not product['active'] %}is-muted{% endif %}">
+        <div class="admin-row-main">
+          <div>
+            <h4>{{ product['name'] }}</h4>
+            <p class="muted">{{ product['category'] }} · {{ product['price']|currency }}</p>
+            {% if product['description'] %}<p class="product-desc">{{ product['description'] }}</p>{% endif %}
+          </div>
+          <span class="status-pill {% if product['active'] %}status-success{% else %}status-muted{% endif %}">
+            {{ 'Ativo' if product['active'] else 'Inativo' }}
+          </span>
+        </div>
+
+        <div class="admin-row-actions">
+          <a class="btn btn-secondary" href="{{ url_for('admin.edit_product', product_id=product['id']) }}">Editar</a>
+          <form method="post" action="{{ url_for('admin.toggle_product_route', product_id=product['id']) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-secondary" type="submit">{{ 'Desativar' if product['active'] else 'Ativar' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('admin.delete_product_route', product_id=product['id']) }}" onsubmit="return confirm('Remover este produto?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger" type="submit">Excluir</button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <h3>Nenhum produto encontrado</h3>
+        <p class="muted">Tente outro termo de busca ou cadastre um novo item.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+```
+
+---
+
+## `app/templates/admin/product_form.html`
+
+```html
+{% extends 'base.html' %}
+{% block title %}Editar produto{% endblock %}
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Produtos do cardápio</p>
+    <h2>Editar produto</h2>
+    <p class="muted">Atualize nome, preço, categoria, ordem e descrição.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Voltar</a>
+</section>
+
+<section class="panel">
+  <form method="post" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="name" value="{{ product['name'] }}" required>
+      </div>
+      <div>
+        <label>Categoria</label>
+        <input type="text" name="category" value="{{ product['category'] }}" required>
+      </div>
+    </div>
+    <div class="form-row">
+      <div>
+        <label>Preço</label>
+        <input type="text" name="price" value="{{ '%.2f'|format(product['price']) }}" required>
+      </div>
+      <div>
+        <label>Ordem</label>
+        <input type="number" name="sort_order" min="1" value="{{ product['sort_order'] }}">
+      </div>
+    </div>
+    <div>
+      <label>Descrição</label>
+      <textarea name="description" rows="4">{{ product['description'] or '' }}</textarea>
+    </div>
+    <label class="check-inline"><input type="checkbox" name="active" {% if product['active'] %}checked{% endif %}> Produto ativo</label>
+    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+  </form>
+</section>
+{% endblock %}
+```
+
+---
+
+## `app/services/catalog_service.py`
+
+```python
+from __future__ import annotations
+
+from ..errors import ValidationError
+from ..utils import normalize_text, parse_price
+
+
+def _require_restaurant_id(restaurant_id: int | None) -> int:
+    if not restaurant_id:
+        raise ValidationError('Restaurante não identificado.')
+
+    return int(restaurant_id)
+
+
+def list_products(db, restaurant_id: int, *, active_only: bool = False, query: str | None = None):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    sql = 'SELECT * FROM products WHERE restaurant_id = ?'
+    params: list[object] = [restaurant_id]
+
+    if active_only:
+        sql += ' AND active = 1'
+
+    if query:
+        sql += ' AND (name LIKE ? OR category LIKE ? OR COALESCE(description, "") LIKE ?)'
+        like = f'%{query.strip()}%'
+        params.extend([like, like, like])
+
+    sql += ' ORDER BY active DESC, category ASC, sort_order ASC, name ASC'
+    return db.execute(sql, params).fetchall()
+
+
+def get_product(db, product_id: int, restaurant_id: int):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    return db.execute(
+        'SELECT * FROM products WHERE id = ? AND restaurant_id = ?',
+        (product_id, restaurant_id),
+    ).fetchone()
+
+
+def _requested_sort_order(payload: dict) -> int | None:
+    raw_value = payload.get('sort_order')
+
+    if raw_value is None or str(raw_value).strip() == '':
+        return None
+
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+
+    return value if value > 0 else None
+
+
+def _last_sort_order(db, restaurant_id: int, category: str, *, exclude_product_id: int | None = None) -> int:
+    params: list[object] = [restaurant_id, category]
+    sql = 'SELECT COALESCE(MAX(sort_order), 0) FROM products WHERE restaurant_id = ? AND category = ?'
+
+    if exclude_product_id is not None:
+        sql += ' AND id <> ?'
+        params.append(exclude_product_id)
+
+    return int(db.execute(sql, params).fetchone()[0] or 0)
+
+
+def _shift_category_from(db, restaurant_id: int, category: str, target_order: int, *, exclude_product_id: int | None = None) -> None:
+    params: list[object] = [restaurant_id, category, target_order]
+    sql = '''
+        UPDATE products
+           SET sort_order = sort_order + 1,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE restaurant_id = ?
+           AND category = ?
+           AND sort_order >= ?
+    '''
+
+    if exclude_product_id is not None:
+        sql += ' AND id <> ?'
+        params.append(exclude_product_id)
+
+    db.execute(sql, params)
+
+
+def _reindex_category(db, restaurant_id: int, category: str) -> None:
+    rows = db.execute(
+        '''
+        SELECT id
+          FROM products
+         WHERE restaurant_id = ?
+           AND category = ?
+         ORDER BY sort_order ASC, name ASC, id ASC
+        ''',
+        (restaurant_id, category),
+    ).fetchall()
+
+    for index, row in enumerate(rows, start=1):
+        db.execute(
+            '''
+            UPDATE products
+               SET sort_order = ?,
+                   updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?
+               AND restaurant_id = ?
+            ''',
+            (index, row['id'], restaurant_id),
+        )
+
+
+def validate_product_payload(payload: dict) -> dict:
+    name = normalize_text(payload.get('name'))
+    category = normalize_text(payload.get('category'))
+    description = normalize_text(payload.get('description'))
+
+    if not name:
+        raise ValidationError('Informe o nome do produto.')
+    if not category:
+        raise ValidationError('Informe a categoria.')
+    if len(name) < 2 or len(name) > 80:
+        raise ValidationError('O nome deve ter entre 2 e 80 caracteres.')
+    if len(category) < 2 or len(category) > 50:
+        raise ValidationError('A categoria deve ter entre 2 e 50 caracteres.')
+
+    price = parse_price(payload.get('price'))
+
+    if price <= 0:
+        raise ValidationError('O preço deve ser maior que zero.')
+
+    return {
+        'name': name,
+        'description': description or None,
+        'price': price,
+        'category': category,
+        'active': 1 if str(payload.get('active', '1')).lower() in {'1', 'true', 'on', 'yes'} else 0,
+        'sort_order': _requested_sort_order(payload),
+    }
+
+
+def create_product(db, payload: dict, restaurant_id: int) -> int:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    data = validate_product_payload(payload)
+
+    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category']) + 1)
+    target_order = max(1, int(target_order))
+
+    _shift_category_from(db, restaurant_id, data['category'], target_order)
+
+    cursor = db.execute(
+        '''
+        INSERT INTO products (
+            restaurant_id,
+            name,
+            description,
+            price,
+            category,
+            active,
+            sort_order
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''',
+        (
+            restaurant_id,
+            data['name'],
+            data['description'],
+            data['price'],
+            data['category'],
+            data['active'],
+            target_order,
+        ),
+    )
+    _reindex_category(db, restaurant_id, data['category'])
+    db.commit()
+    return cursor.lastrowid
+
+
+def update_product(db, product_id: int, payload: dict, restaurant_id: int) -> None:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    data = validate_product_payload(payload)
+    current_product = get_product(db, product_id, restaurant_id)
+
+    if not current_product:
+        raise ValidationError('Produto não encontrado.')
+
+    old_category = current_product['category']
+    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category'], exclude_product_id=product_id) + 1)
+    target_order = max(1, int(target_order))
+
+    _shift_category_from(db, restaurant_id, data['category'], target_order, exclude_product_id=product_id)
+
+    db.execute(
+        '''
+        UPDATE products
+           SET name = ?,
+               description = ?,
+               price = ?,
+               category = ?,
+               active = ?,
+               sort_order = ?,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?
+           AND restaurant_id = ?
+        ''',
+        (
+            data['name'],
+            data['description'],
+            data['price'],
+            data['category'],
+            data['active'],
+            target_order,
+            product_id,
+            restaurant_id,
+        ),
+    )
+
+    _reindex_category(db, restaurant_id, data['category'])
+
+    if old_category != data['category']:
+        _reindex_category(db, restaurant_id, old_category)
+
+    db.commit()
+
+
+def toggle_product(db, product_id: int, restaurant_id: int) -> None:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    db.execute(
+        '''
+        UPDATE products
+           SET active = CASE WHEN active = 1 THEN 0 ELSE 1 END,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?
+           AND restaurant_id = ?
+        ''',
+        (product_id, restaurant_id),
+    )
+    db.commit()
+
+
+def delete_product(db, product_id: int, restaurant_id: int) -> tuple[bool, str]:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    product = get_product(db, product_id, restaurant_id)
+
+    if not product:
+        return False, 'Produto não encontrado.'
+
+    used = db.execute(
+        '''
+        SELECT COUNT(*)
+          FROM order_items oi
+          JOIN orders o ON o.id = oi.order_id
+         WHERE oi.product_id = ?
+           AND o.restaurant_id = ?
+        ''',
+        (product_id, restaurant_id),
+    ).fetchone()[0]
+
+    if used:
+        db.execute(
+            '''
+            UPDATE products
+               SET active = 0,
+                   updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?
+               AND restaurant_id = ?
+            ''',
+            (product_id, restaurant_id),
+        )
+        db.commit()
+        return False, 'Produto já aparece em pedidos históricos; ele foi desativado em vez de excluído.'
+
+    db.execute(
+        'DELETE FROM products WHERE id = ? AND restaurant_id = ?',
+        (product_id, restaurant_id),
+    )
+    _reindex_category(db, restaurant_id, product['category'])
+    db.commit()
+    return True, 'Produto removido com sucesso.'
+```
+
+---
+
+## Observação sobre `landing.html` e `app.css`
+
+Esses dois arquivos são muito grandes para colocar junto com os anteriores sem risco de truncar a resposta. Para evitar você copiar um arquivo cortado, envie **continuar landing** que eu mando o `app/templates/landing.html` completo, e depois envie **continuar css** que eu mando o `app/static/css/app.css` completo.
