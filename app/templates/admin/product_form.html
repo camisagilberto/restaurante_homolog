@@ -3,7 +3,7 @@
 {% block content %}
 <section class="hero-card">
   <div>
-    <p class="eyebrow">Administração do cardápio</p>
+    <p class="eyebrow">Produtos do cardápio</p>
     <h2>Editar produto</h2>
     <p class="muted">Atualize nome, preço, categoria, ordem e descrição.</p>
   </div>
@@ -30,7 +30,7 @@
       </div>
       <div>
         <label>Ordem</label>
-        <input type="number" name="sort_order" value="{{ product['sort_order'] }}">
+        <input type="number" name="sort_order" min="1" value="{{ product['sort_order'] }}">
       </div>
     </div>
     <div>
