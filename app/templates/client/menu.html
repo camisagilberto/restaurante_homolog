@@ -20,7 +20,9 @@
     <a class="btn btn-secondary" href="{{ url_for('client.cart') }}">
       Ver Carrinho <span class="badge-inline" id="cart-count">{{ cart_quantity }}</span>
     </a>
-    <a class="btn btn-secondary" href="{{ url_for('client.order_history') }}">Ver pedidos em andamento</a>
+    <a class="btn btn-secondary" href="{{ url_for('client.order_history') }}">
+      Ver pedidos em andamento <span class="badge-inline" id="open-orders-count">{{ open_orders_count|default(0) }}</span>
+    </a>
   </div>
 </section>
 
@@ -58,7 +60,7 @@
 
             <div class="quantity-control">
               <button type="button" class="icon-btn" data-qty-dec aria-label="Diminuir">−</button>
-              <input type="number" min="0" value="0" class="qty-input" data-qty-input>
+              <input type="number" min="0" value="{{ (cart_quantities|default({})).get(product['id'], 0) }}" class="qty-input" data-qty-input>
               <button type="button" class="icon-btn" data-qty-inc aria-label="Aumentar">+</button>
             </div>
 
