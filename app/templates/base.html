@@ -1,4 +1,49 @@
 <!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}QRTotem{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='img/favicon-192.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
+
+  {% set is_admin_session = session.get('admin_logged_in') %}
+  {% set is_public_qr_access = session.get('public_client_mode') and not is_admin_session %}
+  {% set show_navigation = (not is_public_qr_access) and request.endpoint != 'admin.login' %}
+
+  {% set client_table = session.get('current_table') or 1 %}
+  {% set client_token = session.get('client_restaurant_token') or session.get('restaurant_public_token') %}
+
+  {% if client_token %}
+    {% set client_order_url = url_for('client.restaurant_table_menu', public_token=client_token, table_number=client_table) %}
+  {% else %}
+    {% set client_order_url = url_for('client.table_menu', table_number=client_table) %}
+  {% endif %}
+
+  <div class="app-layout">
+    <aside class="app-sidebar" aria-label="Menu lateral">
+      <a class="sidebar-brand" href="{{ url_for('client.home') }}" aria-label="Ir para a página inicial">
+        <img src="{{ url_for('static', filename='img/logo-horizontal-dark.png') }}" alt="QRTotem">
+      </a>
+
+      {% if show_navigation %}
+        <nav class="sidebar-nav" aria-label="Menu principal">
+          <a href="{{ client_order_url }}">
+            <span class="nav-icon" aria-hidden="true">⌂</span>
+            <span>Cliente</span>
           </a>
 
           <a href="{{ url_for('admin.login') }}">
