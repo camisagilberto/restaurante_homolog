@@ -51,8 +51,8 @@
     <form id="finalize-order-form" class="stacked-form" method="post" action="{{ url_for('client.finalize_order') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf }}">
       <input type="hidden" name="table_number" value="{{ table_number }}">
-      <label for="customer_name">Seu nome</label>
-      <input id="customer_name" name="customer_name" type="text" placeholder="Digite seu nome*" required>
+      <label for="customer_name">Seu nome*</label>
+      <input id="customer_name" name="customer_name" type="text" placeholder="Digite seu nome" required>
       <label for="notes">Observações</label>
       <textarea id="notes" name="notes" rows="4" placeholder="Ex.: sem cebola, ponto da carne..."></textarea>
       <button type="submit" class="btn btn-primary btn-block">Finalizar pedido</button>
