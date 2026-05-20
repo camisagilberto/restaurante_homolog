@@ -218,7 +218,6 @@ def tables_setup():
     table_count = int(profile.get('table_count') or 0)
     table_cards = []
 
-    for table_number in range(1, table_count + 1):
         table_url = url_for(
             'client.restaurant_table_menu',
             public_token=profile.get('public_token'),
@@ -226,11 +225,19 @@ def tables_setup():
             _external=True,
         )
 
+        qr_table_url = url_for(
+            'client.restaurant_table_menu',
+            public_token=profile.get('public_token'),
+            table_number=table_number,
+            qr=1,
+            _external=True,
+        )
+
         table_cards.append(
             {
                 'number': table_number,
                 'url': table_url,
-                'qr_data_uri': build_qr_code_data_uri(table_url, table_number),
+                'qr_data_uri': build_qr_code_data_uri(qr_table_url, table_number),
             }
         )
 
@@ -472,8 +479,10 @@ def restaurant_table_menu(public_token, table_number):
     session['current_table'] = table_number
     _set_client_restaurant(profile)
 
-    if not session.get('admin_logged_in'):
+    if not session.get('admin_logged_in') and request.args.get('qr') == '1':
         session[PUBLIC_CLIENT_MODE_SESSION_KEY] = True
+    elif request.args.get('qr') != '1':
+        session.pop(PUBLIC_CLIENT_MODE_SESSION_KEY, None)
 
     products = list_products(db, profile['id'], active_only=True)
 
