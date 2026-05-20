@@ -218,6 +218,7 @@ def tables_setup():
     table_count = int(profile.get('table_count') or 0)
     table_cards = []
 
+    for table_number in range(1, table_count + 1):
         table_url = url_for(
             'client.restaurant_table_menu',
             public_token=profile.get('public_token'),
