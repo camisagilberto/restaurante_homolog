@@ -1,6 +1,6 @@
 # Restaurante
 
-Sistema de pedidos em Flask + SQLite, organizado por camadas e pronto para deploy em produção.
+Sistema de pedidos em Flask + SQLite, organizado por camadas e pronto para deploy em produção. (test)
 
 ## Funcionalidades
 
