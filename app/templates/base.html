@@ -21,8 +21,7 @@
   <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
 
   {% set is_admin_session = session.get('admin_logged_in') %}
-  {% set is_qr_table_access = request.endpoint == 'client.restaurant_table_menu' %}
-  {% set is_public_qr_access = is_qr_table_access or (session.get('public_client_mode') and not is_admin_session) %}
+  {% set is_public_qr_access = session.get('public_client_mode') and not is_admin_session %}
   {% set show_navigation = (not is_public_qr_access) and request.endpoint != 'admin.login' %}
 
   {% set client_table = session.get('current_table') or 1 %}
