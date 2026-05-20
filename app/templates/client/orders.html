@@ -7,10 +7,7 @@
     <p class="eyebrow">Acompanhamento do cliente</p>
     <h2>Pedidos em andamento</h2>
     <p class="muted">
-      Veja os pedidos feitos na mesa {{ table_number }}. Esta tela é atualizada automaticamente.
-    </p>
-    <p class="muted" id="client-orders-live-status">
-      Monitorando atualizações do pedido...
+      Veja os pedidos feitos na mesa {{ table_number }}.
     </p>
   </div>
 
@@ -71,28 +68,10 @@
 <script>
   (function () {
     const wrapper = document.getElementById('client-orders-wrapper');
-    const liveStatus = document.getElementById('client-orders-live-status');
     const CHECK_INTERVAL_MS = 2000;
 
     let isRefreshing = false;
     let currentHtml = wrapper ? wrapper.innerHTML : '';
-    let lastUpdateAt = new Date();
-
-    function setLiveStatus(message) {
-      if (liveStatus) {
-        liveStatus.textContent = message;
-      }
-    }
-
-    function updateLiveStatusOk() {
-      const time = lastUpdateAt.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
-
-      setLiveStatus(`Atualização automática ativa. Última verificação: ${time}`);
-    }
 
     async function refreshClientOrders() {
       if (!wrapper || isRefreshing || document.hidden) return;
@@ -127,11 +106,8 @@
           wrapper.innerHTML = nextHtml;
           currentHtml = nextHtml;
         }
-
-        lastUpdateAt = new Date();
-        updateLiveStatusOk();
       } catch (error) {
-        setLiveStatus('Conexão instável. Tentando atualizar novamente...');
+        console.warn(error.message || 'Erro ao atualizar pedidos.');
       } finally {
         isRefreshing = false;
       }
@@ -142,8 +118,6 @@
         refreshClientOrders();
       }
     });
-
-    updateLiveStatusOk();
 
     window.setInterval(function () {
       refreshClientOrders();
