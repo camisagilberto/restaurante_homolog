@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from ..errors import ValidationError
 
@@ -13,6 +14,8 @@ ORDER_STATUS_LABELS = {
 }
 
 ACTIVE_ORDER_STATUSES = ('novo', 'preparando', 'pronto', 'entregue')
+OPEN_ORDER_STATUSES = ('novo', 'preparando', 'pronto')
+BRASILIA_TZ = ZoneInfo('America/Sao_Paulo')
 
 
 def _require_restaurant_id(restaurant_id: int | None) -> int:
@@ -23,7 +26,7 @@ def _require_restaurant_id(restaurant_id: int | None) -> int:
 
 
 def _now_iso() -> str:
-    return datetime.utcnow().isoformat(timespec='microseconds')
+    return datetime.now(timezone.utc).isoformat(timespec='microseconds')
 
 
 def _format_created_at(value) -> str:
@@ -34,7 +37,12 @@ def _format_created_at(value) -> str:
 
     for candidate in (text, text.replace(' ', 'T')):
         try:
-            return datetime.fromisoformat(candidate).strftime('%d/%m/%Y %H:%M')
+            created_at = datetime.fromisoformat(candidate)
+
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+
+            return created_at.astimezone(BRASILIA_TZ).strftime('%d/%m/%Y %H:%M')
         except ValueError:
             continue
 
@@ -203,6 +211,23 @@ def list_orders_for_kitchen(db, restaurant_id: int):
 
     return [_decorate_order(db, order) for order in orders]
 
+def count_open_orders_for_table(db, restaurant_id: int, table_number: str) -> int:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    placeholders = ', '.join('?' for _ in OPEN_ORDER_STATUSES)
+
+    return int(
+        db.execute(
+            f'''
+            SELECT COUNT(*)
+              FROM orders
+             WHERE restaurant_id = ?
+               AND table_number = ?
+               AND status IN ({placeholders})
+            ''',
+            (restaurant_id, str(table_number), *OPEN_ORDER_STATUSES),
+        ).fetchone()[0]
+        or 0
+    )
 
 def get_kitchen_orders_signature(db, restaurant_id: int) -> str:
     restaurant_id = _require_restaurant_id(restaurant_id)
