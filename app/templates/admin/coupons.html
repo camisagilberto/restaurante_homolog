@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Cupons{% endblock %}
+
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Produtos promocionais</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name or 'Cupons' }}</h2>
+      <span class="badge-inline">{{ profile.username or 'Usuário' }}</span>
+    </div>
+    <p class="muted">Cadastre aqui somente os itens promocionais exibidos na página de cupons do cliente.</p>
+    <p class="muted">Estes produtos não se misturam com os produtos do cardápio principal.</p>
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('admin.products') }}">Ver produtos</a>
+    <a class="btn btn-primary" href="{{ url_for('client.coupon_entry') }}">Ver cupons cliente</a>
+  </div>
+</section>
+
+<section class="summary-strip">
+  <div class="summary-card">
+    <span class="summary-label">Cupons cadastrados</span>
+    <strong>{{ products|length }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Cupons ativos</span>
+    <strong>{{ active_count }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" action="{{ url_for('admin.create_coupon_route') }}" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="name" placeholder="Ex.: Combo promocional" required>
+      </div>
+
+      <div>
+        <label>Categoria</label>
+        <input type="text" name="category" placeholder="Ex.: Promoções" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Preço promocional</label>
+        <input type="text" name="price" placeholder="19,90" required>
+      </div>
+
+      <div>
+        <label>Ordem</label>
+        <input type="number" name="sort_order" min="1" placeholder="Última posição se vazio">
+      </div>
+    </div>
+
+    <div>
+      <label>Descrição</label>
+      <textarea name="description" rows="3" placeholder="Descrição opcional da promoção"></textarea>
+    </div>
+
+    <label class="check-inline">
+      <input type="checkbox" name="active" checked>
+      Cupom ativo
+    </label>
+
+    <button type="submit" class="btn btn-primary">Salvar cupom</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Catálogo de cupons</h3>
+
+    <form method="get" class="search-form">
+      <input type="search" name="q" value="{{ query }}" placeholder="Buscar cupom...">
+      <button class="btn btn-secondary" type="submit">Buscar</button>
+    </form>
+  </div>
+
+  <div class="admin-list">
+    {% for product in products %}
+      <article class="admin-row {% if not product['active'] %}is-muted{% endif %}">
+        <div class="admin-row-main">
+          <div>
+            <h4>{{ product['name'] }}</h4>
+            <p class="muted">{{ product['category'] }} · {{ product['price']|currency }}</p>
+
+            {% if product['description'] %}
+              <p class="product-desc">{{ product['description'] }}</p>
+            {% endif %}
+          </div>
+
+          <span class="status-pill {% if product['active'] %}status-success{% else %}status-muted{% endif %}">
+            {{ 'Ativo' if product['active'] else 'Inativo' }}
+          </span>
+        </div>
+
+        <div class="admin-row-actions">
+          <a class="btn btn-secondary" href="{{ url_for('admin.edit_coupon', product_id=product['id']) }}">Editar</a>
+
+          <form method="post" action="{{ url_for('admin.toggle_coupon_route', product_id=product['id']) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-secondary" type="submit">
+              {{ 'Desativar' if product['active'] else 'Ativar' }}
+            </button>
+          </form>
+
+          <form method="post" action="{{ url_for('admin.delete_coupon_route', product_id=product['id']) }}" onsubmit="return confirm('Remover este cupom?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger" type="submit">Excluir</button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <h3>Nenhum cupom encontrado</h3>
+        <p class="muted">Tente outro termo de busca ou cadastre um novo item promocional.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
