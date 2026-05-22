@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Cadastro para cupons{% endblock %}
+
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Cadastro de cliente</p>
+    <h2>Cadastre-se para acessar os cupons</h2>
+    <p class="muted">Preencha os dados abaixo. Depois do cadastro, você volta para o login e acessa usando apenas seu usuário.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ login_url }}">Já tenho usuário</a>
+    <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="name" placeholder="Seu nome" required>
+      </div>
+      <div>
+        <label>Usuário</label>
+        <input type="text" name="username" placeholder="Crie um usuário" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Celular</label>
+        <input type="text" name="cell_phone" placeholder="(00) 00000-0000" required>
+      </div>
+      <div>
+        <label>E-mail</label>
+        <input type="email" name="email" placeholder="seuemail@exemplo.com" required>
+      </div>
+    </div>
+
+    <div>
+      <label>CEP</label>
+      <input type="text" name="cep" placeholder="00000-000" required>
+    </div>
+
+    <label class="check-inline">
+      <input type="checkbox" name="receive_whatsapp" value="1">
+      Desejo receber cupons pelo WhatsApp
+    </label>
+
+    <label class="check-inline">
+      <input type="checkbox" name="receive_email" value="1">
+      Desejo receber cupons pelo e-mail
+    </label>
+
+    <button type="submit" class="btn btn-primary">Finalizar cadastro</button>
+  </form>
+</section>
+{% endblock %}
