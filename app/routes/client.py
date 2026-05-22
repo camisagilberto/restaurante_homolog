@@ -113,15 +113,19 @@ def _client_restaurant_id() -> int | None:
         return None
 
 
+def _clear_coupon_customer_session() -> None:
+    session.pop(COUPON_CUSTOMER_RESTAURANT_SESSION_KEY, None)
+    session.pop(COUPON_CUSTOMER_ID_SESSION_KEY, None)
+    session.pop(COUPON_CUSTOMER_USERNAME_SESSION_KEY, None)
+    session.pop(CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY, None)
+
+
 def _set_client_restaurant(profile) -> None:
     current = session.get(CLIENT_RESTAURANT_SESSION_KEY)
 
     if current and str(current) != str(profile['id']):
         clear_cart(session)
-        session.pop(COUPON_CUSTOMER_RESTAURANT_SESSION_KEY, None)
-        session.pop(COUPON_CUSTOMER_ID_SESSION_KEY, None)
-        session.pop(COUPON_CUSTOMER_USERNAME_SESSION_KEY, None)
-        session.pop(CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY, None)
+        _clear_coupon_customer_session()
 
     session[CLIENT_RESTAURANT_SESSION_KEY] = profile['id']
     session[CLIENT_RESTAURANT_TOKEN_SESSION_KEY] = profile['public_token']
@@ -172,7 +176,7 @@ def _public_menu_url(table_number: str | int | None = None) -> str:
     token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
 
     if token:
-        return url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
+        return url_for('client.restaurant_table_menu', public_token=token, table_number=table_number)
 
     return url_for('client.home')
 
@@ -258,30 +262,88 @@ def _render_client_menu(
 
 @client_bp.route('/')
 def home():
-    return render_template('landing.html')
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin.products'))
+
+    return render_template('landing.html', csrf=csrf_token())
+
+
+@client_bp.route('/entrar', methods=['GET', 'POST'])
+def login():
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin.products'))
+
+    if request.method == 'POST':
+        username = normalize_text(request.form.get('username'))
+        password = request.form.get('password', '')
+
+        if not username or not password:
+            flash('Informe usuário e senha.', 'error')
+        else:
+            db = get_db()
+            account = db.execute(
+                '''
+                SELECT ra.id AS admin_id,
+                       ra.username,
+                       ra.password_hash,
+                       rp.id AS restaurant_id,
+                       rp.owner_name,
+                       rp.age,
+                       rp.restaurant_name,
+                       rp.email,
+                       rp.cnpj,
+                       rp.restaurant_address,
+                       rp.cell_phone,
+                       rp.table_count,
+                       rp.public_token,
+                       rp.slug
+                  FROM restaurant_admins ra
+                  LEFT JOIN restaurant_profiles rp ON rp.admin_id = ra.id
+                 WHERE lower(ra.username) = lower(?)
+                 LIMIT 1
+                ''',
+                (username,),
+            ).fetchone()
+
+            if account and verify_manager_password(db, password, admin_id=account['admin_id']):
+                session.clear()
+                _store_admin_profile_session(account)
+                flash('Login realizado com sucesso.', 'success')
+                return redirect(url_for('admin.products'))
+
+            flash('Usuário ou senha inválidos.', 'error')
+
+    return render_template('admin/login.html', csrf=csrf_token())
+
+
+@client_bp.route('/sair')
+def logout():
+    session.clear()
+    flash('Você saiu da conta.', 'success')
+    return redirect(url_for('client.home'))
 
 
 @client_bp.route('/cadastro', methods=['GET', 'POST'])
 def signup():
-    if request.method == 'POST':
-        db = get_db()
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin.products'))
 
+    if request.method == 'POST':
         try:
-            account = create_restaurant_account(db, request.form.to_dict(flat=True))
+            account = create_restaurant_account(get_db(), request.form.to_dict(flat=True))
         except ValidationError as exc:
             flash(str(exc), 'error')
-        except Exception:
-            flash('Não foi possível criar o acesso agora.', 'error')
         else:
             session.clear()
             _store_admin_profile_session(account)
             flash('Cadastro realizado com sucesso.', 'success')
-            return redirect(url_for('client.products_start'))
+            return redirect(url_for('admin.products'))
 
     return render_template('client/signup.html', csrf=csrf_token())
 
 
 @client_bp.route('/produtos-inicio')
+@login_required
 def products_start():
     profile = _restaurant_context()
 
@@ -299,11 +361,9 @@ def profile():
     if not profile_data.get('restaurant_name'):
         return redirect(url_for('client.signup'))
 
-    db = get_db()
-
     if request.method == 'POST':
         try:
-            updated = update_restaurant_profile(db, session.get('admin_id'), request.form.to_dict(flat=True))
+            updated = update_restaurant_profile(db=get_db(), admin_id=session.get('admin_id'), data=request.form.to_dict(flat=True))
         except ValidationError as exc:
             flash(str(exc), 'error')
         else:
@@ -315,7 +375,7 @@ def profile():
             session['restaurant_address'] = updated['restaurant_address']
             session['restaurant_cell_phone'] = updated['cell_phone']
             session['restaurant_slug'] = updated.get('slug', session.get('restaurant_slug', ''))
-            flash('Cadastro atualizado com sucesso.', 'success')
+            flash('Perfil atualizado com sucesso.', 'success')
             return redirect(url_for('client.profile'))
 
     profile_data = _restaurant_context()
@@ -374,77 +434,13 @@ def tables_setup():
 
 
 @client_bp.route('/produtos-inicio/manual')
-def products_manual():
+@login_required
+def products_manual_redirect():
     return redirect(url_for('admin.products'))
 
 
-def _pending_menu_import() -> dict | None:
-    pending = session.get(PENDING_MENU_IMPORT_SESSION_KEY)
-
-    if not isinstance(pending, dict):
-        return None
-
-    items = pending.get('items') or []
-
-    if not isinstance(items, list) or not items:
-        return None
-
-    return pending
-
-
-def _existing_product(db, restaurant_id: int, name: str, category: str, price: float) -> bool:
-    row = db.execute(
-        '''
-        SELECT 1
-          FROM products
-         WHERE restaurant_id = ?
-           AND lower(name) = lower(?)
-           AND lower(category) = lower(?)
-           AND abs(price - ?) < 0.01
-           AND kind = 'menu'
-         LIMIT 1
-        ''',
-        (restaurant_id, name, category, price),
-    ).fetchone()
-
-    return row is not None
-
-
-def _review_rows_from_form(form) -> list[dict]:
-    names = form.getlist('item_name')
-    categories = form.getlist('item_category')
-    prices = form.getlist('item_price')
-    descriptions = form.getlist('item_description')
-    actives = form.getlist('item_active')
-
-    total = max(len(names), len(categories), len(prices), len(descriptions), len(actives))
-    rows: list[dict] = []
-
-    for index in range(total):
-        name = str(names[index]).strip() if index < len(names) else ''
-        category = str(categories[index]).strip() if index < len(categories) else ''
-        price = str(prices[index]).strip() if index < len(prices) else ''
-        description = str(descriptions[index]).strip() if index < len(descriptions) else ''
-        active = str(actives[index]).strip() if index < len(actives) else '1'
-
-        if not any([name, category, price, description]):
-            continue
-
-        rows.append(
-            {
-                'name': name,
-                'category': category or 'Cardápio',
-                'price': price,
-                'description': description,
-                'active': active,
-                'sort_order': index,
-            }
-        )
-
-    return rows
-
-
 @client_bp.route('/produtos-inicio/scannear', methods=['GET', 'POST'])
+@login_required
 def scan_menu():
     profile = _restaurant_context()
 
@@ -452,23 +448,19 @@ def scan_menu():
         return redirect(url_for('client.signup'))
 
     if request.method == 'POST':
-        uploads = [
-            file
-            for file in request.files.getlist('menu_images')
-            if file and file.filename
-        ]
+        files = request.files.getlist('images')
 
-        if not uploads:
-            flash('Envie pelo menos uma imagem do cardápio.', 'error')
+        if not files or not any(file and file.filename for file in files):
+            flash('Envie ao menos uma foto do cardápio.', 'error')
         else:
             try:
-                result = import_menu_uploads(uploads)
+                imported = import_menu_uploads(files)
             except ValidationError as exc:
                 flash(str(exc), 'error')
+            except Exception:
+                flash('Não foi possível analisar as imagens. Tente novamente com fotos mais nítidas.', 'error')
             else:
-                items = result.get('items') or []
-
-                if not items:
+                if not imported:
                     flash(
                         'Não consegui identificar produtos com preço. Tente outra imagem ou cadastre manualmente.',
                         'warning',
@@ -476,42 +468,39 @@ def scan_menu():
                     session.pop(PENDING_MENU_IMPORT_SESSION_KEY, None)
                 else:
                     session[PENDING_MENU_IMPORT_SESSION_KEY] = {
-                        'items': items,
-                        'processed_files': result.get('processed_files', len(uploads)),
-                        'recognized_items': result.get('recognized_items', len(items)),
-                        'failures': result.get('failures', []),
+                        'products': imported,
                     }
-                    flash(f'Foram encontrados {len(items)} item(ns). Revise antes de salvar.', 'success')
+                    flash(f'{len(imported)} produto(s) identificados. Revise antes de confirmar.', 'success')
                     return redirect(url_for('client.scan_menu_review'))
 
     return render_template('client/scan_menu.html', profile=profile, csrf=csrf_token())
 
 
 @client_bp.route('/produtos-inicio/scannear/revisar')
+@login_required
 def scan_menu_review():
     profile = _restaurant_context()
 
     if not profile.get('restaurant_name'):
         return redirect(url_for('client.signup'))
 
-    pending = _pending_menu_import()
+    pending = session.get(PENDING_MENU_IMPORT_SESSION_KEY) or {}
+    products = pending.get('products') or []
 
-    if not pending:
-        flash('Envie as imagens do cardápio primeiro.', 'warning')
+    if not products:
+        flash('Nenhum produto pendente para revisar.', 'warning')
         return redirect(url_for('client.scan_menu'))
 
     return render_template(
         'client/scan_menu_review.html',
         profile=profile,
-        items=pending['items'],
-        processed_files=pending.get('processed_files', 0),
-        recognized_items=pending.get('recognized_items', len(pending['items'])),
-        failures=pending.get('failures', []),
+        products=products,
         csrf=csrf_token(),
     )
 
 
 @client_bp.route('/produtos-inicio/scannear/confirmar', methods=['POST'])
+@login_required
 def scan_menu_confirm():
     profile = _restaurant_context()
     restaurant_id = profile.get('id')
@@ -519,64 +508,106 @@ def scan_menu_confirm():
     if not profile.get('restaurant_name') or not restaurant_id:
         return redirect(url_for('client.signup'))
 
-    pending = _pending_menu_import()
+    pending = session.get(PENDING_MENU_IMPORT_SESSION_KEY) or {}
+    imported = pending.get('products') or []
 
-    if not pending:
-        flash('Envie as imagens do cardápio primeiro.', 'warning')
-        return redirect(url_for('client.scan_menu'))
+    if not imported:
+        flash('Adicione pelo menos um produto para importar.', 'error')
+        return redirect(url_for('client.scan_menu_review'))
 
-    rows = _review_rows_from_form(request.form)
+    products = []
+    errors = []
 
-    if not rows:
+    for index, item in enumerate(imported):
+        prefix = f'products[{index}]'
+        active_key = f'{prefix}[active]'
+
+        if request.form.get(active_key) != '1':
+            continue
+
+        products.append(
+            {
+                'name': request.form.get(f'{prefix}[name]'),
+                'category': request.form.get(f'{prefix}[category]'),
+                'price': request.form.get(f'{prefix}[price]'),
+                'description': request.form.get(f'{prefix}[description]'),
+                'active': '1',
+            }
+        )
+
+    if not products:
         flash('Adicione pelo menos um produto para importar.', 'error')
         return redirect(url_for('client.scan_menu_review'))
 
     db = get_db()
-    validated_rows = []
-
-    for index, row in enumerate(rows, start=1):
-        try:
-            validated_rows.append(validate_product_payload(row))
-        except ValidationError as exc:
-            flash(f'Linha {index}: {exc}', 'error')
-            return redirect(url_for('client.scan_menu_review'))
-
     created = 0
     skipped = 0
 
-    for row in validated_rows:
-        if _existing_product(db, restaurant_id, row['name'], row['category'], row['price']):
-            skipped += 1
-            continue
+    existing_names = {
+        row['name'].strip().lower()
+        for row in db.execute(
+            'SELECT name FROM products WHERE restaurant_id = ? AND kind = ?',
+            (restaurant_id, 'menu'),
+        ).fetchall()
+    }
 
-        db.execute(
-            '''
-            INSERT INTO products (
-                restaurant_id,
-                name,
-                description,
-                price,
-                category,
-                active,
-                sort_order,
-                kind
+    try:
+        for product in products:
+            try:
+                payload = validate_product_payload(product)
+            except ValidationError as exc:
+                errors.append(f"{product.get('name') or 'Produto'}: {exc}")
+                continue
+
+            normalized_name = payload['name'].strip().lower()
+
+            if normalized_name in existing_names:
+                skipped += 1
+                continue
+
+            max_sort = db.execute(
+                'SELECT COALESCE(MAX(sort_order), 0) FROM products WHERE restaurant_id = ? AND kind = ?',
+                (restaurant_id, 'menu'),
+            ).fetchone()[0]
+
+            db.execute(
+                '''
+                INSERT INTO products (
+                    restaurant_id,
+                    name,
+                    category,
+                    price_cents,
+                    description,
+                    active,
+                    sort_order,
+                    kind
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''',
+                (
+                    restaurant_id,
+                    payload['name'],
+                    payload['category'],
+                    payload['price_cents'],
+                    payload['description'],
+                    payload['active'],
+                    max_sort + created + 1,
+                    'menu',
+                ),
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'menu')
-            ''',
-            (
-                restaurant_id,
-                row['name'],
-                row['description'],
-                row['price'],
-                row['category'],
-                row['active'],
-                row['sort_order'],
-            ),
-        )
-        created += 1
+            existing_names.add(normalized_name)
+            created += 1
 
-    db.commit()
+        db.commit()
+    except Exception:
+        db.rollback()
+        flash('Erro ao importar produtos. Tente novamente.', 'error')
+        return redirect(url_for('client.scan_menu_review'))
+
     session.pop(PENDING_MENU_IMPORT_SESSION_KEY, None)
+
+    if errors:
+        flash('Alguns produtos não foram importados: ' + ' | '.join(errors[:4]), 'warning')
 
     if created and skipped:
         flash(
@@ -585,10 +616,12 @@ def scan_menu_confirm():
         )
     elif created:
         flash(f'Importação concluída: {created} produto(s) cadastrado(s).', 'success')
-    else:
+    elif skipped:
         flash('Nenhum produto novo foi cadastrado porque todos já existiam.', 'warning')
+    else:
+        flash('Nenhum produto foi importado.', 'warning')
 
-    return redirect(url_for('client.tables_setup'))
+    return redirect(url_for('admin.products'))
 
 
 @client_bp.route('/cliente-espelho')
@@ -686,6 +719,10 @@ def restaurant_table_menu(public_token, table_number):
 
     session['current_table'] = table_number
     _set_client_restaurant(profile)
+
+    if request.args.get('qr') == '1' and not session.get('admin_logged_in'):
+        _clear_coupon_customer_session()
+
     session[PUBLIC_CLIENT_MODE_SESSION_KEY] = True
 
     return _render_client_menu(
@@ -1152,7 +1189,7 @@ def edit_table():
         return jsonify(
             success=True,
             message='Mesa atualizada com sucesso.',
-            table_number=str(table_number),
+            table_number=table_number,
             redirect_url=url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1),
         )
 
@@ -1163,83 +1200,90 @@ def edit_table():
 @client_bp.route('/carrinho')
 def cart():
     cart = get_cart(session)
-    cart_total, cart_quantity = totals(cart)
-
-    table_number = _current_table()
-    menu_url = _public_menu_url(table_number)
-
-    return render_template(
-        'client/cart.html',
-        cart=cart,
-        cart_total=cart_total,
-        cart_quantity=cart_quantity,
-        table_number=table_number,
-        menu_url=menu_url,
-        csrf=csrf_token(),
-    )
-
-
-@client_bp.route('/pedidos')
-def order_history():
-    table_number = _current_table()
+    db = get_db()
     restaurant_id = _client_restaurant_id()
 
     if not restaurant_id:
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    db = get_db()
-    orders = list_orders_for_table(db, restaurant_id, table_number)
+    product_ids = [item['product_id'] for item in cart]
+    products = {}
+
+    if product_ids:
+        placeholders = ','.join('?' for _ in product_ids)
+        rows = db.execute(
+            f'''
+            SELECT *
+              FROM products
+             WHERE restaurant_id = ?
+               AND active = 1
+               AND id IN ({placeholders})
+            ''',
+            (restaurant_id, *product_ids),
+        ).fetchall()
+        products = {row['id']: row for row in rows}
+
+    items = []
+    for item in cart:
+        product = products.get(item['product_id'])
+
+        if not product:
+            continue
+
+        quantity = int(item['quantity'])
+        line_total = quantity * int(product['price_cents'])
+        items.append(
+            {
+                'product': product,
+                'quantity': quantity,
+                'line_total': line_total,
+            }
+        )
+
+    cart_total = sum(item['line_total'] for item in items)
+    cart_quantity = sum(item['quantity'] for item in items)
 
     return render_template(
-        'client/orders.html',
-        orders=orders,
-        table_number=table_number,
-        menu_url=_public_menu_url(table_number),
+        'client/cart.html',
+        items=items,
+        cart_total=cart_total,
+        cart_quantity=cart_quantity,
         csrf=csrf_token(),
+        menu_url=_public_menu_url(),
     )
 
 
 @client_bp.route('/carrinho/adicionar', methods=['POST'])
 def add_to_cart():
     data = _payload()
-    restaurant_id = _client_restaurant_id()
-
-    if not restaurant_id:
-        message = 'Restaurante não identificado.'
-        if _wants_json():
-            return jsonify(success=False, message=message), 400
-        flash(message, 'error')
-        return redirect(url_for('client.home'))
 
     try:
-        product_id = int(data.get('product_id'))
-        quantity = parse_positive_int(data.get('quantity'), default=0, minimum=0, maximum=50)
+        product_id = parse_positive_int(data.get('product_id'), minimum=1)
+        quantity = parse_positive_int(data.get('quantity'), minimum=1, maximum=99)
     except (TypeError, ValueError):
         message = 'Produto ou quantidade inválidos.'
-        if _wants_json():
-            return jsonify(success=False, message=message), 400
-        flash(message, 'error')
-        return redirect(url_for('client.home'))
-
-    if quantity <= 0:
-        message = 'Selecione uma quantidade maior que zero.'
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
         return _client_table_redirect(_current_table())
 
     db = get_db()
-    product = db.execute(
-        '''
-        SELECT *
-          FROM products
-         WHERE id = ?
-           AND restaurant_id = ?
-           AND active = 1
-        ''',
-        (product_id, restaurant_id),
-    ).fetchone()
+    restaurant_id = _client_restaurant_id()
+
+    product = None
+    if restaurant_id:
+        product = db.execute(
+            '''
+            SELECT *
+              FROM products
+             WHERE id = ?
+               AND restaurant_id = ?
+               AND active = 1
+             LIMIT 1
+            ''',
+            (product_id, restaurant_id),
+        ).fetchone()
 
     if not product:
         message = 'Produto indisponível.'
@@ -1249,9 +1293,8 @@ def add_to_cart():
         return _client_table_redirect(_current_table())
 
     cart = get_cart(session)
-    add_item(cart, product, quantity)
+    add_item(cart, product_id, quantity)
     save_cart(session, cart)
-
     cart_total, cart_quantity = totals(cart)
 
     if _wants_json():
@@ -1267,12 +1310,12 @@ def add_to_cart():
 
 
 @client_bp.route('/carrinho/atualizar', methods=['POST'])
-def update_cart_item():
+def update_cart():
     data = _payload()
 
     try:
-        product_id = int(data.get('product_id'))
-        quantity = parse_positive_int(data.get('quantity', 0), default=0, minimum=0, maximum=99)
+        product_id = parse_positive_int(data.get('product_id'), minimum=1)
+        quantity = parse_positive_int(data.get('quantity'), default=0, minimum=0, maximum=99)
     except (TypeError, ValueError):
         message = 'Produto inválido.'
         if _wants_json():
@@ -1281,29 +1324,25 @@ def update_cart_item():
         return redirect(url_for('client.cart'))
 
     cart = get_cart(session)
-    item = find_item(cart, product_id)
+    old_quantity = 0
+    existing = find_item(cart, product_id)
 
-    if not item:
-        message = 'Item não encontrado.'
-        if _wants_json():
-            return jsonify(success=False, message=message), 404
-        flash(message, 'error')
-        return redirect(url_for('client.cart'))
+    if existing:
+        old_quantity = int(existing['quantity'])
 
-    cart, removed = update_item(cart, product_id, quantity)
+    update_item(cart, product_id, quantity)
     save_cart(session, cart)
-
     cart_total, cart_quantity = totals(cart)
 
     if _wants_json():
         return jsonify(
             success=True,
-            removed=removed,
-            product_id=product_id,
-            quantity=0 if removed else quantity,
-            item_total=0 if removed else round(float(item['price']) * quantity, 2),
-            cart_total=cart_total,
+            message='Carrinho atualizado.',
+            quantity=quantity,
+            old_quantity=old_quantity,
+            removed=quantity == 0,
             cart_quantity=cart_quantity,
+            cart_total=cart_total,
         )
 
     flash('Carrinho atualizado.', 'success')
@@ -1311,11 +1350,11 @@ def update_cart_item():
 
 
 @client_bp.route('/carrinho/excluir', methods=['POST'])
-def delete_cart_item():
+def remove_from_cart():
     data = _payload()
 
     try:
-        product_id = int(data.get('product_id'))
+        product_id = parse_positive_int(data.get('product_id'), minimum=1)
     except (TypeError, ValueError):
         message = 'Produto inválido.'
         if _wants_json():
@@ -1324,40 +1363,27 @@ def delete_cart_item():
         return redirect(url_for('client.cart'))
 
     cart = get_cart(session)
-    new_cart = remove_item(cart, product_id)
-
-    if len(new_cart) == len(cart):
-        message = 'Item não encontrado.'
-        if _wants_json():
-            return jsonify(success=False, message=message), 404
-        flash(message, 'error')
-        return redirect(url_for('client.cart'))
-
-    save_cart(session, new_cart)
-
-    cart_total, cart_quantity = totals(new_cart)
+    removed = remove_item(cart, product_id)
+    save_cart(session, cart)
+    cart_total, cart_quantity = totals(cart)
 
     if _wants_json():
         return jsonify(
             success=True,
-            removed=True,
-            product_id=product_id,
-            item_total=0.0,
-            cart_total=cart_total,
+            message='Produto removido.' if removed else 'Produto não estava no carrinho.',
+            removed=removed,
             cart_quantity=cart_quantity,
+            cart_total=cart_total,
         )
 
-    flash('Item removido do carrinho.', 'success')
+    flash('Produto removido.' if removed else 'Produto não estava no carrinho.', 'success')
     return redirect(url_for('client.cart'))
 
 
 @client_bp.route('/pedido/finalizar', methods=['POST'])
 def finalize_order():
-    data = _payload()
-    table_number = _current_table()
-    customer_name = str(data.get('customer_name') or '').strip()
-    notes = (data.get('notes') or '').strip() or None
     cart = get_cart(session)
+    table_number = _current_table()
     restaurant_id = _client_restaurant_id()
 
     if not restaurant_id:
@@ -1367,41 +1393,49 @@ def finalize_order():
         flash(message, 'error')
         return redirect(url_for('client.home'))
 
-    if not cart:
-        message = 'Seu carrinho está vazio.'
-        if _wants_json():
-            return jsonify(success=False, message=message), 400
-        flash(message, 'error')
-        return _client_table_redirect(table_number)
+    customer_name = normalize_text((_payload() or {}).get('customer_name'))
+    notes = normalize_text((_payload() or {}).get('notes'))
 
     if not customer_name:
-        message = 'Informe seu nome para finalizar o pedido.'
+        message = 'Informe seu nome.'
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
         return redirect(url_for('client.cart'))
 
     db = get_db()
-    order_id = create_order_from_cart(
-        db,
-        restaurant_id,
-        str(table_number),
-        cart,
-        customer_name=customer_name,
-        notes=notes,
-    )
+
+    try:
+        order_id = create_order_from_cart(db, restaurant_id, table_number, cart, customer_name, notes)
+    except ValidationError as exc:
+        message = str(exc)
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.cart'))
 
     clear_cart(session)
-
-    success_message = 'vá ao caixa, e diga seu nome para fazer o pagamento'
 
     if _wants_json():
         return jsonify(
             success=True,
-            message=success_message,
-            order_id=order_id,
-            redirect_url=_public_menu_url(table_number),
+            message=f'Pedido #{order_id} enviado para a cozinha.',
+            redirect_url=url_for('client.order_history'),
         )
 
-    flash(success_message, 'success')
-    return _client_table_redirect(table_number)
+    flash(f'Pedido #{order_id} enviado para a cozinha.', 'success')
+    return redirect(url_for('client.order_history'))
+
+
+@client_bp.route('/pedidos')
+def order_history():
+    restaurant_id = _client_restaurant_id()
+    table_number = _current_table()
+
+    if not restaurant_id:
+        flash('Restaurante não identificado.', 'error')
+        return redirect(url_for('client.home'))
+
+    orders = list_orders_for_table(get_db(), restaurant_id, table_number)
+
+    return render_template('client/orders.html', orders=orders, menu_url=_public_menu_url(), csrf=csrf_token())
