@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Enviar promoções{% endblock %}
+
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Promoções</p>
+    <h2>Enviar promoções</h2>
+    <p class="muted">
+      Crie uma mensagem promocional para os clientes que deixaram o restaurante no radar.
+      O envio real por WhatsApp ou e-mail ainda não será executado nesta etapa.
+    </p>
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('client.coupon_mirror') }}">Voltar aos cupons</a>
+  </div>
+</section>
+
+<section class="summary-strip">
+  <div class="summary-card">
+    <span class="summary-label">Restaurante</span>
+    <strong>{{ profile.restaurant_name }}</strong>
+  </div>
+
+  <div class="summary-card">
+    <span class="summary-label">Clientes no radar</span>
+    <strong>{{ radar_count }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" enctype="multipart/form-data" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label>Título da promoção</label>
+      <input type="text" name="title" placeholder="Ex.: Promoção especial de hoje" required>
+    </div>
+
+    <div>
+      <label>Mensagem</label>
+      <textarea name="message" rows="8" placeholder="Escreva aqui a mensagem que será enviada futuramente por WhatsApp ou e-mail..." required></textarea>
+    </div>
+
+    <div>
+      <label>Imagens da promoção</label>
+      <input type="file" name="images" accept="image/*" multiple>
+      <p class="muted">Você pode anexar uma ou mais imagens. Nesta etapa elas servem apenas para preparar a campanha.</p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="submit" class="btn btn-primary">Criar prévia da promoção</button>
+      <a class="btn btn-secondary" href="{{ url_for('client.coupon_mirror') }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
