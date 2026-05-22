@@ -25,6 +25,7 @@
   {% set is_public_client_flow = request.endpoint in public_flow_endpoints and session.get('public_client_mode') %}
   {% set is_table_link_page = request.endpoint == 'client.restaurant_table_menu' %}
   {% set hide_navigation_for_table = is_table_link_page or is_public_client_flow %}
+
   {% set hidden_navigation_endpoints = ['admin.login', 'client.signup'] %}
   {% set show_navigation = (not hide_navigation_for_table) and request.endpoint not in hidden_navigation_endpoints %}
 
