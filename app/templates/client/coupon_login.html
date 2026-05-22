@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Acessar cupons{% endblock %}
+
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Área de cupons</p>
+    <h2>Acesse seus cupons</h2>
+    <p class="muted">Informe apenas seu usuário para visualizar os produtos promocionais deste restaurante.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div>
+      <label>Usuário</label>
+      <input type="text" name="username" placeholder="Digite seu usuário" required autofocus>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Entrar nos cupons</button>
+    <a class="btn btn-secondary" href="{{ signup_url }}">Fazer cadastro para acessar os cupons</a>
+  </form>
+</section>
+{% endblock %}
