@@ -29,6 +29,7 @@ PUBLIC_CLIENT_MODE_SESSION_KEY = 'public_client_mode'
 COUPON_CUSTOMER_RESTAURANT_SESSION_KEY = 'coupon_customer_restaurant_id'
 COUPON_CUSTOMER_ID_SESSION_KEY = 'coupon_customer_id'
 COUPON_CUSTOMER_USERNAME_SESSION_KEY = 'coupon_customer_username'
+CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY = 'customer_after_login_target'
 
 
 def _wants_json() -> bool:
@@ -120,6 +121,7 @@ def _set_client_restaurant(profile) -> None:
         session.pop(COUPON_CUSTOMER_RESTAURANT_SESSION_KEY, None)
         session.pop(COUPON_CUSTOMER_ID_SESSION_KEY, None)
         session.pop(COUPON_CUSTOMER_USERNAME_SESSION_KEY, None)
+        session.pop(CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY, None)
 
     session[CLIENT_RESTAURANT_SESSION_KEY] = profile['id']
     session[CLIENT_RESTAURANT_TOKEN_SESSION_KEY] = profile['public_token']
@@ -138,6 +140,25 @@ def _has_coupon_access(restaurant_id: int | None) -> bool:
     return bool(expected_restaurant_id and current_restaurant_id == expected_restaurant_id and session.get(COUPON_CUSTOMER_ID_SESSION_KEY))
 
 
+def _current_customer(db, restaurant_id: int | None = None):
+    restaurant_id = restaurant_id or _client_restaurant_id()
+    customer_id = session.get(COUPON_CUSTOMER_ID_SESSION_KEY)
+
+    if not restaurant_id or not customer_id:
+        return None
+
+    return db.execute(
+        '''
+        SELECT *
+          FROM customer_coupon_users
+         WHERE id = ?
+           AND restaurant_id = ?
+         LIMIT 1
+        ''',
+        (customer_id, restaurant_id),
+    ).fetchone()
+
+
 def _coupon_entry_url() -> str:
     return url_for('client.coupon_entry')
 
@@ -154,6 +175,15 @@ def _public_menu_url(table_number: str | int | None = None) -> str:
         return url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
 
     return url_for('client.home')
+
+
+def _after_customer_login_redirect():
+    target = session.pop(CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY, None)
+
+    if target == 'profile':
+        return redirect(url_for('client.customer_profile'))
+
+    return redirect(url_for('client.coupon_menu'))
 
 
 def _client_table_redirect(table_number: int | str):
@@ -193,6 +223,16 @@ def _render_client_menu(
     if not is_client_mirror:
         open_orders_count = count_open_orders_for_table(db, profile['id'], table_number)
 
+    current_customer = _current_customer(db, profile['id'])
+    radar_enabled = bool(current_customer and current_customer['radar_enabled'])
+
+    show_radar_flag = (
+        not session.get('admin_logged_in')
+        and not is_client_mirror
+        and not is_coupon_page
+        and str(table_number).lower() != 'espelho'
+    )
+
     return render_template(
         'client/menu.html',
         table_number=table_number,
@@ -207,6 +247,12 @@ def _render_client_menu(
         is_coupon_page=is_coupon_page,
         coupon_url=_coupon_entry_url(),
         menu_url=_public_menu_url(table_number),
+        profile_url=url_for('client.customer_profile'),
+        radar_action_url=url_for('client.toggle_radar'),
+        radar_enabled=radar_enabled,
+        show_radar_flag=show_radar_flag,
+        can_send_promotions=bool(session.get('admin_logged_in') and is_coupon_page and is_client_mirror),
+        send_promotions_url=url_for('client.send_promotions'),
     )
 
 
@@ -566,6 +612,68 @@ def client_mirror():
     )
 
 
+@client_bp.route('/cupons-espelho')
+@login_required
+def coupon_mirror():
+    profile = _restaurant_context()
+
+    if not profile.get('restaurant_name') or not profile.get('id'):
+        return redirect(url_for('client.signup'))
+
+    session.pop(PUBLIC_CLIENT_MODE_SESSION_KEY, None)
+    session['current_table'] = 'espelho'
+    _set_client_restaurant(profile)
+
+    return _render_client_menu(
+        profile,
+        'Espelho',
+        can_manage_table=False,
+        is_client_mirror=True,
+        is_coupon_page=True,
+    )
+
+
+@client_bp.route('/promocoes/enviar', methods=['GET', 'POST'])
+@login_required
+def send_promotions():
+    profile = _restaurant_context()
+
+    if not profile.get('restaurant_name') or not profile.get('id'):
+        return redirect(url_for('client.signup'))
+
+    db = get_db()
+    radar_count = db.execute(
+        '''
+        SELECT COUNT(*)
+          FROM customer_coupon_users
+         WHERE restaurant_id = ?
+           AND radar_enabled = 1
+        ''',
+        (profile['id'],),
+    ).fetchone()[0]
+
+    if request.method == 'POST':
+        title = normalize_text(request.form.get('title'))
+        message = normalize_text(request.form.get('message'))
+
+        if not title or not message:
+            flash('Informe o título e a mensagem da promoção.', 'error')
+        else:
+            files_count = len([file for file in request.files.getlist('images') if file and file.filename])
+            flash(
+                f'Prévia criada com sucesso. Nenhum envio real foi feito ainda. Público no radar: {radar_count} cliente(s). Imagens anexadas: {files_count}.',
+                'success',
+            )
+            return redirect(url_for('client.send_promotions'))
+
+    return render_template(
+        'client/promo_send.html',
+        profile=profile,
+        radar_count=radar_count,
+        csrf=csrf_token(),
+    )
+
+
 @client_bp.route('/r/<public_token>/mesa/<table_number>')
 def restaurant_table_menu(public_token, table_number):
     table_number = str(parse_positive_int(table_number, default=1, minimum=1, maximum=999))
@@ -597,6 +705,9 @@ def coupon_entry():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
+    if session.get('admin_logged_in'):
+        return redirect(url_for('client.coupon_mirror'))
+
     if _has_coupon_access(restaurant_id):
         return redirect(url_for('client.coupon_menu'))
 
@@ -612,7 +723,7 @@ def coupon_login():
         return redirect(url_for('client.home'))
 
     if session.get('admin_logged_in'):
-        return redirect(url_for('client.coupon_menu'))
+        return redirect(url_for('client.coupon_mirror'))
 
     if request.method == 'POST':
         username = normalize_text(request.form.get('username'))
@@ -636,10 +747,10 @@ def coupon_login():
                 session[COUPON_CUSTOMER_RESTAURANT_SESSION_KEY] = restaurant_id
                 session[COUPON_CUSTOMER_ID_SESSION_KEY] = customer['id']
                 session[COUPON_CUSTOMER_USERNAME_SESSION_KEY] = customer['username']
-                flash('Acesso liberado aos cupons.', 'success')
-                return redirect(url_for('client.coupon_menu'))
+                flash('Acesso liberado.', 'success')
+                return _after_customer_login_redirect()
 
-            flash('Usuário não encontrado. Faça seu cadastro para acessar os cupons.', 'error')
+            flash('Usuário não encontrado. Faça seu cadastro para acessar os cupons e seu perfil.', 'error')
 
     return render_template(
         'client/coupon_login.html',
@@ -684,7 +795,7 @@ def coupon_signup():
             ).fetchone()
 
             if exists:
-                flash('Este usuário já existe. Faça login para acessar os cupons.', 'warning')
+                flash('Este usuário já existe. Faça login para acessar os cupons ou seu perfil.', 'warning')
                 return redirect(url_for('client.coupon_login'))
 
             db.execute(
@@ -713,7 +824,7 @@ def coupon_signup():
                 ),
             )
             db.commit()
-            flash('Cadastro realizado com sucesso. Agora informe seu usuário para acessar os cupons.', 'success')
+            flash('Cadastro realizado com sucesso. Agora informe seu usuário para acessar.', 'success')
             return redirect(url_for('client.coupon_login'))
 
     return render_template(
@@ -732,6 +843,9 @@ def coupon_menu():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
+    if session.get('admin_logged_in'):
+        return redirect(url_for('client.coupon_mirror'))
+
     if not _has_coupon_access(restaurant_id):
         return redirect(url_for('client.coupon_login'))
 
@@ -742,9 +856,6 @@ def coupon_menu():
 
     if token:
         profile = get_restaurant_profile_by_token(db, token)
-
-    if not profile and session.get('admin_logged_in'):
-        profile = _restaurant_context()
 
     if not profile:
         profile = db.execute(
@@ -760,9 +871,230 @@ def coupon_menu():
         profile,
         _current_table(),
         can_manage_table=False,
-        is_client_mirror=str(_current_table()).lower() == 'espelho',
+        is_client_mirror=False,
         is_coupon_page=True,
     )
+
+
+@client_bp.route('/cliente/perfil', methods=['GET', 'POST'])
+def customer_profile():
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id:
+        flash('Restaurante não identificado.', 'error')
+        return redirect(url_for('client.home'))
+
+    if session.get('admin_logged_in'):
+        flash('O perfil do cliente é acessado pelo cliente da mesa.', 'warning')
+        return redirect(url_for('client.client_mirror'))
+
+    if not _has_coupon_access(restaurant_id):
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'profile'
+        flash('Informe seu usuário para acessar ou criar seu perfil.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    customer = _current_customer(db, restaurant_id)
+
+    if not customer:
+        session.pop(COUPON_CUSTOMER_ID_SESSION_KEY, None)
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'profile'
+        flash('Faça login novamente para acessar seu perfil.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    if request.method == 'POST':
+        name = normalize_text(request.form.get('name'))
+        username = normalize_text(request.form.get('username'))
+        cell_phone = normalize_text(request.form.get('cell_phone'))
+        email = normalize_text(request.form.get('email'))
+        cep = normalize_text(request.form.get('cep'))
+        receive_whatsapp = 1 if request.form.get('receive_whatsapp') else 0
+        receive_email = 1 if request.form.get('receive_email') else 0
+
+        if not all([name, username, cell_phone, email, cep]):
+            flash('Preencha todos os campos obrigatórios.', 'error')
+        elif '@' not in email or '.' not in email:
+            flash('Informe um e-mail válido.', 'error')
+        else:
+            duplicated = db.execute(
+                '''
+                SELECT id
+                  FROM customer_coupon_users
+                 WHERE restaurant_id = ?
+                   AND lower(username) = lower(?)
+                   AND id <> ?
+                 LIMIT 1
+                ''',
+                (restaurant_id, username, customer['id']),
+            ).fetchone()
+
+            if duplicated:
+                flash('Este usuário já está em uso neste restaurante.', 'error')
+            else:
+                old_username = customer['username']
+
+                db.execute(
+                    '''
+                    UPDATE customer_coupon_users
+                       SET name = ?,
+                           username = ?,
+                           cell_phone = ?,
+                           email = ?,
+                           cep = ?,
+                           receive_whatsapp = ?,
+                           receive_email = ?,
+                           updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ?
+                       AND restaurant_id = ?
+                    ''',
+                    (
+                        name,
+                        username,
+                        cell_phone,
+                        email,
+                        cep,
+                        receive_whatsapp,
+                        receive_email,
+                        customer['id'],
+                        restaurant_id,
+                    ),
+                )
+
+                if old_username != username:
+                    db.execute(
+                        '''
+                        UPDATE customer_coupon_users
+                           SET username = ?
+                         WHERE lower(username) = lower(?)
+                        ''',
+                        (username, old_username),
+                    )
+
+                db.commit()
+                session[COUPON_CUSTOMER_USERNAME_SESSION_KEY] = username
+                flash('Perfil atualizado com sucesso.', 'success')
+                return redirect(url_for('client.customer_profile'))
+
+    customer = _current_customer(db, restaurant_id)
+    username = session.get(COUPON_CUSTOMER_USERNAME_SESSION_KEY) or customer['username']
+
+    radar_restaurants = db.execute(
+        '''
+        SELECT ccu.id,
+               ccu.restaurant_id,
+               ccu.radar_enabled,
+               ccu.receive_whatsapp,
+               ccu.receive_email,
+               rp.restaurant_name,
+               rp.restaurant_address
+          FROM customer_coupon_users ccu
+          JOIN restaurant_profiles rp ON rp.id = ccu.restaurant_id
+         WHERE lower(ccu.username) = lower(?)
+         ORDER BY ccu.radar_enabled DESC, rp.restaurant_name ASC
+        ''',
+        (username,),
+    ).fetchall()
+
+    return render_template(
+        'client/customer_profile.html',
+        customer=customer,
+        radar_restaurants=radar_restaurants,
+        menu_url=_public_menu_url(),
+        csrf=csrf_token(),
+    )
+
+
+@client_bp.route('/cliente/perfil/radar/<int:customer_id>/toggle', methods=['POST'])
+def customer_profile_toggle_radar(customer_id):
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id or not _has_coupon_access(restaurant_id):
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'profile'
+        return redirect(url_for('client.coupon_login'))
+
+    username = session.get(COUPON_CUSTOMER_USERNAME_SESSION_KEY)
+
+    if not username:
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'profile'
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    row = db.execute(
+        '''
+        SELECT id, radar_enabled
+          FROM customer_coupon_users
+         WHERE id = ?
+           AND lower(username) = lower(?)
+         LIMIT 1
+        ''',
+        (customer_id, username),
+    ).fetchone()
+
+    if not row:
+        flash('Restaurante não encontrado no seu perfil.', 'error')
+        return redirect(url_for('client.customer_profile'))
+
+    new_value = 0 if row['radar_enabled'] else 1
+
+    db.execute(
+        '''
+        UPDATE customer_coupon_users
+           SET radar_enabled = ?,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?
+        ''',
+        (new_value, customer_id),
+    )
+    db.commit()
+
+    flash('Radar atualizado com sucesso.', 'success')
+    return redirect(url_for('client.customer_profile'))
+
+
+@client_bp.route('/cliente/radar/toggle', methods=['POST'])
+def toggle_radar():
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id:
+        flash('Restaurante não identificado.', 'error')
+        return redirect(url_for('client.home'))
+
+    if session.get('admin_logged_in'):
+        return redirect(url_for('client.client_mirror'))
+
+    if not _has_coupon_access(restaurant_id):
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'profile'
+        flash('Informe seu usuário para deixar este restaurante no radar.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    customer = _current_customer(db, restaurant_id)
+
+    if not customer:
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'profile'
+        flash('Faça login novamente para atualizar seu radar.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    radar_enabled = 1 if request.form.get('radar_enabled') else 0
+
+    db.execute(
+        '''
+        UPDATE customer_coupon_users
+           SET radar_enabled = ?,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?
+           AND restaurant_id = ?
+        ''',
+        (radar_enabled, customer['id'], restaurant_id),
+    )
+    db.commit()
+
+    if radar_enabled:
+        flash('Restaurante adicionado ao seu radar.', 'success')
+    else:
+        flash('Restaurante removido do seu radar.', 'success')
+
+    return redirect(_public_menu_url())
 
 
 @client_bp.route('/mesa/<table_number>')
@@ -834,16 +1166,7 @@ def cart():
     cart_total, cart_quantity = totals(cart)
 
     table_number = _current_table()
-    token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
-
-    if table_number.lower() == 'espelho' and session.get('admin_logged_in'):
-        menu_url = url_for('client.client_mirror')
-    else:
-        menu_url = (
-            url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
-            if token
-            else url_for('client.home')
-        )
+    menu_url = _public_menu_url(table_number)
 
     return render_template(
         'client/cart.html',
@@ -868,22 +1191,11 @@ def order_history():
     db = get_db()
     orders = list_orders_for_table(db, restaurant_id, table_number)
 
-    token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
-
-    if table_number.lower() == 'espelho' and session.get('admin_logged_in'):
-        menu_url = url_for('client.client_mirror')
-    else:
-        menu_url = (
-            url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
-            if token
-            else url_for('client.home')
-        )
-
     return render_template(
         'client/orders.html',
         orders=orders,
         table_number=table_number,
-        menu_url=menu_url,
+        menu_url=_public_menu_url(table_number),
         csrf=csrf_token(),
     )
 
@@ -1084,18 +1396,11 @@ def finalize_order():
     success_message = 'vá ao caixa, e diga seu nome para fazer o pagamento'
 
     if _wants_json():
-        token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
-        redirect_url = (
-            url_for('client.client_mirror')
-            if table_number.lower() == 'espelho' and session.get('admin_logged_in')
-            else url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
-        )
-
         return jsonify(
             success=True,
             message=success_message,
             order_id=order_id,
-            redirect_url=redirect_url,
+            redirect_url=_public_menu_url(table_number),
         )
 
     flash(success_message, 'success')
