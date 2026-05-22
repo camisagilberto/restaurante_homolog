@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#53535c">
+  <meta name="theme-color" content="#FFFFFF">
 
-  <title>QRTotem | Pedidos e promoções por QR Code para restaurantes</title>
+  <title>QRTotem | Pedidos por QR Code para restaurantes</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,20 +17,15 @@
   <style>
     :root {
       --graphite: #1E1E1E;
-      --dark: #25252b;
-      --bg: #53535c;
-      --bg-soft: #5f5f69;
       --gray: #404040;
       --light: #F5F5F5;
       --white: #FFFFFF;
       --orange: #F97316;
       --orange-dark: #EA580C;
-      --line: rgba(255, 255, 255, 0.16);
-      --line-dark: rgba(30, 30, 30, 0.08);
-      --muted: rgba(255, 255, 255, 0.76);
-      --muted-dark: rgba(64, 64, 64, 0.74);
-      --shadow: 0 28px 80px rgba(0, 0, 0, 0.22);
-      --shadow-soft: 0 18px 44px rgba(0, 0, 0, 0.14);
+      --line: rgba(30, 30, 30, 0.08);
+      --muted: rgba(64, 64, 64, 0.74);
+      --shadow: 0 24px 70px rgba(30, 30, 30, 0.08);
+      --shadow-soft: 0 14px 34px rgba(30, 30, 30, 0.06);
       --radius: 28px;
       --container: 1180px;
     }
@@ -47,10 +42,8 @@
       margin: 0;
       min-height: 100vh;
       font-family: "Manrope", sans-serif;
-      color: var(--white);
-      background:
-        radial-gradient(circle at 72% 22%, rgba(249, 115, 22, 0.16), transparent 28%),
-        linear-gradient(135deg, #53535c 0%, #4b4b54 52%, #3f3f47 100%);
+      color: var(--graphite);
+      background: var(--white);
       letter-spacing: -0.025em;
       line-height: 1.6;
       overflow-x: hidden;
@@ -81,10 +74,9 @@
       justify-content: space-between;
       gap: 24px;
       border-bottom: 1px solid var(--line);
-      background: rgba(83, 83, 92, .90);
+      background: rgba(255, 255, 255, .94);
       backdrop-filter: blur(18px);
     }
-
     .landing-brand {
       display: inline-flex;
       align-items: center;
@@ -108,15 +100,15 @@
       justify-content: center;
       padding: 10px 15px;
       border-radius: 999px;
-      color: rgba(255, 255, 255, .82);
+      color: var(--gray);
       font-size: .92rem;
       font-weight: 600;
       transition: background-color .18s ease, color .18s ease, transform .18s ease;
     }
 
     .landing-nav a:hover {
-      color: var(--white);
-      background: rgba(255, 255, 255, .08);
+      color: var(--graphite);
+      background: var(--light);
       transform: translateY(-1px);
     }
 
@@ -124,7 +116,7 @@
       padding-inline: 20px;
       color: var(--white);
       background: var(--orange);
-      box-shadow: 0 14px 32px rgba(249, 115, 22, .26);
+      box-shadow: 0 12px 28px rgba(249, 115, 22, .18);
     }
 
     .landing-nav .nav-cta:hover {
@@ -135,13 +127,13 @@
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 1.02fr) minmax(360px, .98fr);
-      gap: 58px;
+      gap: 56px;
       align-items: center;
-      padding: 76px 0 54px;
+      padding: 76px 0 64px;
     }
 
     .hero-copy {
-      max-width: 680px;
+      max-width: 660px;
     }
 
     .eyebrow {
@@ -151,10 +143,10 @@
       gap: 9px;
       margin: 0 0 18px;
       padding: 8px 13px;
-      border: 1px solid rgba(249, 115, 22, .28);
+      border: 1px solid rgba(249, 115, 22, .18);
       border-radius: 999px;
-      background: rgba(249, 115, 22, .10);
-      color: #FDBA74;
+      background: rgba(249, 115, 22, .06);
+      color: var(--orange-dark);
       font-size: .78rem;
       font-weight: 800;
       text-transform: uppercase;
@@ -167,17 +159,17 @@
       height: 7px;
       border-radius: 999px;
       background: var(--orange);
-      box-shadow: 0 0 0 6px rgba(249, 115, 22, .16);
+      box-shadow: 0 0 0 6px rgba(249, 115, 22, .12);
     }
 
     .hero h1 {
       margin: 0;
-      max-width: 760px;
-      font-size: clamp(2.75rem, 5.15vw, 5rem);
+      max-width: 720px;
+      font-size: clamp(2.75rem, 5.2vw, 5.15rem);
       line-height: .98;
       letter-spacing: -0.075em;
       font-weight: 800;
-      color: var(--white);
+      color: var(--graphite);
     }
 
     .hero h1 span {
@@ -188,106 +180,17 @@
       max-width: 610px;
       margin: 24px 0 0;
       color: var(--muted);
-      font-size: clamp(1rem, 1.25vw, 1.16rem);
+      font-size: clamp(1rem, 1.25vw, 1.18rem);
       font-weight: 500;
       line-height: 1.72;
     }
 
-    .focus-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin-top: 34px;
-    }
-
-    .focus-card {
-      min-height: 196px;
-      padding: 25px;
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, .055);
-      box-shadow: var(--shadow-soft);
-      backdrop-filter: blur(12px);
-    }
-
-    .focus-icon {
-      width: 56px;
-      height: 56px;
-      margin-bottom: 20px;
-      border-radius: 19px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(249, 115, 22, .35);
-      background: rgba(249, 115, 22, .13);
-      color: var(--orange);
-      font-size: 1.65rem;
-      font-weight: 800;
-    }
-
-    .focus-card h2 {
-      margin: 0;
-      font-size: 1.28rem;
-      line-height: 1.15;
-      letter-spacing: -0.045em;
-      font-weight: 800;
-    }
-
-    .focus-card p {
-      margin: 12px 0 0;
-      color: rgba(255, 255, 255, .72);
-      font-size: .96rem;
-      line-height: 1.52;
-    }
-
-    .pricing-card {
-      max-width: 610px;
-      margin-top: 20px;
-      padding: 22px 24px;
-      border-radius: 24px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, .065);
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      align-items: center;
-      gap: 18px;
-      box-shadow: var(--shadow-soft);
-      backdrop-filter: blur(12px);
-    }
-
-    .price-label {
-      display: block;
-      color: rgba(255, 255, 255, .70);
-      font-size: .9rem;
-      font-weight: 600;
-    }
-
-    .price-value {
+    .hero-actions {
       display: flex;
-      align-items: flex-end;
-      gap: 8px;
-      color: var(--white);
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .price-value small {
-      margin-bottom: 7px;
-      font-size: 1rem;
-      color: var(--white);
-    }
-
-    .price-value strong {
-      color: var(--orange);
-      font-size: clamp(2.35rem, 4vw, 3.15rem);
-      letter-spacing: -0.075em;
-    }
-
-    .price-value span {
-      margin-bottom: 7px;
-      color: var(--white);
-      font-size: 1rem;
-      font-weight: 700;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 32px;
     }
 
     .btn {
@@ -299,271 +202,223 @@
       padding: 14px 22px;
       border-radius: 15px;
       border: 1px solid transparent;
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: -0.02em;
       transition: transform .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
-      white-space: nowrap;
     }
 
     .btn-primary {
       background: var(--orange);
       color: var(--white);
-      box-shadow: 0 16px 36px rgba(249, 115, 22, .28);
+      box-shadow: 0 16px 36px rgba(249, 115, 22, .22);
     }
 
     .btn-primary:hover {
       background: var(--orange-dark);
       transform: translateY(-2px);
-      box-shadow: 0 20px 44px rgba(249, 115, 22, .32);
+      box-shadow: 0 20px 44px rgba(249, 115, 22, .26);
     }
 
     .btn-secondary {
-      background: transparent;
-      border-color: rgba(249, 115, 22, .45);
-      color: #FDBA74;
+      background: var(--white);
+      border-color: var(--line);
+      color: var(--graphite);
     }
 
     .btn-secondary:hover {
-      background: rgba(249, 115, 22, .10);
+      background: var(--light);
       transform: translateY(-2px);
     }
 
-    .price-note {
-      margin-top: 12px;
-      color: rgba(255, 255, 255, .72);
-      font-size: .92rem;
+    .hero-note {
+      margin-top: 18px;
+      color: var(--gray);
+      font-size: .94rem;
       font-weight: 500;
+    }
+
+    .hero-note a {
+      color: var(--orange-dark);
+      font-weight: 700;
     }
 
     .hero-visual {
       position: relative;
-      min-height: 590px;
-    }
-
-    .phone {
-      position: absolute;
-      width: 258px;
-      height: 518px;
-      top: 34px;
-      padding: 12px;
-      border-radius: 40px;
-      background: #111115;
-      border: 1px solid rgba(255, 255, 255, .18);
-      box-shadow: 0 32px 70px rgba(0, 0, 0, .34);
+      min-height: 560px;
+      border-radius: 38px;
+      background: var(--light);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
       overflow: hidden;
     }
 
-    .phone::before {
+    .hero-visual::before {
       content: "";
       position: absolute;
-      width: 86px;
-      height: 22px;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-radius: 0 0 15px 15px;
-      background: #07070a;
-      z-index: 4;
+      inset: 22px;
+      border-radius: 30px;
+      background: var(--white);
+      border: 1px solid var(--line);
     }
 
-    .phone-orders {
-      left: 28px;
-      transform: rotate(-2deg);
+    .mock-phone {
+      position: absolute;
+      width: 228px;
+      height: 456px;
+      top: 54px;
+      left: 54px;
+      padding: 12px;
+      border-radius: 36px;
+      background: var(--graphite);
+      box-shadow: 0 28px 54px rgba(30, 30, 30, .22);
+      transform: rotate(-4deg);
       z-index: 2;
     }
 
-    .phone-promos {
-      right: 8px;
-      top: 76px;
-      transform: rotate(3deg);
-      z-index: 3;
+    .mock-phone.second {
+      top: 92px;
+      left: auto;
+      right: 52px;
+      transform: rotate(5deg);
     }
 
-    .screen {
+    .mock-screen {
       height: 100%;
-      border-radius: 30px;
-      background: linear-gradient(180deg, #222228 0%, #151519 100%);
-      padding: 38px 18px 18px;
+      border-radius: 27px;
+      background: var(--white);
+      padding: 20px 14px;
       overflow: hidden;
-      color: var(--white);
     }
 
-    .screen-top {
+    .mock-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      font-size: .78rem;
+      font-weight: 800;
+      color: var(--graphite);
+    }
+
+    .mock-pill {
+      width: 48px;
+      height: 5px;
+      border-radius: 999px;
+      background: #D9D9D9;
+    }
+
+    .mock-title {
+      margin: 0 0 16px;
+      font-size: 1.15rem;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+    }
+
+    .mock-item {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mock-food {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background:
+        radial-gradient(circle at 42% 38%, #FDBA74 0 22%, transparent 23%),
+        linear-gradient(135deg, #F97316, #1E1E1E);
+    }
+
+    .mock-lines {
+      display: grid;
+      gap: 7px;
+    }
+
+    .mock-lines span {
+      height: 7px;
+      border-radius: 999px;
+      background: #E7E7E7;
+    }
+
+    .mock-lines span:first-child {
+      width: 92%;
+      background: #CFCFCF;
+    }
+
+    .mock-lines span:last-child {
+      width: 58%;
+    }
+
+    .mock-total {
+      margin-top: 22px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 800;
+    }
+
+    .mock-button {
+      position: absolute;
+      left: 26px;
+      right: 26px;
+      bottom: 26px;
+      min-height: 46px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      color: rgba(255, 255, 255, .74);
-      font-size: .75rem;
-      font-weight: 700;
-    }
-
-    .screen h3 {
-      margin: 18px 0 6px;
-      text-align: center;
-      font-size: 1.08rem;
-      line-height: 1.15;
-      letter-spacing: -0.04em;
-      font-weight: 800;
-    }
-
-    .screen-subtitle {
-      display: block;
-      margin-bottom: 20px;
-      text-align: center;
-      color: rgba(255, 255, 255, .62);
-      font-size: .76rem;
-      font-weight: 600;
-    }
-
-    .order-flow {
-      margin-top: 24px;
-      display: grid;
-      gap: 0;
-    }
-
-    .order-step {
-      position: relative;
-      display: grid;
-      grid-template-columns: 42px 1fr;
-      gap: 12px;
-      min-height: 76px;
-    }
-
-    .order-step:not(:last-child)::after {
-      content: "";
-      position: absolute;
-      left: 20px;
-      top: 42px;
-      width: 1px;
-      height: 34px;
-      background: rgba(249, 115, 22, .48);
-    }
-
-    .order-bullet {
-      width: 42px;
-      height: 42px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
       justify-content: center;
-      border: 1px solid rgba(249, 115, 22, .42);
-      background: rgba(249, 115, 22, .10);
-      color: var(--orange);
-      font-weight: 800;
-    }
-
-    .order-step:first-child .order-bullet {
       background: var(--orange);
       color: var(--white);
-      box-shadow: 0 0 0 7px rgba(249, 115, 22, .12);
+      font-size: .86rem;
+      font-weight: 800;
     }
 
-    .order-text strong {
+    .floating-card {
+      position: absolute;
+      left: 44px;
+      right: 44px;
+      bottom: 34px;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      padding: 17px;
+      border-radius: 20px;
+      background: rgba(255,255,255,.94);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .metric strong {
       display: block;
-      font-size: .9rem;
-      line-height: 1.2;
-      letter-spacing: -0.03em;
+      font-size: 1.35rem;
+      line-height: 1;
+      letter-spacing: -0.055em;
+      color: var(--graphite);
     }
 
-    .order-text span {
+    .metric span {
       display: block;
-      margin-top: 4px;
-      color: rgba(255, 255, 255, .55);
-      font-size: .75rem;
-      font-weight: 600;
-    }
-
-    .screen-card {
-      margin-top: 18px;
-      padding: 16px;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, .09);
-      background: rgba(255, 255, 255, .05);
-    }
-
-    .screen-card span {
-      color: rgba(255, 255, 255, .66);
+      margin-top: 7px;
+      color: var(--gray);
       font-size: .78rem;
       font-weight: 600;
-    }
-
-    .screen-card strong {
-      display: block;
-      margin-top: 6px;
-      color: var(--orange);
-      font-size: 1.35rem;
-      letter-spacing: -0.055em;
-      line-height: 1;
-    }
-
-    .promo-list {
-      display: grid;
-      gap: 12px;
-      margin-top: 20px;
-    }
-
-    .promo-card {
-      display: grid;
-      grid-template-columns: 54px 1fr;
-      gap: 12px;
-      align-items: center;
-      padding: 12px;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, .09);
-      background: rgba(255, 255, 255, .055);
-    }
-
-    .promo-image {
-      width: 54px;
-      height: 54px;
-      border-radius: 15px;
-      background:
-        radial-gradient(circle at 35% 34%, #FDBA74 0 20%, transparent 21%),
-        linear-gradient(135deg, #F97316, #2a2a30);
-    }
-
-    .promo-content strong {
-      display: block;
-      color: var(--orange);
-      font-size: 1rem;
-      line-height: 1.1;
-      letter-spacing: -0.035em;
-    }
-
-    .promo-content span {
-      display: block;
-      margin-top: 5px;
-      color: rgba(255, 255, 255, .68);
-      font-size: .72rem;
-      font-weight: 600;
-      line-height: 1.35;
-    }
-
-    .coupon-code {
-      width: fit-content;
-      margin-top: 8px;
-      padding: 4px 9px;
-      border-radius: 8px;
-      border: 1px dashed rgba(255,255,255,.32);
-      color: rgba(255,255,255,.86);
-      font-size: .66rem;
-      font-weight: 800;
-      letter-spacing: .04em;
+      line-height: 1.25;
     }
 
     .section {
-      padding: 58px 0;
-    }
-
-    .white-section {
-      color: var(--graphite);
-      background: var(--white);
+      padding: 56px 0;
     }
 
     .section-head {
       max-width: 760px;
-      margin-bottom: 28px;
+      margin-bottom: 26px;
     }
 
     .section-head h2 {
@@ -577,15 +432,59 @@
     .section-head p {
       margin: 14px 0 0;
       max-width: 640px;
-      color: var(--muted-dark);
+      color: var(--muted);
       font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .benefit-card {
+      padding: 26px;
+      border-radius: var(--radius);
+      background: var(--white);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .benefit-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 20px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(249, 115, 22, .2);
+      background: rgba(249, 115, 22, .07);
+      color: var(--orange);
+      font-size: 1.45rem;
+      font-weight: 800;
+    }
+
+    .benefit-card h3 {
+      margin: 0;
+      font-size: 1.18rem;
+      line-height: 1.2;
+      letter-spacing: -0.04em;
+      font-weight: 800;
+    }
+
+    .benefit-card p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: .94rem;
       font-weight: 500;
     }
 
     .steps {
       background: var(--light);
-      border-top: 1px solid var(--line-dark);
-      border-bottom: 1px solid var(--line-dark);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
     }
 
     .steps-grid {
@@ -598,7 +497,7 @@
       padding: 22px 18px;
       border-radius: 24px;
       background: var(--white);
-      border: 1px solid var(--line-dark);
+      border: 1px solid var(--line);
     }
 
     .step-number {
@@ -624,7 +523,7 @@
 
     .step-card p {
       margin: 10px 0 0;
-      color: var(--muted-dark);
+      color: var(--muted);
       font-size: .86rem;
       font-weight: 500;
       line-height: 1.55;
@@ -639,7 +538,7 @@
       grid-template-columns: 1fr auto;
       align-items: center;
       gap: 24px;
-      box-shadow: 0 24px 70px rgba(30, 30, 30, 0.14);
+      box-shadow: var(--shadow);
     }
 
     .final-cta h2 {
@@ -656,41 +555,16 @@
       font-weight: 500;
     }
 
+    .final-cta .btn-primary {
+      box-shadow: none;
+    }
+
     .landing-footer {
       padding: 34px 0;
-      color: rgba(255, 255, 255, .70);
+      color: var(--gray);
       font-size: .92rem;
       font-weight: 500;
       text-align: center;
-    }
-
-    @media (max-width: 1040px) {
-      .hero {
-        grid-template-columns: 1fr;
-        gap: 34px;
-        padding: 48px 0;
-      }
-
-      .hero-visual {
-        min-height: 570px;
-      }
-
-      .phone-orders {
-        left: calc(50% - 280px);
-      }
-
-      .phone-promos {
-        right: calc(50% - 280px);
-      }
-
-      .pricing-card {
-        grid-template-columns: 1fr;
-        align-items: stretch;
-      }
-
-      .pricing-card .btn {
-        width: 100%;
-      }
     }
 
     @media (max-width: 980px) {
@@ -703,7 +577,17 @@
         display: none;
       }
 
-      .focus-grid,
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 34px;
+        padding: 48px 0;
+      }
+
+      .hero-visual {
+        min-height: 520px;
+      }
+
+      .benefits-grid,
       .steps-grid {
         grid-template-columns: 1fr;
       }
@@ -730,34 +614,43 @@
         font-size: 2.55rem;
       }
 
-      .focus-card {
-        min-height: auto;
-        padding: 22px;
+      .hero-actions .btn {
+        width: 100%;
       }
 
       .hero-visual {
-        min-height: 690px;
+        min-height: 490px;
+        border-radius: 28px;
       }
 
-      .phone {
-        width: 230px;
-        height: 462px;
+      .mock-phone {
+        width: 198px;
+        height: 396px;
+        left: 20px;
+        top: 42px;
       }
 
-      .phone-orders {
-        top: 12px;
-        left: 6px;
+      .mock-phone.second {
+        right: 18px;
+        top: 82px;
       }
 
-      .phone-promos {
-        top: 216px;
-        right: 6px;
+      .floating-card {
+        left: 16px;
+        right: 16px;
+        bottom: 18px;
+        grid-template-columns: 1fr;
+      }
+
+      .metric {
+        padding: 14px;
       }
 
       .section {
-        padding: 42px 0;
+        padding: 40px 0;
       }
 
+      .benefit-card,
       .final-cta {
         padding: 24px;
         border-radius: 24px;
@@ -773,7 +666,7 @@
     </a>
 
     <nav class="landing-nav" aria-label="Navegação principal">
-      <a href="#focos">Benefícios</a>
+      <a href="#beneficios">Benefícios</a>
       <a href="#como-funciona">Como funciona</a>
       <a href="{{ url_for('admin.login') }}">Entrar</a>
       <a class="nav-cta" href="{{ url_for('client.signup') }}">Começar agora</a>
@@ -783,210 +676,215 @@
   <main>
     <section class="landing-shell hero">
       <div class="hero-copy">
-        <span class="eyebrow">Pedidos e promoções por QR Code</span>
+        <span class="eyebrow">Autoatendimento por QR Code</span>
 
         <h1>
-          Do pedido à promoção, <span>tudo de forma simples.</span>
+          Totem de autoatendimento <span>no celular do seu cliente</span>
         </h1>
 
         <p>
-          O QRTotem ajuda seu restaurante a vender melhor em dois pontos essenciais:
-          pedidos mais organizados para a cozinha e um canal direto para divulgar promoções aos seus clientes.
+          O QRTotem transforma o celular do cliente em um canal de pedidos simples, rápido e organizado. Reduza filas, melhore o atendimento e controle sua operação com uma experiência premium.
         </p>
 
-        <div id="focos" class="focus-grid">
-          <article class="focus-card">
-            <div class="focus-icon">⌂</div>
-            <h2>Otimize os pedidos</h2>
-            <p>
-              O cliente acessa o cardápio pelo QR Code, faz o pedido pelo celular e a operação fica mais rápida, clara e organizada.
-            </p>
-          </article>
-
-          <article class="focus-card">
-            <div class="focus-icon">%</div>
-            <h2>Fale com seus clientes</h2>
-            <p>
-              Crie cupons e promoções para manter seu restaurante presente, incentivar novas visitas e aumentar o retorno dos clientes.
-            </p>
-          </article>
-        </div>
-
-        <div class="pricing-card">
-          <div>
-            <span class="price-label">Preço fixo</span>
-            <div class="price-value">
-              <small>R$</small>
-              <strong>59,90</strong>
-              <span>/mês</span>
-            </div>
-          </div>
-
-          <a class="btn btn-primary" href="{{ url_for('client.signup') }}">
-            Começar agora
-          </a>
-
-          <a class="btn btn-secondary" href="#como-funciona">
-            Ver como funciona
-          </a>
-        </div>
-
-        <div class="price-note">
-          Sem taxa de adesão. Cancele quando quiser.
-        </div>
-      </div>
-
-      <div class="hero-visual" aria-hidden="true">
-        <div class="phone phone-orders">
-          <div class="screen">
-            <div class="screen-top">
-              <span>9:41</span>
-              <span>●●●</span>
-            </div>
-
-            <h3>Pedido #1257</h3>
-            <span class="screen-subtitle">Mesa 05</span>
-
-            <div class="order-flow">
-              <div class="order-step">
-                <div class="order-bullet">✓</div>
-                <div class="order-text">
-                  <strong>Pedido recebido</strong>
-                  <span>12:32</span>
-                </div>
-              </div>
-
-              <div class="order-step">
-                <div class="order-bullet">♨</div>
-                <div class="order-text">
-                  <strong>Enviado para a cozinha</strong>
-                  <span>12:33</span>
-                </div>
-              </div>
-
-              <div class="order-step">
-                <div class="order-bullet">○</div>
-                <div class="order-text">
-                  <strong>Em preparo</strong>
-                  <span>acompanhamento simples</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="screen-card">
-              <span>Total do pedido</span>
-              <strong>R$ 128,50</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="phone phone-promos">
-          <div class="screen">
-            <div class="screen-top">
-              <span>9:41</span>
-              <span>●●●</span>
-            </div>
-
-            <h3>Promoções</h3>
-            <span class="screen-subtitle">Cupons ativos</span>
-
-            <div class="promo-list">
-              <div class="promo-card">
-                <div class="promo-image"></div>
-                <div class="promo-content">
-                  <strong>10% OFF</strong>
-                  <span>No seu próximo pedido</span>
-                  <div class="coupon-code">QRT10</div>
-                </div>
-              </div>
-
-              <div class="promo-card">
-                <div class="promo-image"></div>
-                <div class="promo-content">
-                  <strong>Frete grátis</strong>
-                  <span>Em pedidos acima de R$ 80</span>
-                  <div class="coupon-code">FRETEGRATIS</div>
-                </div>
-              </div>
-
-              <div class="promo-card">
-                <div class="promo-image"></div>
-                <div class="promo-content">
-                  <strong>Drink em dobro</strong>
-                  <span>Para clientes no radar</span>
-                  <div class="coupon-code">DRINK2X</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="white-section">
-      <section id="como-funciona" class="steps section">
-        <div class="landing-shell">
-          <div class="section-head">
-            <h2>Comece sua operação em 5 minutos.</h2>
-            <p>
-              Um processo otimizado para colocar seu restaurante em operação rapidamente.
-            </p>
-          </div>
-
-          <div class="steps-grid">
-            <article class="step-card">
-              <span class="step-number">1</span>
-              <h3>Crie sua conta</h3>
-              <p>Faça o cadastro do restaurante e acesse o painel.</p>
-            </article>
-
-            <article class="step-card">
-              <span class="step-number">2</span>
-              <h3>Cadastre seu cardápio</h3>
-              <p>Inclua produtos, preços, descrições e categorias.</p>
-            </article>
-
-            <article class="step-card">
-              <span class="step-number">3</span>
-              <h3>Configure mesas</h3>
-              <p>Informe a quantidade de mesas do restaurante.</p>
-            </article>
-
-            <article class="step-card">
-              <span class="step-number">4</span>
-              <h3>Gere QR Codes</h3>
-              <p>Use os QR Codes para direcionar os clientes ao pedido.</p>
-            </article>
-
-            <article class="step-card">
-              <span class="step-number">5</span>
-              <h3>Ative promoções</h3>
-              <p>Crie cupons e mantenha contato com seus clientes.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="landing-shell section">
-        <div class="final-cta">
-          <div>
-            <h2>Organize pedidos e traga clientes de volta.</h2>
-            <p>
-              Uma solução simples para melhorar a operação do restaurante e criar um canal direto de promoções.
-            </p>
-          </div>
-
+        <div class="hero-actions">
           <a class="btn btn-primary" href="{{ url_for('client.signup') }}">
             Começar agora
             <span aria-hidden="true">→</span>
           </a>
+
+          <a class="btn btn-secondary" href="{{ url_for('admin.login') }}">
+            Acessar painel
+          </a>
         </div>
-      </section>
+
+        <div class="hero-note">
+          Já usa o sistema? <a href="{{ url_for('admin.login') }}">Entrar na conta</a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="mock-phone">
+          <div class="mock-screen">
+            <div class="mock-top">
+              <span>Cardápio</span>
+              <span class="mock-pill"></span>
+            </div>
+
+            <h3 class="mock-title">Escolha seu pedido</h3>
+
+            <div class="mock-item">
+              <div class="mock-food"></div>
+              <div class="mock-lines">
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="mock-item">
+              <div class="mock-food"></div>
+              <div class="mock-lines">
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="mock-item">
+              <div class="mock-food"></div>
+              <div class="mock-lines">
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="mock-button">Adicionar ao carrinho</div>
+          </div>
+        </div>
+
+        <div class="mock-phone second">
+          <div class="mock-screen">
+            <div class="mock-top">
+              <span>Meu pedido</span>
+              <span class="mock-pill"></span>
+            </div>
+
+            <h3 class="mock-title">Resumo</h3>
+
+            <div class="mock-item">
+              <div class="mock-food"></div>
+              <div class="mock-lines">
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="mock-item">
+              <div class="mock-food"></div>
+              <div class="mock-lines">
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="mock-total">
+              <span>Total</span>
+              <strong>R$ 80,70</strong>
+            </div>
+
+            <div class="mock-button">Finalizar pedido</div>
+          </div>
+        </div>
+
+        <div class="floating-card">
+          <div class="metric">
+            <strong>+ rápido</strong>
+            <span>pedido direto pelo celular</span>
+          </div>
+
+          <div class="metric">
+            <strong>0 fila</strong>
+            <span>menos espera no atendimento</span>
+          </div>
+
+          <div class="metric">
+            <strong>100%</strong>
+            <span>operação organizada</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="como-funciona" class="steps section">
+      <div class="landing-shell">
+        <div class="section-head">
+          <h2>Comece sua operação em 5 minutos.</h2>
+          <p>
+            Um processo otimizado para colocar seu restaurante em operação rapidamente.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <article class="step-card">
+            <span class="step-number">1</span>
+            <h3>Crie sua conta</h3>
+            <p>Faça o cadastro do restaurante e acesse o painel.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">2</span>
+            <h3>Escaneie seu cardápio físico</h3>
+            <p>Inclua produtos, preços, descrições e categorias.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">3</span>
+            <h3>Configure mesas</h3>
+            <p>Informe a quantidade de mesas do restaurante.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">4</span>
+            <h3>Gere QR Codes</h3>
+            <p>Use os QR Codes para direcionar os clientes ao pedido.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">5</span>
+            <h3>Receba pedidos</h3>
+            <p>Acompanhe os pedidos e envie para a cozinha.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="beneficios" class="landing-shell section">
+      <div class="section-head">
+        <h2>Uma experiência limpa, rápida e profissional.</h2>
+        <p>
+          O visual minimalista ajuda o cliente a pedir com facilidade e dá ao restaurante uma imagem mais sólida, moderna e confiável.
+        </p>
+      </div>
+
+      <div class="benefits-grid">
+        <article class="benefit-card">
+          <div class="benefit-icon">↯</div>
+          <h3>Pedido rápido</h3>
+          <p>O cliente acessa o cardápio pelo QR Code e faz o pedido em poucos toques, sem complicação.</p>
+        </article>
+
+        <article class="benefit-card">
+          <div class="benefit-icon">▦</div>
+          <h3>Gestão fácil</h3>
+          <p>Organize produtos, mesas e pedidos em um fluxo simples, visual e eficiente.</p>
+        </article>
+
+        <article class="benefit-card">
+          <div class="benefit-icon">◎</div>
+          <h3>Sem fila</h3>
+          <p>Reduza tempo de espera, melhore o atendimento e aumente a agilidade da operação.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-shell section">
+      <div class="final-cta">
+        <div>
+          <h2>Transforme seu atendimento com uma solução moderna.</h2>
+          <p>
+            Mais organização, mais velocidade e uma experiência mais profissional para seus clientes.
+          </p>
+        </div>
+
+        <a class="btn btn-primary" href="{{ url_for('client.signup') }}">
+          Começar agora
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
     </section>
   </main>
 
   <footer class="landing-shell landing-footer">
-    © QRTotem. Sistema de pedidos e promoções por QR Code para restaurantes.
+    © QRTotem. Sistema de pedidos por QR Code para restaurantes.
   </footer>
 </body>
 </html>
