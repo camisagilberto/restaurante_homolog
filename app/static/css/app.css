@@ -1459,3 +1459,25 @@ summary:focus-visible {
     transition: none !important;
   }
 }
+.sidebar-logout {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--graphite);
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  font-weight: 800;
+  transition: background-color .18s ease, color .18s ease, transform .18s ease;
+}
+
+.sidebar-logout:hover {
+  color: var(--white);
+  background: var(--orange);
+  transform: translateY(-1px);
+}
+
