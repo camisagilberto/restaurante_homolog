@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS customer_coupon_users (
     cep TEXT NOT NULL,
     receive_whatsapp INTEGER NOT NULL DEFAULT 0 CHECK (receive_whatsapp IN (0, 1)),
     receive_email INTEGER NOT NULL DEFAULT 0 CHECK (receive_email IN (0, 1)),
+    radar_enabled INTEGER NOT NULL DEFAULT 0 CHECK (radar_enabled IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
@@ -343,6 +344,7 @@ def _migrate_customer_coupon_users(db: sqlite3.Connection) -> None:
 
     _ensure_column(db, 'customer_coupon_users', 'receive_whatsapp INTEGER NOT NULL DEFAULT 0')
     _ensure_column(db, 'customer_coupon_users', 'receive_email INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'customer_coupon_users', 'radar_enabled INTEGER NOT NULL DEFAULT 0')
     _ensure_column(db, 'customer_coupon_users', 'updated_at TEXT')
 
 
@@ -449,6 +451,11 @@ def _create_indexes(db: sqlite3.Connection) -> None:
                 'CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_coupon_users_restaurant_username ON customer_coupon_users(restaurant_id, username)'
             )
 
+        if {'restaurant_id', 'radar_enabled'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_customer_coupon_users_restaurant_radar ON customer_coupon_users(restaurant_id, radar_enabled)'
+            )
+
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
 
@@ -500,6 +507,9 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
 
         if 'updated_at' in columns:
             db.execute('UPDATE customer_coupon_users SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+        if 'radar_enabled' in columns:
+            db.execute('UPDATE customer_coupon_users SET radar_enabled = COALESCE(radar_enabled, 0)')
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
