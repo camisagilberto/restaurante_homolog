@@ -262,9 +262,6 @@ def _render_client_menu(
 
 @client_bp.route('/')
 def home():
-    if session.get('admin_logged_in'):
-        return redirect(url_for('admin.products'))
-
     return render_template('landing.html', csrf=csrf_token())
 
 
