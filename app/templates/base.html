@@ -21,7 +21,7 @@
   <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
 
   {% set is_admin_session = session.get('admin_logged_in') %}
-  {% set public_flow_endpoints = ['client.restaurant_table_menu', 'client.cart', 'client.order_history', 'client.coupon_entry', 'client.coupon_login', 'client.coupon_signup', 'client.coupon_menu'] %}
+  {% set public_flow_endpoints = ['client.restaurant_table_menu', 'client.cart', 'client.order_history', 'client.coupon_entry', 'client.coupon_login', 'client.coupon_signup', 'client.coupon_menu', 'client.customer_profile'] %}
   {% set is_public_client_flow = request.endpoint in public_flow_endpoints and session.get('public_client_mode') %}
   {% set is_table_link_page = request.endpoint == 'client.restaurant_table_menu' %}
   {% set hide_navigation_for_table = is_table_link_page or is_public_client_flow %}
