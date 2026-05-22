@@ -186,6 +186,83 @@
       line-height: 1.72;
     }
 
+    .hero-price-card {
+      max-width: 610px;
+      margin-top: 26px;
+      padding: 20px 22px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(249, 115, 22, .10), rgba(249, 115, 22, .035));
+      border: 1px solid rgba(249, 115, 22, .18);
+      box-shadow: 0 16px 40px rgba(249, 115, 22, .10);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .price-kicker {
+      display: inline-flex;
+      width: fit-content;
+      margin-bottom: 8px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--white);
+      border: 1px solid rgba(249, 115, 22, .18);
+      color: var(--orange-dark);
+      font-size: .72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .price-title {
+      display: block;
+      color: var(--graphite);
+      font-size: 1rem;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.04em;
+    }
+
+    .price-subtitle {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: .9rem;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .price-value {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      color: var(--graphite);
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .price-value small {
+      margin-bottom: 7px;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--orange-dark);
+    }
+
+    .price-value strong {
+      color: var(--orange);
+      font-size: clamp(2.15rem, 3.6vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.075em;
+    }
+
+    .price-value span {
+      margin-bottom: 7px;
+      color: var(--gray);
+      font-size: .95rem;
+      font-weight: 800;
+    }
+
     .hero-actions {
       display: flex;
       align-items: center;
@@ -560,6 +637,24 @@
       box-shadow: none;
     }
 
+    .final-price {
+      margin-top: 18px;
+      width: fit-content;
+      padding: 11px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .14);
+      color: rgba(255, 255, 255, .82);
+      font-size: .96rem;
+      font-weight: 700;
+    }
+
+    .final-price strong {
+      color: var(--orange);
+      font-size: 1.18rem;
+      font-weight: 800;
+    }
+
     .landing-footer {
       padding: 34px 0;
       color: var(--gray);
@@ -586,6 +681,15 @@
 
       .hero-visual {
         min-height: 520px;
+      }
+
+      .hero-price-card {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .price-value {
+        justify-content: flex-start;
       }
 
       .benefits-grid,
@@ -617,6 +721,11 @@
 
       .hero-actions .btn {
         width: 100%;
+      }
+
+      .hero-price-card {
+        padding: 18px;
+        border-radius: 20px;
       }
 
       .hero-visual {
@@ -656,6 +765,10 @@
         padding: 24px;
         border-radius: 24px;
       }
+
+      .final-price {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -686,6 +799,20 @@
         <p>
           Com o QRTotem, seu restaurante oferece uma experiência digital moderna ao cliente: ele faz pedidos pelo QR Code com facilidade, sua cozinha recebe tudo organizado e você ainda mantém um canal direto para divulgar promoções e trazer clientes de volta.
         </p>
+
+        <div class="hero-price-card">
+          <div>
+            <span class="price-kicker">Plano único</span>
+            <span class="price-title">Tudo para operar pedidos e promoções em uma única mensalidade.</span>
+            <span class="price-subtitle">Preço fixo, simples de entender e feito para restaurantes.</span>
+          </div>
+
+          <div class="price-value" aria-label="R$ 149,99 por mês">
+            <small>R$</small>
+            <strong>149,99</strong>
+            <span>/mês</span>
+          </div>
+        </div>
 
         <div class="hero-actions">
           <a class="btn btn-primary" href="{{ url_for('client.signup') }}">
@@ -871,6 +998,10 @@
           <p>
             Mais organização, mais velocidade e uma experiência mais profissional para seus clientes.
           </p>
+
+          <div class="final-price">
+            Plano único por <strong>R$ 149,99/mês</strong>
+          </div>
         </div>
 
         <a class="btn btn-primary" href="{{ url_for('client.signup') }}">
