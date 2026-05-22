@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Meu perfil{% endblock %}
+
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Perfil do cliente</p>
+    <h2>Meu perfil</h2>
+    <p class="muted">Atualize seus dados e gerencie quais restaurantes ficam no seu radar.</p>
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
+    <a class="btn btn-primary" href="{{ url_for('client.coupon_entry') }}">Ver cupons</a>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Dados cadastrais</h3>
+    <span class="muted">Todos os campos são obrigatórios.</span>
+  </div>
+
+  <form method="post" class="stacked-form form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-row">
+      <div>
+        <label>Nome</label>
+        <input type="text" name="name" value="{{ customer['name'] }}" required>
+      </div>
+
+      <div>
+        <label>Usuário</label>
+        <input type="text" name="username" value="{{ customer['username'] }}" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label>Celular</label>
+        <input type="text" name="cell_phone" value="{{ customer['cell_phone'] }}" required>
+      </div>
+
+      <div>
+        <label>E-mail</label>
+        <input type="email" name="email" value="{{ customer['email'] }}" required>
+      </div>
+    </div>
+
+    <div>
+      <label>CEP</label>
+      <input type="text" name="cep" value="{{ customer['cep'] }}" required>
+    </div>
+
+    <label class="check-inline">
+      <input type="checkbox" name="receive_whatsapp" value="1" {% if customer['receive_whatsapp'] %}checked{% endif %}>
+      Desejo receber cupons pelo WhatsApp
+    </label>
+
+    <label class="check-inline">
+      <input type="checkbox" name="receive_email" value="1" {% if customer['receive_email'] %}checked{% endif %}>
+      Desejo receber cupons pelo e-mail
+    </label>
+
+    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Restaurantes no radar</h3>
+    <span class="muted">{{ radar_restaurants|length }} restaurante(s) vinculado(s) ao seu usuário</span>
+  </div>
+
+  <div class="admin-list">
+    {% for item in radar_restaurants %}
+      <article class="admin-row {% if not item['radar_enabled'] %}is-muted{% endif %}">
+        <div class="admin-row-main">
+          <div>
+            <h4>{{ item['restaurant_name'] }}</h4>
+            <p class="muted">{{ item['restaurant_address'] or 'Endereço não informado' }}</p>
+          </div>
+
+          <span class="status-pill {% if item['radar_enabled'] %}status-success{% else %}status-muted{% endif %}">
+            {{ 'No radar' if item['radar_enabled'] else 'Fora do radar' }}
+          </span>
+        </div>
+
+        <div class="admin-row-actions">
+          <form method="post" action="{{ url_for('client.customer_profile_toggle_radar', customer_id=item['id']) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn {% if item['radar_enabled'] %}btn-secondary{% else %}btn-primary{% endif %}">
+              {{ 'Tirar do radar' if item['radar_enabled'] else 'Manter no radar' }}
+            </button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <h3>Nenhum restaurante vinculado</h3>
+        <p class="muted">Quando você acessar outros restaurantes com o mesmo usuário, eles aparecerão aqui.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
