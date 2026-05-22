@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS products (
     category TEXT NOT NULL,
     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
     sort_order INTEGER NOT NULL DEFAULT 0,
+    kind TEXT NOT NULL DEFAULT 'menu' CHECK (kind IN ('menu', 'coupon')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -62,6 +63,22 @@ CREATE TABLE IF NOT EXISTS orders (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CHECK (status IN ('novo', 'preparando', 'pronto', 'entregue', 'cancelado'))
+);
+
+CREATE TABLE IF NOT EXISTS customer_coupon_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    username TEXT NOT NULL,
+    cell_phone TEXT NOT NULL,
+    email TEXT NOT NULL,
+    cep TEXT NOT NULL,
+    receive_whatsapp INTEGER NOT NULL DEFAULT 0 CHECK (receive_whatsapp IN (0, 1)),
+    receive_email INTEGER NOT NULL DEFAULT 0 CHECK (receive_email IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
+    UNIQUE (restaurant_id, username)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
@@ -303,6 +320,7 @@ def _migrate_products(db: sqlite3.Connection) -> None:
     _ensure_column(db, 'products', 'restaurant_id INTEGER')
     _ensure_column(db, 'products', 'description TEXT')
     _ensure_column(db, 'products', 'sort_order INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'products', "kind TEXT NOT NULL DEFAULT 'menu'")
     _ensure_column(db, 'products', 'created_at TEXT')
     _ensure_column(db, 'products', 'updated_at TEXT')
 
@@ -315,6 +333,17 @@ def _migrate_products(db: sqlite3.Connection) -> None:
             'UPDATE products SET restaurant_id = COALESCE(restaurant_id, ?)',
             (default_profile['id'],),
         )
+
+    db.execute("UPDATE products SET kind = COALESCE(NULLIF(kind, ''), 'menu')")
+
+
+def _migrate_customer_coupon_users(db: sqlite3.Connection) -> None:
+    if not _table_exists(db, 'customer_coupon_users'):
+        return
+
+    _ensure_column(db, 'customer_coupon_users', 'receive_whatsapp INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'customer_coupon_users', 'receive_email INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'customer_coupon_users', 'updated_at TEXT')
 
 
 def _migrate_orders(db: sqlite3.Connection) -> None:
@@ -370,9 +399,10 @@ def _seed_defaults(db: sqlite3.Connection) -> None:
                     price,
                     category,
                     active,
-                    sort_order
+                    sort_order,
+                    kind
                 )
-                VALUES (?, ?, ?, ?, 1, ?)
+                VALUES (?, ?, ?, ?, 1, ?, 'menu')
                 ''',
                 (
                     default_restaurant_id,
@@ -406,6 +436,19 @@ def _create_indexes(db: sqlite3.Connection) -> None:
                 'CREATE INDEX IF NOT EXISTS idx_products_restaurant_active_category ON products(restaurant_id, active, category, name)'
             )
 
+        if {'restaurant_id', 'kind', 'active', 'category', 'name'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_products_restaurant_kind_active_category ON products(restaurant_id, kind, active, category, name)'
+            )
+
+    if _table_exists(db, 'customer_coupon_users'):
+        columns = _table_info(db, 'customer_coupon_users')
+
+        if {'restaurant_id', 'username'}.issubset(columns):
+            db.execute(
+                'CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_coupon_users_restaurant_username ON customer_coupon_users(restaurant_id, username)'
+            )
+
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
 
@@ -432,6 +475,7 @@ def migrate_schema(db: sqlite3.Connection) -> None:
     _migrate_admin_passwords(db)
     _migrate_restaurant_profiles(db)
     _migrate_products(db)
+    _migrate_customer_coupon_users(db)
     _migrate_orders(db)
     _migrate_order_items(db)
 
@@ -447,6 +491,15 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
 
         if 'updated_at' in columns:
             db.execute('UPDATE products SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+        if 'kind' in columns:
+            db.execute("UPDATE products SET kind = COALESCE(NULLIF(kind, ''), 'menu')")
+
+    if _table_exists(db, 'customer_coupon_users'):
+        columns = _table_info(db, 'customer_coupon_users')
+
+        if 'updated_at' in columns:
+            db.execute('UPDATE customer_coupon_users SET updated_at = COALESCE(updated_at, ?)', (now,))
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
