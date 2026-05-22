@@ -21,7 +21,7 @@
   <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
 
   {% set is_admin_session = session.get('admin_logged_in') %}
-  {% set public_flow_endpoints = ['client.restaurant_table_menu', 'client.cart', 'client.order_history'] %}
+  {% set public_flow_endpoints = ['client.restaurant_table_menu', 'client.cart', 'client.order_history', 'client.coupon_entry', 'client.coupon_login', 'client.coupon_signup', 'client.coupon_menu'] %}
   {% set is_public_client_flow = request.endpoint in public_flow_endpoints and session.get('public_client_mode') %}
   {% set is_table_link_page = request.endpoint == 'client.restaurant_table_menu' %}
   {% set hide_navigation_for_table = is_table_link_page or is_public_client_flow %}
@@ -62,6 +62,11 @@
               <span>Cozinha</span>
             </a>
 
+            <a href="{{ url_for('admin.coupons') }}">
+              <span class="nav-icon" aria-hidden="true">%</span>
+              <span>Cupons</span>
+            </a>
+
             <a href="{{ url_for('client.profile') }}">
               <span class="nav-icon" aria-hidden="true">◌</span>
               <span>Cadastro</span>
@@ -99,6 +104,7 @@
             <a href="{{ client_order_url }}">Cliente</a>
             <a href="{{ url_for('admin.login') }}">Produtos</a>
             <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
+            <a href="{{ url_for('admin.coupons') }}">Cupons</a>
             <a href="{{ url_for('client.profile') }}">Perfil</a>
             <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
           </nav>
