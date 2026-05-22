@@ -119,12 +119,46 @@ def _set_client_restaurant(profile) -> None:
 
 
 def _client_table_redirect(table_number: int | str):
+    if str(table_number).lower() == 'espelho' and session.get('admin_logged_in'):
+        return redirect(url_for('client.client_mirror'))
+
     token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
 
     if token:
-        return redirect(url_for('client.restaurant_table_menu', public_token=token, table_number=table_number))
+        return redirect(url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1))
 
     return redirect(url_for('client.home'))
+
+
+def _render_client_menu(profile, table_number: str, *, can_manage_table: bool = False, is_client_mirror: bool = False):
+    db = get_db()
+
+    products = list_products(db, profile['id'], active_only=True)
+
+    grouped: dict[str, list] = {}
+    for product in products:
+        grouped.setdefault(product['category'] or 'Cardápio', []).append(product)
+
+    cart = get_cart(session)
+    cart_total, cart_quantity = totals(cart)
+    cart_quantities = {int(item['product_id']): int(item['quantity']) for item in cart}
+
+    open_orders_count = 0
+    if not is_client_mirror:
+        open_orders_count = count_open_orders_for_table(db, profile['id'], table_number)
+
+    return render_template(
+        'client/menu.html',
+        table_number=table_number,
+        grouped_products=grouped,
+        cart_quantity=cart_quantity,
+        cart_total=cart_total,
+        cart_quantities=cart_quantities,
+        open_orders_count=open_orders_count,
+        csrf=csrf_token(),
+        can_manage_table=can_manage_table,
+        is_client_mirror=is_client_mirror,
+    )
 
 
 @client_bp.route('/')
@@ -223,13 +257,6 @@ def tables_setup():
             'client.restaurant_table_menu',
             public_token=profile.get('public_token'),
             table_number=table_number,
-            _external=True,
-        )
-
-        qr_table_url = url_for(
-            'client.restaurant_table_menu',
-            public_token=profile.get('public_token'),
-            table_number=table_number,
             qr=1,
             _external=True,
         )
@@ -238,7 +265,7 @@ def tables_setup():
             {
                 'number': table_number,
                 'url': table_url,
-                'qr_data_uri': build_qr_code_data_uri(qr_table_url, table_number),
+                'qr_data_uri': build_qr_code_data_uri(table_url, table_number),
             }
         )
 
@@ -467,6 +494,26 @@ def scan_menu_confirm():
     return redirect(url_for('client.tables_setup'))
 
 
+@client_bp.route('/cliente-espelho')
+@login_required
+def client_mirror():
+    profile = _restaurant_context()
+
+    if not profile.get('restaurant_name') or not profile.get('id'):
+        return redirect(url_for('client.signup'))
+
+    session.pop(PUBLIC_CLIENT_MODE_SESSION_KEY, None)
+    session['current_table'] = 'espelho'
+    _set_client_restaurant(profile)
+
+    return _render_client_menu(
+        profile,
+        'Espelho',
+        can_manage_table=False,
+        is_client_mirror=True,
+    )
+
+
 @client_bp.route('/r/<public_token>/mesa/<table_number>')
 def restaurant_table_menu(public_token, table_number):
     table_number = str(parse_positive_int(table_number, default=1, minimum=1, maximum=999))
@@ -479,33 +526,13 @@ def restaurant_table_menu(public_token, table_number):
 
     session['current_table'] = table_number
     _set_client_restaurant(profile)
+    session[PUBLIC_CLIENT_MODE_SESSION_KEY] = True
 
-    if not session.get('admin_logged_in') and request.args.get('qr') == '1':
-        session[PUBLIC_CLIENT_MODE_SESSION_KEY] = True
-    elif request.args.get('qr') != '1':
-        session.pop(PUBLIC_CLIENT_MODE_SESSION_KEY, None)
-
-    products = list_products(db, profile['id'], active_only=True)
-
-    grouped: dict[str, list] = {}
-    for product in products:
-        grouped.setdefault(product['category'] or 'Cardápio', []).append(product)
-
-    cart = get_cart(session)
-    cart_total, cart_quantity = totals(cart)
-    cart_quantities = {int(item['product_id']): int(item['quantity']) for item in cart}
-    open_orders_count = count_open_orders_for_table(db, profile['id'], table_number)
-
-    return render_template(
-        'client/menu.html',
-        table_number=table_number,
-        grouped_products=grouped,
-        cart_quantity=cart_quantity,
-        cart_total=cart_total,
-        cart_quantities=cart_quantities,
-        open_orders_count=open_orders_count,
-        csrf=csrf_token(),
-        can_manage_table=bool(session.get('admin_logged_in')),
+    return _render_client_menu(
+        profile,
+        table_number,
+        can_manage_table=False,
+        is_client_mirror=False,
     )
 
 
@@ -565,7 +592,7 @@ def edit_table():
             success=True,
             message='Mesa atualizada com sucesso.',
             table_number=str(table_number),
-            redirect_url=url_for('client.restaurant_table_menu', public_token=token, table_number=table_number),
+            redirect_url=url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1),
         )
 
     flash('Mesa atualizada com sucesso.', 'success')
@@ -579,11 +606,15 @@ def cart():
 
     table_number = _current_table()
     token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
-    menu_url = (
-        url_for('client.restaurant_table_menu', public_token=token, table_number=table_number)
-        if token
-        else url_for('client.home')
-    )
+
+    if table_number.lower() == 'espelho' and session.get('admin_logged_in'):
+        menu_url = url_for('client.client_mirror')
+    else:
+        menu_url = (
+            url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
+            if token
+            else url_for('client.home')
+        )
 
     return render_template(
         'client/cart.html',
@@ -609,11 +640,15 @@ def order_history():
     orders = list_orders_for_table(db, restaurant_id, table_number)
 
     token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
-    menu_url = (
-        url_for('client.restaurant_table_menu', public_token=token, table_number=table_number)
-        if token
-        else url_for('client.home')
-    )
+
+    if table_number.lower() == 'espelho' and session.get('admin_logged_in'):
+        menu_url = url_for('client.client_mirror')
+    else:
+        menu_url = (
+            url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
+            if token
+            else url_for('client.home')
+        )
 
     return render_template(
         'client/orders.html',
@@ -821,11 +856,17 @@ def finalize_order():
 
     if _wants_json():
         token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
+        redirect_url = (
+            url_for('client.client_mirror')
+            if table_number.lower() == 'espelho' and session.get('admin_logged_in')
+            else url_for('client.restaurant_table_menu', public_token=token, table_number=table_number, qr=1)
+        )
+
         return jsonify(
             success=True,
             message=success_message,
             order_id=order_id,
-            redirect_url=url_for('client.restaurant_table_menu', public_token=token, table_number=table_number),
+            redirect_url=redirect_url,
         )
 
     flash(success_message, 'success')
