@@ -5,8 +5,11 @@
 <section class="hero-card hero-card--table">
   <div class="hero-card-copy">
     <p class="eyebrow">{% if is_coupon_page %}Cupons do restaurante{% elif is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
+
     <div class="table-title-row">
-      {% if is_coupon_page %}
+      {% if is_coupon_page and is_client_mirror %}
+        <h2>Cupons Espelho</h2>
+      {% elif is_coupon_page %}
         <h2>Cupons</h2>
       {% elif is_client_mirror %}
         <h2>Cliente Espelho</h2>
@@ -20,8 +23,11 @@
         </button>
       {% endif %}
     </div>
+
     <p class="muted">
-      {% if is_coupon_page %}
+      {% if is_coupon_page and is_client_mirror %}
+        Esta é a página espelho dos cupons. Os mesmos itens promocionais aparecerão para os clientes que acessarem os cupons pelo QR Code.
+      {% elif is_coupon_page %}
         Escolha os itens promocionais, adicione ao carrinho e finalize junto com os demais produtos.
       {% elif is_client_mirror %}
         Esta é a página de cliente sem mesa atrelada. O cardápio exibido aqui é o mesmo usado nos QR Codes das mesas.
@@ -34,8 +40,24 @@
   <div class="hero-actions">
     {% if is_coupon_page %}
       <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
+
+      {% if can_send_promotions %}
+        <a class="btn btn-primary" href="{{ send_promotions_url }}">Enviar promoções</a>
+      {% endif %}
     {% else %}
       <a class="btn btn-primary" href="{{ coupon_url }}">Cupons</a>
+    {% endif %}
+
+    {% if show_radar_flag %}
+      <form method="post" action="{{ radar_action_url }}" class="radar-inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="radar-toggle">
+          <input type="checkbox" name="radar_enabled" value="1" {% if radar_enabled %}checked{% endif %} onchange="this.form.submit()">
+          <span>Deixar no radar</span>
+        </label>
+      </form>
+
+      <a class="btn btn-secondary" href="{{ profile_url }}">Meu perfil</a>
     {% endif %}
 
     <a class="btn btn-secondary" href="{{ url_for('client.cart') }}">
