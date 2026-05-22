@@ -82,6 +82,13 @@
         <div class="sidebar-footer">
           <span class="sidebar-caption">Sistema de pedidos</span>
           <strong>QR Code para restaurantes</strong>
+
+          {% if is_admin_session %}
+            <a class="sidebar-logout" href="{{ url_for('client.logout') }}">
+              <span class="nav-icon" aria-hidden="true">↩</span>
+              <span>Sair</span>
+            </a>
+          {% endif %}
         </div>
       </aside>
     {% endif %}
@@ -107,6 +114,10 @@
             <a href="{{ url_for('admin.coupons') }}">Cupons</a>
             <a href="{{ url_for('client.profile') }}">Perfil</a>
             <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
+
+            {% if is_admin_session %}
+              <a href="{{ url_for('client.logout') }}">Sair</a>
+            {% endif %}
           </nav>
         {% endif %}
       </header>
