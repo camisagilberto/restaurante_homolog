@@ -11,11 +11,17 @@ def _require_restaurant_id(restaurant_id: int | None) -> int:
     return int(restaurant_id)
 
 
-def list_products(db, restaurant_id: int, *, active_only: bool = False, query: str | None = None):
-    restaurant_id = _require_restaurant_id(restaurant_id)
+def _normalize_kind(kind: str | None = 'menu') -> str:
+    value = str(kind or 'menu').strip().lower()
+    return value if value in {'menu', 'coupon'} else 'menu'
 
-    sql = 'SELECT * FROM products WHERE restaurant_id = ?'
-    params: list[object] = [restaurant_id]
+
+def list_products(db, restaurant_id: int, *, active_only: bool = False, query: str | None = None, kind: str | None = 'menu'):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    kind = _normalize_kind(kind)
+
+    sql = 'SELECT * FROM products WHERE restaurant_id = ? AND kind = ?'
+    params: list[object] = [restaurant_id, kind]
 
     if active_only:
         sql += ' AND active = 1'
@@ -29,13 +35,17 @@ def list_products(db, restaurant_id: int, *, active_only: bool = False, query: s
     return db.execute(sql, params).fetchall()
 
 
-def get_product(db, product_id: int, restaurant_id: int):
+def get_product(db, product_id: int, restaurant_id: int, *, kind: str | None = None):
     restaurant_id = _require_restaurant_id(restaurant_id)
 
-    return db.execute(
-        'SELECT * FROM products WHERE id = ? AND restaurant_id = ?',
-        (product_id, restaurant_id),
-    ).fetchone()
+    sql = 'SELECT * FROM products WHERE id = ? AND restaurant_id = ?'
+    params: list[object] = [product_id, restaurant_id]
+
+    if kind is not None:
+        sql += ' AND kind = ?'
+        params.append(_normalize_kind(kind))
+
+    return db.execute(sql, params).fetchone()
 
 
 def _requested_sort_order(payload: dict) -> int | None:
@@ -52,9 +62,16 @@ def _requested_sort_order(payload: dict) -> int | None:
     return value if value > 0 else None
 
 
-def _last_sort_order(db, restaurant_id: int, category: str, *, exclude_product_id: int | None = None) -> int:
-    params: list[object] = [restaurant_id, category]
-    sql = 'SELECT COALESCE(MAX(sort_order), 0) FROM products WHERE restaurant_id = ? AND category = ?'
+def _last_sort_order(db, restaurant_id: int, category: str, *, kind: str = 'menu', exclude_product_id: int | None = None) -> int:
+    params: list[object] = [restaurant_id, category, _normalize_kind(kind)]
+
+    sql = '''
+        SELECT COALESCE(MAX(sort_order), 0)
+          FROM products
+         WHERE restaurant_id = ?
+           AND category = ?
+           AND kind = ?
+    '''
 
     if exclude_product_id is not None:
         sql += ' AND id <> ?'
@@ -63,14 +80,16 @@ def _last_sort_order(db, restaurant_id: int, category: str, *, exclude_product_i
     return int(db.execute(sql, params).fetchone()[0] or 0)
 
 
-def _shift_category_from(db, restaurant_id: int, category: str, target_order: int, *, exclude_product_id: int | None = None) -> None:
-    params: list[object] = [restaurant_id, category, target_order]
+def _shift_category_from(db, restaurant_id: int, category: str, target_order: int, *, kind: str = 'menu', exclude_product_id: int | None = None) -> None:
+    params: list[object] = [restaurant_id, category, _normalize_kind(kind), target_order]
+
     sql = '''
         UPDATE products
            SET sort_order = sort_order + 1,
                updated_at = CURRENT_TIMESTAMP
          WHERE restaurant_id = ?
            AND category = ?
+           AND kind = ?
            AND sort_order >= ?
     '''
 
@@ -81,16 +100,17 @@ def _shift_category_from(db, restaurant_id: int, category: str, target_order: in
     db.execute(sql, params)
 
 
-def _reindex_category(db, restaurant_id: int, category: str) -> None:
+def _reindex_category(db, restaurant_id: int, category: str, *, kind: str = 'menu') -> None:
     rows = db.execute(
         '''
         SELECT id
           FROM products
          WHERE restaurant_id = ?
            AND category = ?
+           AND kind = ?
          ORDER BY sort_order ASC, name ASC, id ASC
         ''',
-        (restaurant_id, category),
+        (restaurant_id, category, _normalize_kind(kind)),
     ).fetchall()
 
     for index, row in enumerate(rows, start=1):
@@ -135,14 +155,15 @@ def validate_product_payload(payload: dict) -> dict:
     }
 
 
-def create_product(db, payload: dict, restaurant_id: int) -> int:
+def create_product(db, payload: dict, restaurant_id: int, *, kind: str = 'menu') -> int:
     restaurant_id = _require_restaurant_id(restaurant_id)
     data = validate_product_payload(payload)
+    kind = _normalize_kind(kind)
 
-    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category']) + 1)
+    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category'], kind=kind) + 1)
     target_order = max(1, int(target_order))
 
-    _shift_category_from(db, restaurant_id, data['category'], target_order)
+    _shift_category_from(db, restaurant_id, data['category'], target_order, kind=kind)
 
     cursor = db.execute(
         '''
@@ -153,9 +174,10 @@ def create_product(db, payload: dict, restaurant_id: int) -> int:
             price,
             category,
             active,
-            sort_order
+            sort_order,
+            kind
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''',
         (
             restaurant_id,
@@ -165,27 +187,29 @@ def create_product(db, payload: dict, restaurant_id: int) -> int:
             data['category'],
             data['active'],
             target_order,
+            kind,
         ),
     )
 
-    _reindex_category(db, restaurant_id, data['category'])
+    _reindex_category(db, restaurant_id, data['category'], kind=kind)
     db.commit()
     return cursor.lastrowid
 
 
-def update_product(db, product_id: int, payload: dict, restaurant_id: int) -> None:
+def update_product(db, product_id: int, payload: dict, restaurant_id: int, *, kind: str = 'menu') -> None:
     restaurant_id = _require_restaurant_id(restaurant_id)
     data = validate_product_payload(payload)
-    current_product = get_product(db, product_id, restaurant_id)
+    kind = _normalize_kind(kind)
+    current_product = get_product(db, product_id, restaurant_id, kind=kind)
 
     if not current_product:
         raise ValidationError('Produto não encontrado.')
 
     old_category = current_product['category']
-    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category'], exclude_product_id=product_id) + 1)
+    target_order = data['sort_order'] or (_last_sort_order(db, restaurant_id, data['category'], kind=kind, exclude_product_id=product_id) + 1)
     target_order = max(1, int(target_order))
 
-    _shift_category_from(db, restaurant_id, data['category'], target_order, exclude_product_id=product_id)
+    _shift_category_from(db, restaurant_id, data['category'], target_order, kind=kind, exclude_product_id=product_id)
 
     db.execute(
         '''
@@ -212,15 +236,15 @@ def update_product(db, product_id: int, payload: dict, restaurant_id: int) -> No
         ),
     )
 
-    _reindex_category(db, restaurant_id, data['category'])
+    _reindex_category(db, restaurant_id, data['category'], kind=kind)
 
     if old_category != data['category']:
-        _reindex_category(db, restaurant_id, old_category)
+        _reindex_category(db, restaurant_id, old_category, kind=kind)
 
     db.commit()
 
 
-def toggle_product(db, product_id: int, restaurant_id: int) -> None:
+def toggle_product(db, product_id: int, restaurant_id: int, *, kind: str = 'menu') -> None:
     restaurant_id = _require_restaurant_id(restaurant_id)
 
     db.execute(
@@ -230,15 +254,17 @@ def toggle_product(db, product_id: int, restaurant_id: int) -> None:
                updated_at = CURRENT_TIMESTAMP
          WHERE id = ?
            AND restaurant_id = ?
+           AND kind = ?
         ''',
-        (product_id, restaurant_id),
+        (product_id, restaurant_id, _normalize_kind(kind)),
     )
     db.commit()
 
 
-def delete_product(db, product_id: int, restaurant_id: int) -> tuple[bool, str]:
+def delete_product(db, product_id: int, restaurant_id: int, *, kind: str = 'menu') -> tuple[bool, str]:
     restaurant_id = _require_restaurant_id(restaurant_id)
-    product = get_product(db, product_id, restaurant_id)
+    kind = _normalize_kind(kind)
+    product = get_product(db, product_id, restaurant_id, kind=kind)
 
     if not product:
         return False, 'Produto não encontrado.'
@@ -262,17 +288,18 @@ def delete_product(db, product_id: int, restaurant_id: int) -> tuple[bool, str]:
                    updated_at = CURRENT_TIMESTAMP
              WHERE id = ?
                AND restaurant_id = ?
+               AND kind = ?
             ''',
-            (product_id, restaurant_id),
+            (product_id, restaurant_id, kind),
         )
         db.commit()
         return False, 'Produto já aparece em pedidos históricos; ele foi desativado em vez de excluído.'
 
     db.execute(
-        'DELETE FROM products WHERE id = ? AND restaurant_id = ?',
-        (product_id, restaurant_id),
+        'DELETE FROM products WHERE id = ? AND restaurant_id = ? AND kind = ?',
+        (product_id, restaurant_id, kind),
     )
 
-    _reindex_category(db, restaurant_id, product['category'])
+    _reindex_category(db, restaurant_id, product['category'], kind=kind)
     db.commit()
     return True, 'Produto removido com sucesso.'
