@@ -117,7 +117,7 @@ def products():
         flash('Perfil do restaurante não encontrado.', 'error')
         return redirect(url_for('client.signup'))
 
-    products = list_products(db, restaurant_id, active_only=False, query=query or None)
+    products = list_products(db, restaurant_id, active_only=False, query=query or None, kind='menu')
     active_count = sum(1 for p in products if p['active'])
     profile = _profile_context(db)
 
@@ -138,7 +138,7 @@ def create_product_route():
     restaurant_id = _restaurant_id(db)
 
     try:
-        create_product(db, request.form.to_dict(flat=True), restaurant_id)
+        create_product(db, request.form.to_dict(flat=True), restaurant_id, kind='menu')
         flash('Produto cadastrado com sucesso.', 'success')
     except ValidationError as exc:
         flash(str(exc), 'error')
@@ -151,7 +151,7 @@ def create_product_route():
 def edit_product(product_id):
     db = get_db()
     restaurant_id = _restaurant_id(db)
-    product = get_product(db, product_id, restaurant_id)
+    product = get_product(db, product_id, restaurant_id, kind='menu')
 
     if not product:
         flash('Produto não encontrado.', 'error')
@@ -159,7 +159,7 @@ def edit_product(product_id):
 
     if request.method == 'POST':
         try:
-            update_product(db, product_id, request.form.to_dict(flat=True), restaurant_id)
+            update_product(db, product_id, request.form.to_dict(flat=True), restaurant_id, kind='menu')
             flash('Produto atualizado com sucesso.', 'success')
             return redirect(url_for('admin.products'))
         except ValidationError as exc:
@@ -174,11 +174,11 @@ def toggle_product_route(product_id):
     db = get_db()
     restaurant_id = _restaurant_id(db)
 
-    if not get_product(db, product_id, restaurant_id):
+    if not get_product(db, product_id, restaurant_id, kind='menu'):
         flash('Produto não encontrado.', 'error')
         return redirect(url_for('admin.products'))
 
-    toggle_product(db, product_id, restaurant_id)
+    toggle_product(db, product_id, restaurant_id, kind='menu')
     flash('Status do produto atualizado.', 'success')
     return redirect(url_for('admin.products'))
 
@@ -189,10 +189,107 @@ def delete_product_route(product_id):
     db = get_db()
     restaurant_id = _restaurant_id(db)
 
-    if not get_product(db, product_id, restaurant_id):
+    if not get_product(db, product_id, restaurant_id, kind='menu'):
         flash('Produto não encontrado.', 'error')
         return redirect(url_for('admin.products'))
 
-    removed, message = delete_product(db, product_id, restaurant_id)
+    removed, message = delete_product(db, product_id, restaurant_id, kind='menu')
     flash(message, 'success' if removed else 'warning')
     return redirect(url_for('admin.products'))
+
+
+@admin_bp.route('/cupons')
+@login_required
+def coupons():
+    query = normalize_text(request.args.get('q'))
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        flash('Perfil do restaurante não encontrado.', 'error')
+        return redirect(url_for('client.signup'))
+
+    products = list_products(db, restaurant_id, active_only=False, query=query or None, kind='coupon')
+    active_count = sum(1 for p in products if p['active'])
+    profile = _profile_context(db)
+
+    return render_template(
+        'admin/coupons.html',
+        products=products,
+        query=query,
+        active_count=active_count,
+        profile=profile,
+        csrf=csrf_token(),
+    )
+
+
+@admin_bp.route('/cupons/criar', methods=['POST'])
+@login_required
+def create_coupon_route():
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    try:
+        create_product(db, request.form.to_dict(flat=True), restaurant_id, kind='coupon')
+        flash('Cupom cadastrado com sucesso.', 'success')
+    except ValidationError as exc:
+        flash(str(exc), 'error')
+
+    return redirect(url_for('admin.coupons'))
+
+
+@admin_bp.route('/cupons/<int:product_id>/editar', methods=['GET', 'POST'])
+@login_required
+def edit_coupon(product_id):
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+    product = get_product(db, product_id, restaurant_id, kind='coupon')
+
+    if not product:
+        flash('Cupom não encontrado.', 'error')
+        return redirect(url_for('admin.coupons'))
+
+    if request.method == 'POST':
+        try:
+            update_product(db, product_id, request.form.to_dict(flat=True), restaurant_id, kind='coupon')
+            flash('Cupom atualizado com sucesso.', 'success')
+            return redirect(url_for('admin.coupons'))
+        except ValidationError as exc:
+            flash(str(exc), 'error')
+
+    return render_template(
+        'admin/coupon_form.html',
+        product=product,
+        csrf=csrf_token(),
+    )
+
+
+@admin_bp.route('/cupons/<int:product_id>/toggle', methods=['POST'])
+@login_required
+def toggle_coupon_route(product_id):
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not get_product(db, product_id, restaurant_id, kind='coupon'):
+        flash('Cupom não encontrado.', 'error')
+        return redirect(url_for('admin.coupons'))
+
+    toggle_product(db, product_id, restaurant_id, kind='coupon')
+    flash('Status do cupom atualizado.', 'success')
+    return redirect(url_for('admin.coupons'))
+
+
+@admin_bp.route('/cupons/<int:product_id>/excluir', methods=['POST'])
+@login_required
+def delete_coupon_route(product_id):
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not get_product(db, product_id, restaurant_id, kind='coupon'):
+        flash('Cupom não encontrado.', 'error')
+        return redirect(url_for('admin.coupons'))
+
+    removed, message = delete_product(db, product_id, restaurant_id, kind='coupon')
+    message = message.replace('Produto', 'Cupom').replace('produto', 'cupom')
+    flash(message, 'success' if removed else 'warning')
+    return redirect(url_for('admin.coupons'))
