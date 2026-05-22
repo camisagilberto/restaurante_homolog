@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}{% if is_client_mirror %}Cliente Espelho{% else %}Mesa {{ table_number }}{% endif %}{% endblock %}
+{% block title %}{% if is_coupon_page %}Cupons{% elif is_client_mirror %}Cliente Espelho{% else %}Mesa {{ table_number }}{% endif %}{% endblock %}
 
 {% block content %}
 <section class="hero-card hero-card--table">
   <div class="hero-card-copy">
-    <p class="eyebrow">{% if is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
+    <p class="eyebrow">{% if is_coupon_page %}Cupons do restaurante{% elif is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
     <div class="table-title-row">
-      {% if is_client_mirror %}
+      {% if is_coupon_page %}
+        <h2>Cupons</h2>
+      {% elif is_client_mirror %}
         <h2>Cliente Espelho</h2>
       {% else %}
         <h2>Mesa <span id="table-number-label">{{ table_number }}</span></h2>
@@ -19,7 +21,9 @@
       {% endif %}
     </div>
     <p class="muted">
-      {% if is_client_mirror %}
+      {% if is_coupon_page %}
+        Escolha os itens promocionais, adicione ao carrinho e finalize junto com os demais produtos.
+      {% elif is_client_mirror %}
         Esta é a página de cliente sem mesa atrelada. O cardápio exibido aqui é o mesmo usado nos QR Codes das mesas.
       {% else %}
         Escolha os itens, ajuste quantidades e finalize quando estiver pronto.
@@ -28,9 +32,16 @@
   </div>
 
   <div class="hero-actions">
+    {% if is_coupon_page %}
+      <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
+    {% else %}
+      <a class="btn btn-primary" href="{{ coupon_url }}">Cupons</a>
+    {% endif %}
+
     <a class="btn btn-secondary" href="{{ url_for('client.cart') }}">
       Ver Carrinho <span class="badge-inline" id="cart-count">{{ cart_quantity }}</span>
     </a>
+
     <a class="btn btn-secondary" href="{{ url_for('client.order_history') }}">
       Ver pedidos em andamento <span class="badge-inline" id="open-orders-count">{{ open_orders_count|default(0) }}</span>
     </a>
@@ -87,8 +98,13 @@
   {% endfor %}
 {% else %}
   <section class="panel empty-state">
-    <h3>Nenhum produto disponível</h3>
-    <p class="muted">O restaurante ainda não possui produtos ativos no cardápio.</p>
+    {% if is_coupon_page %}
+      <h3>Nenhum cupom disponível</h3>
+      <p class="muted">O restaurante ainda não possui cupons ativos.</p>
+    {% else %}
+      <h3>Nenhum produto disponível</h3>
+      <p class="muted">O restaurante ainda não possui produtos ativos no cardápio.</p>
+    {% endif %}
   </section>
 {% endif %}
 
