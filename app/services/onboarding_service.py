@@ -88,6 +88,8 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     username = normalize_text(payload.get('username'))
     password = str(payload.get('password') or '').strip()
     password_confirm = str(payload.get('password_confirm') or '').strip()
+    kitchen_password = str(payload.get('kitchen_password') or '').strip()
+    kitchen_password_confirm = str(payload.get('kitchen_password_confirm') or '').strip()
 
     email = normalize_text(payload.get('email')).lower()
     cnpj = _only_digits(payload.get('cnpj'))
@@ -105,11 +107,18 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if len(username) < 3:
         raise ValidationError('O usuário deve ter pelo menos 3 caracteres.')
     if not password:
+    if not password:
         raise ValidationError('Informe a senha.')
-    if len(password) < 4:
-        raise ValidationError('A senha deve ter pelo menos 4 caracteres.')
+    if len(password) < 8:
+        raise ValidationError('A senha deve ter pelo menos 8 caracteres.')
     if password != password_confirm:
         raise ValidationError('A confirmação de senha não confere.')
+    if not kitchen_password:
+        raise ValidationError('Informe a senha da cozinha.')
+    if len(kitchen_password) < 8:
+        raise ValidationError('A senha da cozinha deve ter pelo menos 8 caracteres.')
+    if kitchen_password != kitchen_password_confirm:
+        raise ValidationError('A confirmação da senha da cozinha não confere.')        
     if not email:
         raise ValidationError('Informe o e-mail.')
 
@@ -130,17 +139,19 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
         'cell_phone': cell_phone,
         'username': username,
         'password': password,
+        'kitchen_password': kitchen_password,
     }
 
 
 def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
     data = validate_onboarding_payload(payload)
     password_hash = generate_password_hash(data['password'])
+    kitchen_password_hash = generate_password_hash(data['kitchen_password'])
 
     try:
         cursor = db.execute(
-            'INSERT INTO admins (username, password_hash, is_active) VALUES (?, ?, 1)',
-            (data['username'], password_hash),
+            'INSERT INTO admins (username, password_hash, kitchen_password_hash, is_active) VALUES (?, ?, ?, 1)',
+            (data['username'], password_hash, kitchen_password_hash),
         )
         admin_id = cursor.lastrowid
         public_token = _unique_token(db)
