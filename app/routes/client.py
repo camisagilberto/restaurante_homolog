@@ -381,7 +381,7 @@ def profile():
             return redirect(url_for('client.profile'))
 
     profile_data = _restaurant_context()
-    return render_template('client/profile.html', profile=profile_data, csrf=csrf_token())
+    return render_template('client/profile_v2.html', profile=profile_data, csrf=csrf_token())
 
 
 @client_bp.route('/perfil/alterar-senha-usuario', methods=['POST'])
