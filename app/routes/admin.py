@@ -5,7 +5,7 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 from ..db import get_db
 from ..errors import ValidationError
 from ..security import csrf_token, login_required
-from ..services.auth_service import authenticate_admin
+from ..services.auth_service import authenticate_admin, verify_manager_password
 from ..services.catalog_service import create_product, delete_product, get_product, list_products, toggle_product, update_product
 from ..services.onboarding_service import get_restaurant_profile_for_admin
 from ..utils import normalize_text
