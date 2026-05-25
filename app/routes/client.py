@@ -127,6 +127,10 @@ def _clear_coupon_customer_session() -> None:
     session.pop(CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY, None)
 
 
+def _is_public_client_mode() -> bool:
+    return bool(session.get(PUBLIC_CLIENT_MODE_SESSION_KEY))
+
+
 def _set_client_restaurant(profile) -> None:
     current = session.get(CLIENT_RESTAURANT_SESSION_KEY)
 
@@ -139,7 +143,7 @@ def _set_client_restaurant(profile) -> None:
 
 
 def _has_coupon_access(restaurant_id: int | None) -> bool:
-    if session.get('admin_logged_in'):
+    if session.get('admin_logged_in') and not _is_public_client_mode():
         return True
 
     try:
@@ -177,7 +181,7 @@ def _coupon_entry_url() -> str:
 def _public_menu_url(table_number: str | int | None = None) -> str:
     table_number = table_number or _current_table()
 
-    if str(table_number).lower() == 'espelho' and session.get('admin_logged_in'):
+    if str(table_number).lower() == 'espelho' and session.get('admin_logged_in') and not _is_public_client_mode():
         return url_for('client.client_mirror')
 
     token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
@@ -198,7 +202,7 @@ def _after_customer_login_redirect():
 
 
 def _client_table_redirect(table_number: int | str):
-    if str(table_number).lower() == 'espelho' and session.get('admin_logged_in'):
+    if str(table_number).lower() == 'espelho' and session.get('admin_logged_in') and not _is_public_client_mode():
         return redirect(url_for('client.client_mirror'))
 
     token = session.get(CLIENT_RESTAURANT_TOKEN_SESSION_KEY) or session.get('restaurant_public_token')
@@ -238,7 +242,7 @@ def _render_client_menu(
     radar_enabled = bool(current_customer and current_customer['radar_enabled'])
 
     show_radar_flag = (
-        not session.get('admin_logged_in')
+        (not session.get('admin_logged_in') or _is_public_client_mode())
         and not is_client_mirror
         and not is_coupon_page
         and str(table_number).lower() != 'espelho'
@@ -262,7 +266,7 @@ def _render_client_menu(
         radar_action_url=url_for('client.toggle_radar'),
         radar_enabled=radar_enabled,
         show_radar_flag=show_radar_flag,
-        can_send_promotions=bool(session.get('admin_logged_in') and is_coupon_page and is_client_mirror),
+        can_send_promotions=bool(session.get('admin_logged_in') and not _is_public_client_mode() and is_coupon_page and is_client_mirror),
         send_promotions_url=url_for('client.send_promotions'),
     )
 
@@ -800,7 +804,7 @@ def restaurant_table_menu(public_token, table_number):
     session['current_table'] = table_number
     _set_client_restaurant(profile)
 
-    if request.args.get('qr') == '1' and not session.get('admin_logged_in'):
+    if request.args.get('qr') == '1':
         _clear_coupon_customer_session()
 
     session[PUBLIC_CLIENT_MODE_SESSION_KEY] = True
@@ -822,7 +826,7 @@ def coupon_entry():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    if session.get('admin_logged_in'):
+    if session.get('admin_logged_in') and not _is_public_client_mode():
         return redirect(url_for('client.coupon_mirror'))
 
     if _has_coupon_access(restaurant_id):
@@ -839,7 +843,7 @@ def coupon_login():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    if session.get('admin_logged_in'):
+    if session.get('admin_logged_in') and not _is_public_client_mode():
         return redirect(url_for('client.coupon_mirror'))
 
     if request.method == 'POST':
@@ -960,7 +964,7 @@ def coupon_menu():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    if session.get('admin_logged_in'):
+    if session.get('admin_logged_in') and not _is_public_client_mode():
         return redirect(url_for('client.coupon_mirror'))
 
     if not _has_coupon_access(restaurant_id):
@@ -1001,7 +1005,7 @@ def customer_profile():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    if session.get('admin_logged_in'):
+    if session.get('admin_logged_in') and not _is_public_client_mode():
         flash('O perfil do cliente é acessado pelo cliente da mesa.', 'warning')
         return redirect(url_for('client.client_mirror'))
 
@@ -1176,7 +1180,7 @@ def toggle_radar():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    if session.get('admin_logged_in'):
+    if session.get('admin_logged_in') and not _is_public_client_mode():
         return redirect(url_for('client.client_mirror'))
 
     if not _has_coupon_access(restaurant_id):
