@@ -279,7 +279,7 @@
     kitchenLink.addEventListener('click', async (event) => {
       event.preventDefault();
 
-      const senha = prompt('Digite a senha do admin para acessar a cozinha:');
+      const senha = prompt('Digite a senha da cozinha para acessar. A senha do usuário também será aceita.');
       if (!senha) return;
 
       try {
@@ -293,6 +293,58 @@
       } catch (error) {
         alert(error.message || 'Erro ao acessar cozinha.');
       }
+    });
+  }
+
+  
+  function initPasswordConfirmForms() {
+    document.querySelectorAll('[data-password-confirm]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        const message = form.dataset.passwordConfirm || 'Digite sua senha para confirmar.';
+        const confirmed = confirm('Tem certeza que deseja continuar?');
+        if (!confirmed) {
+          event.preventDefault();
+          return;
+        }
+
+        const password = prompt(message);
+        if (!password) {
+          event.preventDefault();
+          return;
+        }
+
+        const input = form.querySelector('[name="manager_password"]');
+        if (input) input.value = password;
+      });
+    });
+  }
+
+  function initKitchenExitGuard() {
+    const kitchenPage = document.querySelector('[data-kitchen-page]');
+    if (!kitchenPage) return;
+
+    document.querySelectorAll('a[href]').forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      if (!href || href.startsWith('#') || href.includes('/cozinha')) return;
+
+      link.addEventListener('click', async (event) => {
+        event.preventDefault();
+
+        const password = prompt('Digite a senha da cozinha para sair desta área. A senha do usuário também será aceita.');
+        if (!password) return;
+
+        try {
+          const { response, data } = await requestJSON('/cozinha/sair', { password });
+
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Senha inválida.');
+          }
+
+          window.location.href = link.href;
+        } catch (error) {
+          alert(error.message || 'Erro ao sair da cozinha.');
+        }
+      });
     });
   }
 
@@ -326,6 +378,8 @@
     initCart();
     initTableEditor();
     initKitchenAccess();
+    initPasswordConfirmForms();
+    initKitchenExitGuard();
     initKitchenDelete();
   });
 })();
