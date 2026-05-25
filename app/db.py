@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS admins (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    kitchen_password_hash TEXT,
+    reset_token_hash TEXT,
+    reset_token_expires_at TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -208,8 +211,17 @@ def _migrate_admin_passwords(db: sqlite3.Connection) -> None:
     if 'is_active' not in columns:
         _ensure_column(db, 'admins', 'is_active INTEGER NOT NULL DEFAULT 1')
 
-    columns = _table_info(db, 'admins')
+    if 'kitchen_password_hash' not in columns:
+        _ensure_column(db, 'admins', 'kitchen_password_hash TEXT')
 
+    if 'reset_token_hash' not in columns:
+        _ensure_column(db, 'admins', 'reset_token_hash TEXT')
+
+    if 'reset_token_expires_at' not in columns:
+        _ensure_column(db, 'admins', 'reset_token_expires_at TEXT')
+
+    columns = _table_info(db, 'admins')
+    
     if 'password' in columns:
         rows = db.execute('SELECT id, password, password_hash FROM admins').fetchall()
         for row in rows:
@@ -222,22 +234,20 @@ def _migrate_admin_passwords(db: sqlite3.Connection) -> None:
                 raw = generate_password_hash(str(raw))
 
             db.execute(
-                'UPDATE admins SET password_hash = ? WHERE id = ?',
-                (raw, row['id']),
+                'UPDATE admins SET password_hash = ?, kitchen_password_hash = COALESCE(kitchen_password_hash, ?) WHERE id = ?',
+                (raw, raw, row['id']),
             )
+            
     else:
         rows = db.execute('SELECT id, password_hash FROM admins').fetchall()
         for row in rows:
             current_hash = row['password_hash'] or ''
             if not current_hash.startswith(('pbkdf2:', 'scrypt:', 'argon2:')):
+                new_hash = generate_password_hash(current_hash or os.getenv('ADMIN_PASSWORD', '123456'))
                 db.execute(
-                    'UPDATE admins SET password_hash = ? WHERE id = ?',
-                    (
-                        generate_password_hash(current_hash or os.getenv('ADMIN_PASSWORD', '123456')),
-                        row['id'],
-                    ),
+                    'UPDATE admins SET password_hash = ?, kitchen_password_hash = COALESCE(kitchen_password_hash, ?) WHERE id = ?',
+                    (new_hash, new_hash, row['id']),
                 )
-
 
 def _migrate_restaurant_profiles(db: sqlite3.Connection) -> None:
     if not _table_exists(db, 'restaurant_profiles'):
@@ -383,11 +393,12 @@ def _seed_defaults(db: sqlite3.Connection) -> None:
     default_admin_password = os.getenv('ADMIN_PASSWORD', '123456')
 
     if db.execute('SELECT COUNT(*) FROM admins').fetchone()[0] == 0:
+        default_hash = generate_password_hash(default_admin_password)
         db.execute(
-            'INSERT INTO admins (username, password_hash, is_active) VALUES (?, ?, 1)',
-            (default_admin_username, generate_password_hash(default_admin_password)),
+            'INSERT INTO admins (username, password_hash, kitchen_password_hash, is_active) VALUES (?, ?, ?, 1)',
+            (default_admin_username, default_hash, default_hash),
         )
-
+        
     _migrate_restaurant_profiles(db)
     default_restaurant_id = _ensure_default_profile(db)
 
