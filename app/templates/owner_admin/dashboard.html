@@ -1,0 +1,495 @@
+{% extends 'base.html' %}
+{% block title %}Painel interno QRTotem{% endblock %}
+
+{% block content %}
+<style>
+  .owner-dashboard {
+    width: min(1220px, 100%);
+    margin: 0 auto;
+    display: grid;
+    gap: 22px;
+  }
+
+  .owner-topbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 30px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, #1e1e1e 0%, #3a3a3a 100%);
+    color: #ffffff;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .12);
+  }
+
+  .owner-eyebrow {
+    margin: 0 0 10px;
+    color: #fb923c;
+    font-size: .75rem;
+    font-weight: 900;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .owner-topbar h2 {
+    margin: 0 0 10px;
+    font-size: clamp(1.8rem, 4vw, 3.2rem);
+    line-height: 1;
+  }
+
+  .owner-topbar p {
+    margin: 0;
+    color: rgba(255, 255, 255, .72);
+    line-height: 1.5;
+  }
+
+  .owner-topbar-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .owner-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 11px 16px;
+    text-decoration: none;
+    font-weight: 900;
+    border: 1px solid rgba(255, 255, 255, .16);
+    color: #ffffff;
+    background: rgba(255, 255, 255, .08);
+  }
+
+  .owner-btn-primary {
+    background: #f97316;
+    border-color: #f97316;
+    box-shadow: 0 14px 28px rgba(249, 115, 22, .22);
+  }
+
+  .owner-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .owner-card {
+    background: #ffffff;
+    border: 1px solid rgba(30, 30, 30, .08);
+    border-radius: 24px;
+    padding: 22px;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .06);
+  }
+
+  .owner-card-label {
+    display: block;
+    color: #64748b;
+    font-size: .85rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+
+  .owner-card strong {
+    display: block;
+    color: #1e1e1e;
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+    line-height: 1;
+  }
+
+  .owner-card small {
+    display: block;
+    margin-top: 10px;
+    color: #64748b;
+    line-height: 1.35;
+  }
+
+  .owner-card-danger strong,
+  .owner-card-danger .owner-card-label {
+    color: #b91c1c;
+  }
+
+  .owner-grid-2 {
+    display: grid;
+    grid-template-columns: 1.25fr .75fr;
+    gap: 18px;
+  }
+
+  .owner-section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .owner-section-title h3 {
+    margin: 0;
+    color: #1e1e1e;
+    font-size: 1.18rem;
+  }
+
+  .owner-section-title span {
+    color: #64748b;
+    font-size: .88rem;
+  }
+
+  .owner-growth-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .owner-growth-row {
+    display: grid;
+    grid-template-columns: 78px 1fr 60px;
+    gap: 14px;
+    align-items: center;
+    color: #404040;
+    font-weight: 800;
+  }
+
+  .owner-growth-track {
+    height: 14px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    overflow: hidden;
+  }
+
+  .owner-growth-bar {
+    height: 100%;
+    min-width: 3px;
+    border-radius: inherit;
+    background: #f97316;
+  }
+
+  .owner-status-list,
+  .owner-alert-list,
+  .owner-restaurant-list,
+  .owner-payment-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .owner-status-row,
+  .owner-alert-row,
+  .owner-restaurant-row,
+  .owner-payment-row {
+    display: grid;
+    gap: 6px;
+    padding: 16px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid rgba(30, 30, 30, .06);
+  }
+
+  .owner-status-row-header,
+  .owner-alert-row-header,
+  .owner-restaurant-row-header,
+  .owner-payment-row-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .owner-status-row strong,
+  .owner-alert-row strong,
+  .owner-restaurant-row strong,
+  .owner-payment-row strong {
+    color: #1e1e1e;
+  }
+
+  .owner-status-row p,
+  .owner-alert-row p,
+  .owner-restaurant-row p,
+  .owner-payment-row p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.45;
+    font-size: .92rem;
+  }
+
+  .owner-pill {
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: .75rem;
+    font-weight: 900;
+  }
+
+  .owner-pill-success {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .owner-pill-warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .owner-pill-danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .owner-pill-neutral {
+    background: #e2e8f0;
+    color: #334155;
+  }
+
+  .owner-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .owner-table th,
+  .owner-table td {
+    padding: 13px 10px;
+    border-bottom: 1px solid rgba(30, 30, 30, .08);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .owner-table th {
+    color: #64748b;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .owner-table td {
+    color: #1e1e1e;
+    font-weight: 700;
+  }
+
+  .owner-table .muted {
+    display: block;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: .86rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 980px) {
+    .owner-kpis,
+    .owner-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .owner-topbar {
+      display: grid;
+    }
+
+    .owner-topbar-actions {
+      justify-content: flex-start;
+    }
+
+    .owner-kpis,
+    .owner-grid-2 {
+      grid-template-columns: 1fr;
+    }
+
+    .owner-table {
+      min-width: 720px;
+    }
+
+    .owner-table-wrap {
+      overflow-x: auto;
+    }
+  }
+</style>
+
+<section class="owner-dashboard">
+  <div class="owner-topbar">
+    <div>
+      <p class="owner-eyebrow">Painel interno</p>
+      <h2>Visão geral do QRTotem</h2>
+      <p>Resumo limpo para acompanhar crescimento, uso real dos restaurantes e problemas que podem parar a operação.</p>
+    </div>
+
+    <div class="owner-topbar-actions">
+      <a class="owner-btn" href="{{ url_for('owner_admin.dashboard') }}">Atualizar</a>
+      <a class="owner-btn owner-btn-primary" href="{{ url_for('owner_admin.logout') }}">Sair</a>
+    </div>
+  </div>
+
+  <div class="owner-kpis">
+    <article class="owner-card">
+      <span class="owner-card-label">Restaurantes cadastrados</span>
+      <strong>{{ data.restaurant_count }}</strong>
+      <small>{{ data.active_restaurants }} com pedidos neste mês</small>
+    </article>
+
+    <article class="owner-card">
+      <span class="owner-card-label">Pedidos no mês</span>
+      <strong>{{ data.orders_month }}</strong>
+      <small>{{ data.orders_variation }}</small>
+    </article>
+
+    <article class="owner-card">
+      <span class="owner-card-label">Receita mensal prevista</span>
+      <strong>{{ data.monthly_revenue_formatted }}</strong>
+      <small>{{ data.restaurant_count }} restaurante(s) x {{ data.monthly_price_formatted }}</small>
+    </article>
+
+    <article class="owner-card {% if data.critical_issues > 0 %}owner-card-danger{% endif %}">
+      <span class="owner-card-label">Problemas críticos</span>
+      <strong>{{ data.critical_issues }}</strong>
+      <small>Pedidos parados ou cardápios sem item ativo</small>
+    </article>
+  </div>
+
+  <div class="owner-grid-2">
+    <section class="owner-card">
+      <div class="owner-section-title">
+        <h3>Crescimento mensal</h3>
+        <span>Pedidos dos últimos 6 meses</span>
+      </div>
+
+      <div class="owner-growth-list">
+        {% for item in data.growth %}
+          {% set total = item['total_orders'] or 0 %}
+          {% set width = ((total / data.max_growth) * 100) if data.max_growth else 0 %}
+          <div class="owner-growth-row">
+            <span>{{ item['month_ref'][5:7] }}/{{ item['month_ref'][2:4] }}</span>
+            <div class="owner-growth-track" aria-hidden="true">
+              <div class="owner-growth-bar" style="width: {{ width }}%"></div>
+            </div>
+            <span>{{ total }}</span>
+          </div>
+        {% else %}
+          <p class="muted">Ainda não há pedidos suficientes para montar o crescimento mensal.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="owner-card">
+      <div class="owner-section-title">
+        <h3>Saúde da operação</h3>
+        <span>{{ data.generated_at }}</span>
+      </div>
+
+      <div class="owner-status-list">
+        {% for item in data.platform_status %}
+          <div class="owner-status-row">
+            <div class="owner-status-row-header">
+              <strong>{{ item.label }}</strong>
+              <span class="owner-pill owner-pill-{{ item.tone }}">{{ item.status }}</span>
+            </div>
+            <p>{{ item.detail }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="owner-grid-2">
+    <section class="owner-card">
+      <div class="owner-section-title">
+        <h3>Restaurantes com maior movimento</h3>
+        <span>Top 5 do mês</span>
+      </div>
+
+      <div class="owner-table-wrap">
+        <table class="owner-table">
+          <thead>
+            <tr>
+              <th>Restaurante</th>
+              <th>Pedidos</th>
+              <th>Último pedido</th>
+              <th>Volume</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for restaurant in data.top_restaurants %}
+              <tr>
+                <td>
+                  {{ restaurant['restaurant_name'] }}
+                  <span class="muted">{{ restaurant['owner_name'] }} · {{ restaurant['email'] }}</span>
+                </td>
+                <td>{{ restaurant['orders_month'] }}</td>
+                <td>{{ restaurant['last_order_at'] or 'Sem pedidos no mês' }}</td>
+                <td>{{ restaurant['gross_volume']|currency }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4">Nenhum restaurante cadastrado ainda.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="owner-card">
+      <div class="owner-section-title">
+        <h3>Alertas importantes</h3>
+        <span>Prioridade operacional</span>
+      </div>
+
+      <div class="owner-alert-list">
+        {% for alert in data.alerts %}
+          <div class="owner-alert-row">
+            <div class="owner-alert-row-header">
+              <strong>{{ alert.title }}</strong>
+              <span class="owner-pill owner-pill-{{ alert.tone }}">{{ alert.priority }}</span>
+            </div>
+            <p>{{ alert.detail }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="owner-grid-2">
+    <section class="owner-card">
+      <div class="owner-section-title">
+        <h3>Base de usuários finais</h3>
+        <span>Clientes cadastrados pelos restaurantes</span>
+      </div>
+
+      <div class="owner-kpis" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+        <article class="owner-card" style="box-shadow: none; background: #f8fafc;">
+          <span class="owner-card-label">Usuários cadastrados</span>
+          <strong>{{ data.customers_total }}</strong>
+          <small>Clientes que criaram perfil para cupons/radar</small>
+        </article>
+
+        <article class="owner-card" style="box-shadow: none; background: #f8fafc;">
+          <span class="owner-card-label">Clientes no radar</span>
+          <strong>{{ data.radar_total }}</strong>
+          <small>Base potencial para promoções futuras</small>
+        </article>
+      </div>
+    </section>
+
+    <section class="owner-card">
+      <div class="owner-section-title">
+        <h3>Pagamentos dos restaurantes</h3>
+        <span>Controle enxuto</span>
+      </div>
+
+      <div class="owner-payment-list">
+        <div class="owner-payment-row">
+          <div class="owner-payment-row-header">
+            <strong>Mensalidade padrão</strong>
+            <span class="owner-pill owner-pill-neutral">Manual</span>
+          </div>
+          <p>{{ data.monthly_price_formatted }} por restaurante. A confirmação de pago/pendente deve ser integrada ao Mercado Pago/PIX no próximo passo.</p>
+        </div>
+
+        <div class="owner-payment-row">
+          <div class="owner-payment-row-header">
+            <strong>Receita prevista</strong>
+            <span class="owner-pill owner-pill-success">{{ data.monthly_revenue_formatted }}</span>
+          </div>
+          <p>Cálculo automático com base na quantidade de restaurantes cadastrados.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+{% endblock %}
