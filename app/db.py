@@ -31,10 +31,11 @@ CREATE TABLE IF NOT EXISTS restaurant_profiles (
     age INTEGER NOT NULL,
     email TEXT NOT NULL,
     restaurant_name TEXT NOT NULL,
-    cnpj TEXT NOT NULL,
+    cnpj TEXT NOT NULL DEFAULT '',
     restaurant_address TEXT NOT NULL,
-    cell_phone TEXT NOT NULL,
-    table_count INTEGER NOT NULL DEFAULT 0,
+    cell_phone TEXT NOT NULL DEFAULT '',
+    order_payment_mode TEXT NOT NULL DEFAULT 'pay_after',
+    table_count INTEGER NOT NULL DEFAULT 0,    
     public_token TEXT,
     slug TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -256,7 +257,17 @@ def _migrate_restaurant_profiles(db: sqlite3.Connection) -> None:
     _ensure_column(db, 'restaurant_profiles', 'table_count INTEGER NOT NULL DEFAULT 0')
     _ensure_column(db, 'restaurant_profiles', 'public_token TEXT')
     _ensure_column(db, 'restaurant_profiles', 'slug TEXT')
+    _ensure_column(db, 'restaurant_profiles', "order_payment_mode TEXT NOT NULL DEFAULT 'pay_after'")
 
+    db.execute('''
+        UPDATE restaurant_profiles
+           SET order_payment_mode = 'pay_after'
+         WHERE order_payment_mode IS NULL
+            OR order_payment_mode = ''
+            OR order_payment_mode NOT IN ('pay_before', 'pay_after')
+    ''')    
+
+    
     rows = db.execute(
         'SELECT id, restaurant_name, public_token, slug FROM restaurant_profiles'
     ).fetchall()
