@@ -49,6 +49,12 @@
       <p class="muted">Você pode anexar uma ou mais imagens. Nesta etapa elas servem apenas para preparar a campanha.</p>
     </div>
 
+    <div>
+      <label>Senha do usuário</label>
+      <input type="password" name="manager_password" autocomplete="current-password" placeholder="Confirme sua senha para enviar" required>
+      <p class="muted">Por segurança, o envio de mensagens aos clientes no radar exige a senha principal do usuário.</p>
+    </div>
+
     <div class="hero-actions">
       <button type="submit" class="btn btn-primary">Criar prévia da promoção</button>
       <a class="btn btn-secondary" href="{{ url_for('admin.coupons') }}">Cancelar</a>
