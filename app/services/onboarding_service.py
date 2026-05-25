@@ -33,6 +33,18 @@ def _validate_age(value: Any) -> int:
     return age
 
 
+def _validate_order_payment_mode(value: Any, *, required: bool = True) -> str:
+    mode = normalize_text(value)
+
+    if not mode and not required:
+        return 'pay_after'
+
+    if mode not in {'pay_before', 'pay_after'}:
+        raise ValidationError('Escolha se o pagamento será antes ou depois de finalizar o pedido.')
+
+    return mode
+
+
 def _slugify(value: str) -> str:
     text = str(value or '').strip().lower()
     table = str.maketrans(
@@ -84,7 +96,8 @@ def _unique_token(db) -> str:
 def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     owner_name = normalize_text(payload.get('owner_name'))
     restaurant_name = normalize_text(payload.get('restaurant_name'))
-    restaurant_address = normalize_text(payload.get('restaurant_address'))
+    restaurant_address = _only_digits(payload.get('restaurant_address'))
+    order_payment_mode = _validate_order_payment_mode(payload.get('order_payment_mode'), required=False)
     username = normalize_text(payload.get('username'))
     password = str(payload.get('password') or '').strip()
     password_confirm = str(payload.get('password_confirm') or '').strip()
@@ -100,8 +113,8 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValidationError('Informe o nome.')
     if not restaurant_name:
         raise ValidationError('Informe o nome do restaurante.')
-    if not restaurant_address:
-        raise ValidationError('Informe o endereço do restaurante.')
+    if len(restaurant_address) != 8:
+        raise ValidationError('Informe um CEP válido com 8 números.')
     if not username:
         raise ValidationError('Informe o usuário.')
     if len(username) < 3:
@@ -123,10 +136,8 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
     _validate_email(email)
 
-    if len(cnpj) != 14:
-        raise ValidationError('Informe um CNPJ válido.')
-    if len(cell_phone) < 10:
-        raise ValidationError('Informe um celular válido.')
+    if cell_phone and len(cell_phone) < 10:
+        raise ValidationError('Informe um celular válido ou deixe o campo em branco.')
 
     return {
         'owner_name': owner_name,
@@ -136,6 +147,7 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
         'cnpj': cnpj,
         'restaurant_address': restaurant_address,
         'cell_phone': cell_phone,
+        'order_payment_mode': order_payment_mode,
         'username': username,
         'password': password,
         'kitchen_password': kitchen_password,
@@ -160,9 +172,9 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
             '''
             INSERT INTO restaurant_profiles (
                 admin_id, owner_name, age, email, restaurant_name, cnpj,
-                restaurant_address, cell_phone, table_count, public_token, slug
+                restaurant_address, cell_phone, order_payment_mode, table_count, public_token, slug
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
             ''',
             (
                 admin_id,
@@ -173,6 +185,7 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
                 data['cnpj'],
                 data['restaurant_address'],
                 data['cell_phone'],
+                data['order_payment_mode'],
                 public_token,
                 slug,
             ),
@@ -192,6 +205,7 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
         'cnpj': data['cnpj'],
         'restaurant_address': data['restaurant_address'],
         'cell_phone': data['cell_phone'],
+        'order_payment_mode': data['order_payment_mode'],
         'age': data['age'],
         'table_count': 0,
         'public_token': public_token,
@@ -202,7 +216,8 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
 def validate_profile_update_payload(payload: dict[str, Any]) -> dict[str, Any]:
     owner_name = normalize_text(payload.get('owner_name'))
     restaurant_name = normalize_text(payload.get('restaurant_name'))
-    restaurant_address = normalize_text(payload.get('restaurant_address'))
+    restaurant_address = _only_digits(payload.get('restaurant_address'))
+    order_payment_mode = _validate_order_payment_mode(payload.get('order_payment_mode'), required=True)
     email = normalize_text(payload.get('email')).lower()
     cnpj = _only_digits(payload.get('cnpj'))
     cell_phone = _only_digits(payload.get('cell_phone'))
@@ -212,17 +227,15 @@ def validate_profile_update_payload(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValidationError('Informe o nome.')
     if not restaurant_name:
         raise ValidationError('Informe o nome do restaurante.')
-    if not restaurant_address:
-        raise ValidationError('Informe o endereço do restaurante.')
+    if len(restaurant_address) != 8:
+        raise ValidationError('Informe um CEP válido com 8 números.')
     if not email:
         raise ValidationError('Informe o e-mail.')
 
     _validate_email(email)
 
-    if len(cnpj) != 14:
-        raise ValidationError('Informe um CNPJ válido.')
-    if len(cell_phone) < 10:
-        raise ValidationError('Informe um celular válido.')
+    if cell_phone and len(cell_phone) < 10:
+        raise ValidationError('Informe um celular válido ou deixe o campo em branco.')
 
     return {
         'owner_name': owner_name,
@@ -232,6 +245,7 @@ def validate_profile_update_payload(payload: dict[str, Any]) -> dict[str, Any]:
         'cnpj': cnpj,
         'restaurant_address': restaurant_address,
         'cell_phone': cell_phone,
+        'order_payment_mode': order_payment_mode,
     }
 
 
@@ -257,6 +271,7 @@ def update_restaurant_profile(db, admin_id: int | None, payload: dict[str, Any])
                cnpj = ?,
                restaurant_address = ?,
                cell_phone = ?,
+               order_payment_mode = ?,
                slug = ?
          WHERE admin_id = ?
         ''',
@@ -268,6 +283,7 @@ def update_restaurant_profile(db, admin_id: int | None, payload: dict[str, Any])
             data['cnpj'],
             data['restaurant_address'],
             data['cell_phone'],
+            data['order_payment_mode'],
             slug,
             admin_id,
         ),
@@ -308,4 +324,22 @@ def get_restaurant_profile_by_token(db, public_token: str | None):
          LIMIT 1
         ''',
         (token,),
+    ).fetchone()
+
+
+def get_restaurant_profile_by_slug(db, slug: str | None):
+    normalized_slug = normalize_text(slug)
+
+    if not normalized_slug:
+        return None
+
+    return db.execute(
+        '''
+        SELECT rp.*, a.username
+          FROM restaurant_profiles rp
+          JOIN admins a ON a.id = rp.admin_id
+         WHERE rp.slug = ?
+         LIMIT 1
+        ''',
+        (normalized_slug,),
     ).fetchone()
