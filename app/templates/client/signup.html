@@ -1,6 +1,54 @@
 {% extends 'base.html' %}
 {% block title %}Cadastro do restaurante{% endblock %}
 {% block content %}
+<style>
+  .payment-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .payment-choice-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 16px;
+    border: 1px solid rgba(30, 30, 30, .12);
+    border-radius: 18px;
+    background: #ffffff;
+    cursor: pointer;
+  }
+
+  .payment-choice-card input {
+    margin-top: 4px;
+  }
+
+  .payment-choice-card strong {
+    display: block;
+    color: #1e1e1e;
+    margin-bottom: 4px;
+  }
+
+  .payment-choice-card span {
+    display: block;
+    color: #64748b;
+    line-height: 1.45;
+    font-size: .92rem;
+  }
+
+  .required-mark {
+    color: #f97316;
+    font-weight: 900;
+  }
+
+  @media (max-width: 720px) {
+    .payment-choice-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
 <section class="auth-layout">
   <div class="auth-copy panel panel-accent">
     <p class="eyebrow">Primeiro acesso</p>
@@ -14,65 +62,81 @@
 
     <div class="form-row">
       <div>
-        <label for="owner_name">Nome</label>
+        <label for="owner_name">Nome <span class="required-mark">*</span></label>
         <input id="owner_name" type="text" name="owner_name" autocomplete="name" required>
       </div>
       <div>
-        <label for="age">Idade</label>
+        <label for="age">Idade <span class="required-mark">*</span></label>
         <input id="age" type="number" name="age" min="1" max="120" required>
       </div>
     </div>
 
     <div class="form-row">
       <div>
-        <label for="email">E-mail</label>
+        <label for="email">E-mail <span class="required-mark">*</span></label>
         <input id="email" type="email" name="email" autocomplete="email" required>
       </div>
       <div>
-        <label for="restaurant_name">Nome do restaurante</label>
+        <label for="restaurant_name">Nome do restaurante <span class="required-mark">*</span></label>
         <input id="restaurant_name" type="text" name="restaurant_name" required>
       </div>
     </div>
 
     <div class="form-row">
       <div>
-        <label for="cnpj">CNPJ</label>
-        <input id="cnpj" type="text" name="cnpj" inputmode="numeric" required>
+        <label for="cell_phone">Celular</label>
+        <input id="cell_phone" type="tel" name="cell_phone" autocomplete="tel" placeholder="Opcional">
       </div>
       <div>
-        <label for="cell_phone">Celular</label>
-        <input id="cell_phone" type="tel" name="cell_phone" autocomplete="tel" required>
+        <label for="restaurant_address">CEP do estabelecimento <span class="required-mark">*</span></label>
+        <input id="restaurant_address" type="text" name="restaurant_address" inputmode="numeric" maxlength="9" placeholder="Ex.: 01001000" required>
       </div>
     </div>
 
     <div>
-      <label for="restaurant_address">Endereço do restaurante</label>
-      <input id="restaurant_address" type="text" name="restaurant_address" autocomplete="street-address" required>
+      <label>Momento do pagamento <span class="required-mark">*</span></label>
+      <div class="payment-choice-grid">
+        <label class="payment-choice-card" for="pay_before">
+          <input id="pay_before" type="radio" name="order_payment_mode" value="pay_before" required>
+          <span>
+            <strong>Pagamento antes</strong>
+            <span>O cliente deve pagar antes do pedido seguir como finalizado.</span>
+          </span>
+        </label>
+
+        <label class="payment-choice-card" for="pay_after">
+          <input id="pay_after" type="radio" name="order_payment_mode" value="pay_after" checked required>
+          <span>
+            <strong>Pagamento depois de finalizar o pedido</strong>
+            <span>O cliente finaliza o pedido e o pagamento é tratado depois pelo restaurante.</span>
+          </span>
+        </label>
+      </div>
     </div>
 
     <div class="form-row">
       <div>
-        <label for="username">Usuário</label>
+        <label for="username">Usuário <span class="required-mark">*</span></label>
         <input id="username" type="text" name="username" autocomplete="username" required>
       </div>
       <div>
-        <label for="password">Senha do usuário</label>
+        <label for="password">Senha do usuário <span class="required-mark">*</span></label>
         <input id="password" type="password" name="password" autocomplete="new-password" minlength="8" required>
       </div>
     </div>
 
     <div>
-      <label for="password_confirm">Confirmação da senha do usuário</label>
+      <label for="password_confirm">Confirmação da senha do usuário <span class="required-mark">*</span></label>
       <input id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" minlength="8" required>
     </div>
 
     <div class="form-row">
       <div>
-        <label for="kitchen_password">Senha da cozinha</label>
+        <label for="kitchen_password">Senha da cozinha <span class="required-mark">*</span></label>
         <input id="kitchen_password" type="password" name="kitchen_password" autocomplete="new-password" minlength="8" required>
       </div>
       <div>
-        <label for="kitchen_password_confirm">Confirmação da senha da cozinha</label>
+        <label for="kitchen_password_confirm">Confirmação da senha da cozinha <span class="required-mark">*</span></label>
         <input id="kitchen_password_confirm" type="password" name="kitchen_password_confirm" autocomplete="new-password" minlength="8" required>
       </div>
     </div>
