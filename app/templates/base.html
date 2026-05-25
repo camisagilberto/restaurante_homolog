@@ -21,13 +21,19 @@
   <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
 
   {% set is_admin_session = session.get('admin_logged_in') %}
-  {% set public_flow_endpoints = ['client.restaurant_table_menu', 'client.cart', 'client.order_history', 'client.coupon_entry', 'client.coupon_login', 'client.coupon_signup', 'client.coupon_menu', 'client.customer_profile'] %}
+  {% set public_flow_endpoints = [
+    'client.restaurant_table_menu',
+    'client.cart',
+    'client.order_history',
+    'client.coupon_entry',
+    'client.coupon_login',
+    'client.coupon_signup',
+    'client.coupon_menu',
+    'client.customer_profile'
+  ] %}
   {% set is_public_client_flow = request.endpoint in public_flow_endpoints and session.get('public_client_mode') %}
-  {% set is_table_link_page = request.endpoint == 'client.restaurant_table_menu' %}
-  {% set hide_navigation_for_table = is_table_link_page or is_public_client_flow %}
-
   {% set hidden_navigation_endpoints = ['admin.login', 'client.signup'] %}
-  {% set show_navigation = (not hide_navigation_for_table) and request.endpoint not in hidden_navigation_endpoints %}
+  {% set show_navigation = is_admin_session and (not is_public_client_flow) and request.endpoint not in hidden_navigation_endpoints %}
 
   {% set client_table = session.get('current_table') or 1 %}
   {% set client_token = session.get('client_restaurant_token') or session.get('restaurant_public_token') %}
@@ -40,57 +46,53 @@
     {% set client_order_url = url_for('client.table_menu', table_number=client_table) %}
   {% endif %}
 
-  <div class="app-layout {% if hide_navigation_for_table %}public-client-layout{% endif %}">
-    {% if not hide_navigation_for_table %}
+  <div class="app-layout {% if not show_navigation %}public-client-layout{% endif %}">
+    {% if show_navigation %}
       <aside class="app-sidebar" aria-label="Menu lateral">
         <a class="sidebar-brand" href="{{ url_for('client.home') }}" aria-label="Ir para a página inicial">
           <img src="{{ url_for('static', filename='img/logo-horizontal-dark.png') }}" alt="QRTotem">
         </a>
 
-        {% if show_navigation %}
-          <nav class="sidebar-nav" aria-label="Menu principal">
-            <a href="{{ client_order_url }}">
-              <span class="nav-icon" aria-hidden="true">⌂</span>
-              <span>Cliente</span>
-            </a>
+        <nav class="sidebar-nav" aria-label="Menu principal do restaurante">
+          <a href="{{ client_order_url }}">
+            <span class="nav-icon" aria-hidden="true">⌂</span>
+            <span>Cliente</span>
+          </a>
 
-            <a href="{{ url_for('admin.products') }}">
-              <span class="nav-icon" aria-hidden="true">▦</span>
-              <span>Produtos</span>
-            </a>
+          <a href="{{ url_for('admin.products') }}">
+            <span class="nav-icon" aria-hidden="true">▦</span>
+            <span>Produtos</span>
+          </a>
 
-            <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>
-              <span class="nav-icon" aria-hidden="true">◷</span>
-              <span>Cozinha</span>
-            </a>
+          <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>
+            <span class="nav-icon" aria-hidden="true">◷</span>
+            <span>Cozinha</span>
+          </a>
 
-            <a href="{{ url_for('admin.coupons') }}">
-              <span class="nav-icon" aria-hidden="true">%</span>
-              <span>Cupons</span>
-            </a>
+          <a href="{{ url_for('admin.coupons') }}">
+            <span class="nav-icon" aria-hidden="true">%</span>
+            <span>Cupons</span>
+          </a>
 
-            <a href="{{ url_for('client.profile') }}">
-              <span class="nav-icon" aria-hidden="true">◌</span>
-              <span>Cadastro</span>
-            </a>
+          <a href="{{ url_for('client.profile') }}">
+            <span class="nav-icon" aria-hidden="true">◌</span>
+            <span>Cadastro</span>
+          </a>
 
-            <a href="{{ url_for('client.tables_setup') }}">
-              <span class="nav-icon" aria-hidden="true">□</span>
-              <span>Mesas</span>
-            </a>
-          </nav>
-        {% endif %}
+          <a href="{{ url_for('client.tables_setup') }}">
+            <span class="nav-icon" aria-hidden="true">□</span>
+            <span>Mesas</span>
+          </a>
+        </nav>
 
         <div class="sidebar-footer">
           <span class="sidebar-caption">Sistema de pedidos</span>
           <strong>QR Code para restaurantes</strong>
 
-          {% if is_admin_session %}
-            <a class="sidebar-logout" href="{{ url_for('client.logout') }}">
-              <span class="nav-icon" aria-hidden="true">↩</span>
-              <span>Sair</span>
-            </a>
-          {% endif %}
+          <a class="sidebar-logout" href="{{ url_for('client.logout') }}">
+            <span class="nav-icon" aria-hidden="true">↩</span>
+            <span>Sair</span>
+          </a>
         </div>
       </aside>
     {% endif %}
@@ -109,17 +111,14 @@
         </a>
 
         {% if show_navigation %}
-          <nav class="app-nav" aria-label="Menu principal">
+          <nav class="app-nav" aria-label="Menu principal do restaurante">
             <a href="{{ client_order_url }}">Cliente</a>
             <a href="{{ url_for('admin.products') }}">Produtos</a>
             <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
             <a href="{{ url_for('admin.coupons') }}">Cupons</a>
             <a href="{{ url_for('client.profile') }}">Perfil</a>
             <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
-
-            {% if is_admin_session %}
-              <a href="{{ url_for('client.logout') }}">Sair</a>
-            {% endif %}
+            <a href="{{ url_for('client.logout') }}">Sair</a>
           </nav>
         {% endif %}
       </header>
