@@ -193,6 +193,11 @@ def delete_product_route(product_id):
         flash('Produto não encontrado.', 'error')
         return redirect(url_for('admin.products'))
 
+    manager_password = str(request.form.get('manager_password') or '').strip()
+    if not verify_manager_password(db, manager_password, admin_id=session.get('admin_id')):
+        flash('Senha do usuário inválida. Produto não excluído.', 'error')
+        return redirect(url_for('admin.products'))
+
     removed, message = delete_product(db, product_id, restaurant_id, kind='menu')
     flash(message, 'success' if removed else 'warning')
     return redirect(url_for('admin.products'))
@@ -287,6 +292,11 @@ def delete_coupon_route(product_id):
 
     if not get_product(db, product_id, restaurant_id, kind='coupon'):
         flash('Cupom não encontrado.', 'error')
+        return redirect(url_for('admin.coupons'))
+
+    manager_password = str(request.form.get('manager_password') or '').strip()
+    if not verify_manager_password(db, manager_password, admin_id=session.get('admin_id')):
+        flash('Senha do usuário inválida. Cupom não excluído.', 'error')
         return redirect(url_for('admin.coupons'))
 
     removed, message = delete_product(db, product_id, restaurant_id, kind='coupon')
