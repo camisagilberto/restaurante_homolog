@@ -17,7 +17,7 @@ from flask import (
 from ..db import get_db
 from ..errors import ValidationError
 from ..security import csrf_token
-from ..services.auth_service import verify_manager_password
+from ..services.auth_service import verify_kitchen_password, verify_manager_password
 from ..services.onboarding_service import get_restaurant_profile_for_admin
 from ..services.order_service import (
     ORDER_STATUS_LABELS,
@@ -45,6 +45,10 @@ def kitchen_required(view):
         if not session.get('admin_logged_in'):
             return redirect(url_for('admin.login'))
 
+        if not session.get('kitchen_authorized'):
+            flash('Digite a senha da cozinha para acessar esta área.', 'warning')
+            return redirect(url_for('admin.products'))
+
         return view(*args, **kwargs)
 
     return wrapped
@@ -68,11 +72,32 @@ def validar_acesso():
     db = get_db()
     admin_id = session.get('admin_id')
 
-    if not verify_manager_password(db, password, admin_id=admin_id):
+    if not verify_kitchen_password(db, password, admin_id=admin_id, allow_manager_password=True):
         return jsonify(success=False, message='Senha inválida.'), 401
 
     session['kitchen_authorized'] = True
     return jsonify(success=True, redirect_url=url_for('kitchen.orders'))
+
+
+@kitchen_bp.route('/sair', methods=['POST'])
+def sair_cozinha():
+    data = request.get_json(silent=True) or {}
+    password = str(data.get('password') or '').strip()
+
+    if not session.get('admin_logged_in'):
+        return jsonify(success=False, message='Sessão expirada. Faça login novamente.'), 401
+
+    if not password:
+        return jsonify(success=False, message='Informe a senha.'), 400
+
+    db = get_db()
+    admin_id = session.get('admin_id')
+
+    if not verify_kitchen_password(db, password, admin_id=admin_id, allow_manager_password=True):
+        return jsonify(success=False, message='Senha inválida.'), 401
+
+    session.pop('kitchen_authorized', None)
+    return jsonify(success=True)
 
 
 @kitchen_bp.route('/')
