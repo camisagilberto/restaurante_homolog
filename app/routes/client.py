@@ -656,7 +656,7 @@ def scan_menu_confirm():
                     restaurant_id,
                     name,
                     category,
-                    price_cents,
+                    price,
                     description,
                     active,
                     sort_order,
@@ -668,7 +668,7 @@ def scan_menu_confirm():
                     restaurant_id,
                     payload['name'],
                     payload['category'],
-                    payload['price_cents'],
+                    payload['price'],
                     payload['description'],
                     payload['active'],
                     max_sort + created + 1,
@@ -1377,7 +1377,7 @@ def add_to_cart():
         return _client_table_redirect(_current_table())
 
     cart = get_cart(session)
-    add_item(cart, product_id, quantity)
+    add_item(cart, product, quantity)
     save_cart(session, cart)
     cart_total, cart_quantity = totals(cart)
 
