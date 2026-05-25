@@ -61,6 +61,7 @@ def _restaurant_context() -> dict:
         'cnpj': session.get('restaurant_cnpj', ''),
         'restaurant_address': session.get('restaurant_address', ''),
         'cell_phone': session.get('restaurant_cell_phone', ''),
+        'order_payment_mode': session.get('restaurant_order_payment_mode', 'pay_after'),
         'username': session.get('admin_username', ''),
         'table_count': session.get('restaurant_table_count', 0),
         'public_token': session.get('restaurant_public_token', ''),
@@ -84,6 +85,7 @@ def _restaurant_context() -> dict:
                     'cnpj': profile['cnpj'],
                     'restaurant_address': profile['restaurant_address'],
                     'cell_phone': profile['cell_phone'],
+                    'order_payment_mode': profile['order_payment_mode'] if 'order_payment_mode' in profile.keys() else 'pay_after',
                     'username': profile['username'],
                     'table_count': profile['table_count'] if 'table_count' in profile.keys() else 0,
                     'public_token': profile['public_token'] if 'public_token' in profile.keys() else '',
@@ -106,6 +108,7 @@ def _store_admin_profile_session(account: dict) -> None:
     session['restaurant_cnpj'] = account['cnpj']
     session['restaurant_address'] = account['restaurant_address']
     session['restaurant_cell_phone'] = account['cell_phone']
+    session['restaurant_order_payment_mode'] = account.get('order_payment_mode', 'pay_after')
     session['restaurant_table_count'] = account.get('table_count', 0)
     session['restaurant_public_token'] = account.get('public_token', '')
     session['restaurant_slug'] = account.get('slug', '')
@@ -369,7 +372,7 @@ def profile():
 
     if request.method == 'POST':
         try:
-            updated = update_restaurant_profile(db=get_db(), admin_id=session.get('admin_id'), data=request.form.to_dict(flat=True))
+            updated = update_restaurant_profile(db=get_db(), admin_id=session.get('admin_id'), payload=request.form.to_dict(flat=True))
         except ValidationError as exc:
             flash(str(exc), 'error')
         else:
@@ -380,6 +383,7 @@ def profile():
             session['restaurant_cnpj'] = updated['cnpj']
             session['restaurant_address'] = updated['restaurant_address']
             session['restaurant_cell_phone'] = updated['cell_phone']
+            session['restaurant_order_payment_mode'] = updated.get('order_payment_mode', 'pay_after')
             session['restaurant_slug'] = updated.get('slug', session.get('restaurant_slug', ''))
             flash('Perfil atualizado com sucesso.', 'success')
             return redirect(url_for('client.profile'))
