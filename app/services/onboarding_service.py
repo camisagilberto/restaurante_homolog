@@ -107,7 +107,6 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if len(username) < 3:
         raise ValidationError('O usuário deve ter pelo menos 3 caracteres.')
     if not password:
-    if not password:
         raise ValidationError('Informe a senha.')
     if len(password) < 8:
         raise ValidationError('A senha deve ter pelo menos 8 caracteres.')
@@ -118,7 +117,7 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if len(kitchen_password) < 8:
         raise ValidationError('A senha da cozinha deve ter pelo menos 8 caracteres.')
     if kitchen_password != kitchen_password_confirm:
-        raise ValidationError('A confirmação da senha da cozinha não confere.')        
+        raise ValidationError('A confirmação da senha da cozinha não confere.')
     if not email:
         raise ValidationError('Informe o e-mail.')
 
@@ -241,6 +240,7 @@ def update_restaurant_profile(db, admin_id: int | None, payload: dict[str, Any])
         raise ValidationError('Sessão inválida. Faça login novamente.')
 
     profile = get_restaurant_profile_for_admin(db, admin_id)
+
     if not profile:
         raise ValidationError('Perfil do restaurante não encontrado.')
 
