@@ -6,7 +6,7 @@
   <div class="hero-card-copy">
     <p class="eyebrow">Área do cliente</p>
     <h2>Acesse seu perfil</h2>
-    <p class="muted">Informe apenas seu usuário para visualizar cupons, editar seu perfil e gerenciar seus restaurantes no radar.</p>
+    <p class="muted">Informe seu usuário ou e-mail para visualizar cupons, editar seu perfil e gerenciar seus restaurantes no radar.</p>
   </div>
 
   <div class="hero-actions">
@@ -19,8 +19,8 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div>
-      <label>Usuário</label>
-      <input type="text" name="username" placeholder="Digite seu usuário" required autofocus>
+      <label>Usuário ou e-mail</label>
+      <input type="text" name="username" placeholder="Digite seu usuário ou e-mail" required autofocus>
     </div>
 
     <button type="submit" class="btn btn-primary">Entrar</button>
