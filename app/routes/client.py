@@ -851,10 +851,10 @@ def coupon_login():
         return redirect(url_for('client.coupon_mirror'))
 
     if request.method == 'POST':
-        username = normalize_text(request.form.get('username'))
+        login_identifier = normalize_text(request.form.get('username')).lower()
 
-        if not username:
-            flash('Informe seu usuário.', 'error')
+        if not login_identifier:
+            flash('Informe seu usuário ou e-mail.', 'error')
         else:
             db = get_db()
             customer = db.execute(
@@ -862,10 +862,13 @@ def coupon_login():
                 SELECT *
                   FROM customer_coupon_users
                  WHERE restaurant_id = ?
-                   AND lower(username) = lower(?)
+                   AND (
+                        lower(username) = lower(?)
+                        OR lower(email) = lower(?)
+                   )
                  LIMIT 1
                 ''',
-                (restaurant_id, username),
+                (restaurant_id, login_identifier, login_identifier),
             ).fetchone()
 
             if customer:
@@ -875,7 +878,7 @@ def coupon_login():
                 flash('Acesso liberado.', 'success')
                 return _after_customer_login_redirect()
 
-            flash('Usuário não encontrado. Faça seu cadastro para acessar os cupons e seu perfil.', 'error')
+            flash('Usuário ou e-mail não encontrado. Faça seu cadastro para acessar os cupons e seu perfil.', 'error')
 
     return render_template(
         'client/coupon_login.html',
@@ -913,14 +916,17 @@ def coupon_signup():
                 SELECT id
                   FROM customer_coupon_users
                  WHERE restaurant_id = ?
-                   AND lower(username) = lower(?)
+                   AND (
+                        lower(username) = lower(?)
+                        OR lower(email) = lower(?)
+                   )
                  LIMIT 1
                 ''',
-                (restaurant_id, username),
+                (restaurant_id, username, email.lower()),
             ).fetchone()
 
             if exists:
-                flash('Este usuário já existe. Faça login para acessar os cupons ou seu perfil.', 'warning')
+                flash('Este usuário ou email já existe. Faça login para acessar os cupons ou seu perfil.', 'warning')
                 return redirect(url_for('client.coupon_login'))
 
             db.execute(
