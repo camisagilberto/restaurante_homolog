@@ -54,7 +54,7 @@
               <span>Cliente</span>
             </a>
 
-            <a href="{{ url_for('admin.login') }}">
+            <a href="{{ url_for('admin.products') }}">
               <span class="nav-icon" aria-hidden="true">▦</span>
               <span>Produtos</span>
             </a>
@@ -111,7 +111,7 @@
         {% if show_navigation %}
           <nav class="app-nav" aria-label="Menu principal">
             <a href="{{ client_order_url }}">Cliente</a>
-            <a href="{{ url_for('admin.login') }}">Produtos</a>
+            <a href="{{ url_for('admin.products') }}">Produtos</a>
             <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
             <a href="{{ url_for('admin.coupons') }}">Cupons</a>
             <a href="{{ url_for('client.profile') }}">Perfil</a>
