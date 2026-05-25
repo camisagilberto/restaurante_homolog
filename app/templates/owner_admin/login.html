@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Acesso interno{% endblock %}
+
+{% block content %}
+<style>
+  .owner-auth-shell {
+    width: min(980px, 100%);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 22px;
+    align-items: stretch;
+  }
+
+  .owner-auth-card {
+    background: #ffffff;
+    border: 1px solid rgba(30, 30, 30, .08);
+    border-radius: 28px;
+    box-shadow: 0 22px 55px rgba(0, 0, 0, .08);
+    padding: 34px;
+  }
+
+  .owner-auth-hero {
+    background: linear-gradient(135deg, #1e1e1e 0%, #404040 100%);
+    color: #ffffff;
+  }
+
+  .owner-auth-hero .owner-eyebrow {
+    color: #fb923c;
+  }
+
+  .owner-eyebrow {
+    margin: 0 0 12px;
+    color: #f97316;
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    font-weight: 800;
+  }
+
+  .owner-auth-card h2 {
+    margin: 0 0 14px;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1;
+  }
+
+  .owner-auth-card p {
+    margin: 0;
+    color: rgba(255, 255, 255, .76);
+    line-height: 1.6;
+  }
+
+  .owner-auth-form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #1e1e1e;
+    font-weight: 800;
+  }
+
+  .owner-auth-form input {
+    width: 100%;
+    margin-bottom: 18px;
+    border: 1px solid rgba(30, 30, 30, .12);
+    border-radius: 16px;
+    padding: 14px 16px;
+    font: inherit;
+    background: #f8fafc;
+  }
+
+  .owner-auth-form button {
+    width: 100%;
+    border: 0;
+    border-radius: 999px;
+    padding: 14px 18px;
+    background: #f97316;
+    color: #ffffff;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 14px 28px rgba(249, 115, 22, .22);
+  }
+
+  .owner-security-note {
+    margin-top: 18px;
+    color: #64748b;
+    font-size: .92rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 820px) {
+    .owner-auth-shell {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<section class="owner-auth-shell">
+  <div class="owner-auth-card owner-auth-hero">
+    <p class="owner-eyebrow">Área interna</p>
+    <h2>Visão do dono do QRTotem</h2>
+    <p>Este painel não aparece no menu dos restaurantes e deve ser acessado somente por URL direta e credenciais internas.</p>
+  </div>
+
+  <form method="post" class="owner-auth-card owner-auth-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label for="username">Usuário interno</label>
+    <input id="username" type="text" name="username" autocomplete="username" required>
+
+    <label for="password">Senha interna</label>
+    <input id="password" type="password" name="password" autocomplete="current-password" required>
+
+    <button type="submit">Entrar no painel interno</button>
+
+    <div class="owner-security-note">
+      Use uma senha forte configurada por variável de ambiente. Não compartilhe este endereço com restaurantes ou clientes.
+    </div>
+  </form>
+</section>
+{% endblock %}
