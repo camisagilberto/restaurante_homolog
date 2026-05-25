@@ -17,6 +17,7 @@
     <input id="password" type="password" name="password" autocomplete="current-password" required>
 
     <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    <a class="btn btn-secondary btn-block" href="{{ url_for('client.forgot_password') }}">Esqueci minha senha</a>
   </form>
 </section>
 {% endblock %}
