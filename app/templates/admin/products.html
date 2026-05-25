@@ -109,8 +109,9 @@
             </button>
           </form>
 
-          <form method="post" action="{{ url_for('admin.delete_product_route', product_id=product['id']) }}" onsubmit="return confirm('Remover este produto?')">
+          <form method="post" action="{{ url_for('admin.delete_product_route', product_id=product['id']) }}" data-password-confirm="Digite a senha do usuário para excluir este produto.">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="manager_password" value="">
             <button class="btn btn-danger" type="submit">Excluir</button>
           </form>
         </div>
