@@ -1283,60 +1283,25 @@ def edit_table():
 
 @client_bp.route('/carrinho')
 def cart():
-    cart = get_cart(session)
-    db = get_db()
+    cart_items = get_cart(session)
     restaurant_id = _client_restaurant_id()
+    table_number = _current_table()
 
     if not restaurant_id:
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    product_ids = [item['product_id'] for item in cart]
-    products = {}
-
-    if product_ids:
-        placeholders = ','.join('?' for _ in product_ids)
-        rows = db.execute(
-            f'''
-            SELECT *
-              FROM products
-             WHERE restaurant_id = ?
-               AND active = 1
-               AND id IN ({placeholders})
-            ''',
-            (restaurant_id, *product_ids),
-        ).fetchall()
-        products = {row['id']: row for row in rows}
-
-    items = []
-    for item in cart:
-        product = products.get(item['product_id'])
-
-        if not product:
-            continue
-
-        quantity = int(item['quantity'])
-        line_total = quantity * int(product['price_cents'])
-        items.append(
-            {
-                'product': product,
-                'quantity': quantity,
-                'line_total': line_total,
-            }
-        )
-
-    cart_total = sum(item['line_total'] for item in items)
-    cart_quantity = sum(item['quantity'] for item in items)
+    cart_total, cart_quantity = totals(cart_items)
 
     return render_template(
         'client/cart.html',
-        items=items,
+        cart=cart_items,
         cart_total=cart_total,
         cart_quantity=cart_quantity,
+        table_number=table_number,
         csrf=csrf_token(),
-        menu_url=_public_menu_url(),
+        menu_url=_public_menu_url(table_number),
     )
-
 
 @client_bp.route('/carrinho/adicionar', methods=['POST'])
 def add_to_cart():
@@ -1414,8 +1379,8 @@ def update_cart():
     if existing:
         old_quantity = int(existing['quantity'])
 
-    update_item(cart, product_id, quantity)
-    save_cart(session, cart)
+    cart, _ = update_item(cart, product_id, quantity)
+    save_cart(session, cart)    
     cart_total, cart_quantity = totals(cart)
 
     if _wants_json():
@@ -1447,8 +1412,10 @@ def remove_from_cart():
         return redirect(url_for('client.cart'))
 
     cart = get_cart(session)
-    removed = remove_item(cart, product_id)
-    save_cart(session, cart)
+    before_count = len(cart)
+    cart = remove_item(cart, product_id)
+    removed = len(cart) < before_count
+    save_cart(session, cart)    
     cart_total, cart_quantity = totals(cart)
 
     if _wants_json():
