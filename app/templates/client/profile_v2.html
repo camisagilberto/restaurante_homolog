@@ -164,6 +164,46 @@
       </div>
     </div>
 
+
+
+    <div class="payment-setup-card" style="border: 1px solid rgba(30,30,30,.12); border-radius: 18px; padding: 18px; background: #fff7ed;">
+      <div class="section-heading" style="margin-bottom: 10px;">
+        <div>
+          <h3 style="margin-bottom: 4px;">Pagamentos Pix</h3>
+          <p class="muted">Conexão Mercado Pago do restaurante. O dinheiro dos pedidos cairá direto na conta do restaurante quando o fluxo completo estiver ativo.</p>
+        </div>
+        <span class="badge-inline">{{ payment_status.status_label }}</span>
+      </div>
+
+      {% if selected_service_mode == 'digital_menu' %}
+        <p class="muted">Este recurso é usado apenas no modo <strong>Cardápio + pedido + pagamento</strong>. Como este restaurante está no modo <strong>Cardápio digital</strong>, a conexão Mercado Pago não é necessária agora.</p>
+      {% else %}
+        <p class="muted">{{ payment_status.description }}</p>
+
+        {% if not payment_status.env_ready %}
+          <div class="notice-box" style="margin-top: 12px; padding: 12px; border-radius: 14px; background: #fff; border: 1px solid rgba(249,115,22,.28);">
+            <strong>Configuração pendente</strong>
+            <p class="muted" style="margin: 6px 0 0;">Antes de ativar a conexão real, configure no Railway:</p>
+            <ul class="muted" style="margin-top: 8px;">
+              {% for item in payment_status.missing_config %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <div class="status-actions" style="margin-top: 14px;">
+          <a class="btn btn-primary" href="{{ url_for('payments.mercadopago_connect') }}">Conectar Mercado Pago</a>
+
+          {% if payment_status.status in ['connected', 'error', 'disabled'] %}
+            <button type="submit" class="btn btn-secondary" formaction="{{ url_for('payments.mercadopago_disconnect') }}" formmethod="post">Desconectar</button>
+          {% endif %}
+        </div>
+
+        <p class="muted" style="margin-top: 10px; font-size: .9rem;">Neste Bloco 3A o botão ainda não redireciona para o Mercado Pago. Ele apenas valida a estrutura, o status e as configurações. O OAuth real será ativado no Bloco 3B.</p>
+      {% endif %}
+    </div>
+
     <div class="status-actions">
       <button type="submit" class="btn btn-primary">Salvar cadastro</button>
       <a class="btn btn-secondary" href="{{ url_for('client.products_start') }}">Cancelar</a>
