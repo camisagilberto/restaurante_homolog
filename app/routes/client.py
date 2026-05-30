@@ -39,6 +39,55 @@ COUPON_CUSTOMER_USERNAME_SESSION_KEY = 'coupon_customer_username'
 CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY = 'customer_after_login_target'
 
 
+SERVICE_MODE_DIGITAL_MENU = 'digital_menu'
+SERVICE_MODE_FULL_ORDER_PAYMENT = 'full_order_payment'
+
+
+def _row_get(row, key: str, default=None):
+    if not row:
+        return default
+
+    try:
+        if key in row.keys():
+            return row[key]
+    except AttributeError:
+        pass
+
+    return default
+
+
+def _service_mode_from_profile(profile) -> str:
+    mode = _row_get(profile, 'service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT)
+    return mode if mode in {SERVICE_MODE_DIGITAL_MENU, SERVICE_MODE_FULL_ORDER_PAYMENT} else SERVICE_MODE_FULL_ORDER_PAYMENT
+
+
+def _is_full_order_mode(profile) -> bool:
+    return _service_mode_from_profile(profile) == SERVICE_MODE_FULL_ORDER_PAYMENT
+
+
+def _current_restaurant_profile(db, restaurant_id: int | None = None):
+    restaurant_id = restaurant_id or _client_restaurant_id()
+
+    if not restaurant_id:
+        return None
+
+    return db.execute(
+        'SELECT * FROM restaurant_profiles WHERE id = ? LIMIT 1',
+        (restaurant_id,),
+    ).fetchone()
+
+
+def _orders_unavailable_response(profile=None, *, status_code: int = 403):
+    message = 'Este restaurante utiliza o QRTotem apenas como cardápio digital. Para fazer pedidos, fale com a equipe do restaurante.'
+    clear_cart(session)
+
+    if _wants_json():
+        return jsonify(success=False, message=message), status_code
+
+    flash(message, 'warning')
+    return redirect(_public_menu_url())
+
+
 def _wants_json() -> bool:
     return request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
@@ -62,6 +111,7 @@ def _restaurant_context() -> dict:
         'restaurant_address': session.get('restaurant_address', ''),
         'cell_phone': session.get('restaurant_cell_phone', ''),
         'order_payment_mode': session.get('restaurant_order_payment_mode', 'pay_after'),
+        'service_mode': session.get('restaurant_service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT),
         'username': session.get('admin_username', ''),
         'table_count': session.get('restaurant_table_count', 0),
         'public_token': session.get('restaurant_public_token', ''),
@@ -86,6 +136,7 @@ def _restaurant_context() -> dict:
                     'restaurant_address': profile['restaurant_address'],
                     'cell_phone': profile['cell_phone'],
                     'order_payment_mode': profile['order_payment_mode'] if 'order_payment_mode' in profile.keys() else 'pay_after',
+                    'service_mode': _service_mode_from_profile(profile),
                     'username': profile['username'],
                     'table_count': profile['table_count'] if 'table_count' in profile.keys() else 0,
                     'public_token': profile['public_token'] if 'public_token' in profile.keys() else '',
@@ -109,6 +160,7 @@ def _store_admin_profile_session(account: dict) -> None:
     session['restaurant_address'] = account['restaurant_address']
     session['restaurant_cell_phone'] = account['cell_phone']
     session['restaurant_order_payment_mode'] = account.get('order_payment_mode', 'pay_after')
+    session['restaurant_service_mode'] = account.get('service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT)
     session['restaurant_table_count'] = account.get('table_count', 0)
     session['restaurant_public_token'] = account.get('public_token', '')
     session['restaurant_slug'] = account.get('slug', '')
@@ -143,6 +195,10 @@ def _set_client_restaurant(profile) -> None:
 
     session[CLIENT_RESTAURANT_SESSION_KEY] = profile['id']
     session[CLIENT_RESTAURANT_TOKEN_SESSION_KEY] = profile['public_token']
+    session['client_restaurant_service_mode'] = _service_mode_from_profile(profile)
+
+    if not _is_full_order_mode(profile):
+        clear_cart(session)
 
 
 def _has_coupon_access(restaurant_id: int | None) -> bool:
@@ -233,12 +289,17 @@ def _render_client_menu(
     for product in products:
         grouped.setdefault(product['category'] or 'Cardápio', []).append(product)
 
-    cart = get_cart(session)
+    can_order = _is_full_order_mode(profile)
+
+    if not can_order:
+        clear_cart(session)
+
+    cart = get_cart(session) if can_order else []
     cart_total, cart_quantity = totals(cart)
     cart_quantities = {int(item['product_id']): int(item['quantity']) for item in cart}
 
     open_orders_count = 0
-    if not is_client_mirror:
+    if can_order and not is_client_mirror:
         open_orders_count = count_open_orders_for_table(db, profile['id'], table_number)
 
     current_customer = _current_customer(db, profile['id'])
@@ -269,6 +330,8 @@ def _render_client_menu(
         radar_action_url=url_for('client.toggle_radar'),
         radar_enabled=radar_enabled,
         show_radar_flag=show_radar_flag,
+        can_order=can_order,
+        service_mode=_service_mode_from_profile(profile),
         can_send_promotions=bool(session.get('admin_logged_in') and not _is_public_client_mode() and is_coupon_page and is_client_mirror),
         send_promotions_url=url_for('client.send_promotions'),
     )
@@ -311,6 +374,8 @@ def login():
                     'cnpj': profile['cnpj'],
                     'restaurant_address': profile['restaurant_address'],
                     'cell_phone': profile['cell_phone'],
+                    'order_payment_mode': profile['order_payment_mode'] if 'order_payment_mode' in profile.keys() else 'pay_after',
+                    'service_mode': _service_mode_from_profile(profile),
                     'table_count': profile['table_count'] if 'table_count' in profile.keys() else 0,
                     'public_token': profile['public_token'] if 'public_token' in profile.keys() else '',
                     'slug': profile['slug'] if 'slug' in profile.keys() else '',
@@ -383,7 +448,12 @@ def profile():
             session['restaurant_cnpj'] = updated['cnpj']
             session['restaurant_address'] = updated['restaurant_address']
             session['restaurant_cell_phone'] = updated['cell_phone']
+            session['restaurant_service_mode'] = updated.get('service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT)
             session['restaurant_order_payment_mode'] = updated.get('order_payment_mode', 'pay_after')
+
+            if updated.get('service_mode') == SERVICE_MODE_DIGITAL_MENU:
+                session.pop('kitchen_authorized', None)
+                clear_cart(session)
             session['restaurant_slug'] = updated.get('slug', session.get('restaurant_slug', ''))
             flash('Perfil atualizado com sucesso.', 'success')
             return redirect(url_for('client.profile'))
@@ -1301,6 +1371,16 @@ def cart():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+
+    if not profile:
+        flash('Restaurante não encontrado.', 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
+
     cart_total, cart_quantity = totals(cart_items)
 
     return render_template(
@@ -1329,6 +1409,17 @@ def add_to_cart():
 
     db = get_db()
     restaurant_id = _client_restaurant_id()
+    profile = _current_restaurant_profile(db, restaurant_id)
+
+    if not profile:
+        message = 'Restaurante não identificado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
 
     product = None
     if restaurant_id:
@@ -1382,6 +1473,19 @@ def update_cart():
         flash(message, 'error')
         return redirect(url_for('client.cart'))
 
+    db = get_db()
+    profile = _current_restaurant_profile(db)
+
+    if not profile:
+        message = 'Restaurante não identificado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
+
     cart = get_cart(session)
     old_quantity = 0
     existing = find_item(cart, product_id)
@@ -1421,6 +1525,19 @@ def remove_from_cart():
         flash(message, 'error')
         return redirect(url_for('client.cart'))
 
+    db = get_db()
+    profile = _current_restaurant_profile(db)
+
+    if not profile:
+        message = 'Restaurante não identificado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
+
     cart = get_cart(session)
     before_count = len(cart)
     cart = remove_item(cart, product_id)
@@ -1454,6 +1571,19 @@ def finalize_order():
         flash(message, 'error')
         return redirect(url_for('client.home'))
 
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+
+    if not profile:
+        message = 'Restaurante não encontrado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 404
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
+
     customer_name = normalize_text((_payload() or {}).get('customer_name'))
     notes = normalize_text((_payload() or {}).get('notes'))
 
@@ -1463,8 +1593,6 @@ def finalize_order():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
         return redirect(url_for('client.cart'))
-
-    db = get_db()
 
     try:
         order_id = create_order_from_cart(db, restaurant_id, table_number, cart, customer_name, notes)
@@ -1497,6 +1625,16 @@ def order_history():
         flash('Restaurante não identificado.', 'error')
         return redirect(url_for('client.home'))
 
-    orders = list_orders_for_table(get_db(), restaurant_id, table_number)
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+
+    if not profile:
+        flash('Restaurante não encontrado.', 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
+
+    orders = list_orders_for_table(db, restaurant_id, table_number)
 
     return render_template('client/orders.html', orders=orders, menu_url=_public_menu_url(), csrf=csrf_token())
