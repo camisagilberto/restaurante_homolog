@@ -29,9 +29,28 @@ from ..services.order_service import (
 
 kitchen_bp = Blueprint('kitchen', __name__, url_prefix='/cozinha')
 
+SERVICE_MODE_DIGITAL_MENU = 'digital_menu'
+
+
+def _service_mode_from_profile(profile) -> str:
+    if not profile:
+        return 'full_order_payment'
+
+    try:
+        if 'service_mode' in profile.keys():
+            return profile['service_mode'] or 'full_order_payment'
+    except AttributeError:
+        pass
+
+    return 'full_order_payment'
+
+
+def _restaurant_profile(db):
+    return get_restaurant_profile_for_admin(db, session.get('admin_id'))
+
 
 def _restaurant_id(db) -> int | None:
-    profile = get_restaurant_profile_for_admin(db, session.get('admin_id'))
+    profile = _restaurant_profile(db)
 
     if profile:
         return profile['id']
@@ -44,6 +63,14 @@ def kitchen_required(view):
     def wrapped(*args, **kwargs):
         if not session.get('admin_logged_in'):
             return redirect(url_for('admin.login'))
+
+        db = get_db()
+        profile = _restaurant_profile(db)
+
+        if profile and _service_mode_from_profile(profile) == SERVICE_MODE_DIGITAL_MENU:
+            session.pop('kitchen_authorized', None)
+            flash('Este restaurante está configurado como cardápio digital. A cozinha fica desabilitada nesse modo.', 'warning')
+            return redirect(url_for('admin.products'))
 
         if not session.get('kitchen_authorized'):
             flash('Digite a senha da cozinha para acessar esta área.', 'warning')
@@ -71,6 +98,11 @@ def validar_acesso():
 
     db = get_db()
     admin_id = session.get('admin_id')
+    profile = _restaurant_profile(db)
+
+    if profile and _service_mode_from_profile(profile) == SERVICE_MODE_DIGITAL_MENU:
+        session.pop('kitchen_authorized', None)
+        return jsonify(success=False, message='Este restaurante está configurado como cardápio digital. A cozinha fica desabilitada nesse modo.'), 403
 
     if not verify_kitchen_password(db, password, admin_id=admin_id, allow_manager_password=True):
         return jsonify(success=False, message='Senha inválida.'), 401
@@ -92,6 +124,11 @@ def sair_cozinha():
 
     db = get_db()
     admin_id = session.get('admin_id')
+    profile = _restaurant_profile(db)
+
+    if profile and _service_mode_from_profile(profile) == SERVICE_MODE_DIGITAL_MENU:
+        session.pop('kitchen_authorized', None)
+        return jsonify(success=False, message='Este restaurante está configurado como cardápio digital. A cozinha fica desabilitada nesse modo.'), 403
 
     if not verify_kitchen_password(db, password, admin_id=admin_id, allow_manager_password=True):
         return jsonify(success=False, message='Senha inválida.'), 401
