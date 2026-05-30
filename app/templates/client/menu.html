@@ -27,12 +27,16 @@
     <p class="muted">
       {% if is_coupon_page and is_client_mirror %}
         Esta é a página espelho dos cupons. Os mesmos itens promocionais aparecerão para os clientes que acessarem os cupons pelo QR Code.
-      {% elif is_coupon_page %}
+      {% elif is_coupon_page and can_order %}
         Escolha os itens promocionais, adicione ao carrinho e finalize junto com os demais produtos.
+      {% elif is_coupon_page %}
+        Veja os cupons disponíveis. O acesso aos cupons mantém o restaurante conectado aos clientes cadastrados.
       {% elif is_client_mirror %}
         Esta é a página de cliente sem mesa atrelada. O cardápio exibido aqui é o mesmo usado nos QR Codes das mesas.
-      {% else %}
+      {% elif can_order %}
         Escolha os itens, ajuste quantidades e finalize quando estiver pronto.
+      {% else %}
+        Consulte o cardápio digital. Para fazer pedidos, fale com a equipe do restaurante.
       {% endif %}
     </p>
   </div>
@@ -62,16 +66,19 @@
       <a class="btn btn-secondary" href="{{ profile_url }}">Meu perfil</a>
     {% endif %}
 
-    <a class="btn btn-secondary" href="{{ url_for('client.cart') }}">
-      Ver Carrinho <span class="badge-inline" id="cart-count">{{ cart_quantity }}</span>
-    </a>
+    {% if can_order %}
+      <a class="btn btn-secondary" href="{{ url_for('client.cart') }}">
+        Ver Carrinho <span class="badge-inline" id="cart-count">{{ cart_quantity }}</span>
+      </a>
 
-    <a class="btn btn-secondary" href="{{ url_for('client.order_history') }}">
-      Ver pedidos em andamento <span class="badge-inline" id="open-orders-count">{{ open_orders_count|default(0) }}</span>
-    </a>
+      <a class="btn btn-secondary" href="{{ url_for('client.order_history') }}">
+        Ver pedidos em andamento <span class="badge-inline" id="open-orders-count">{{ open_orders_count|default(0) }}</span>
+      </a>
+    {% endif %}
   </div>
 </section>
 
+{% if can_order %}
 <section class="summary-strip">
   <div class="summary-card">
     <span class="summary-label">Itens do carrinho</span>
@@ -82,6 +89,11 @@
     <strong id="menu-cart-total">{{ cart_total|currency }}</strong>
   </div>
 </section>
+{% elif not is_coupon_page %}
+<section class="panel">
+  <p class="muted"><strong>Modo cardápio digital ativo.</strong> Neste restaurante, o QRTotem exibe o cardápio e mantém o acesso aos cupons. Carrinho, pedidos e pagamento pelo site ficam desabilitados.</p>
+</section>
+{% endif %}
 
 {% if grouped_products %}
   {% for category, items in grouped_products.items() %}
@@ -104,17 +116,19 @@
               <div class="product-price">{{ product['price']|currency }}</div>
             </div>
 
-            <div class="quantity-control">
-              <button type="button" class="icon-btn" data-qty-dec aria-label="Diminuir">−</button>
-              <input type="number" min="0" value="{{ (cart_quantities|default({})).get(product['id'], 0) }}" class="qty-input" data-qty-input>
-              <button type="button" class="icon-btn" data-qty-inc aria-label="Aumentar">+</button>
-            </div>
+            {% if can_order %}
+              <div class="quantity-control">
+                <button type="button" class="icon-btn" data-qty-dec aria-label="Diminuir">−</button>
+                <input type="number" min="0" value="{{ (cart_quantities|default({})).get(product['id'], 0) }}" class="qty-input" data-qty-input>
+                <button type="button" class="icon-btn" data-qty-inc aria-label="Aumentar">+</button>
+              </div>
 
-            <button type="button" class="btn btn-primary btn-block" data-add-to-cart>
-              Adicionar ao carrinho
-            </button>
+              <button type="button" class="btn btn-primary btn-block" data-add-to-cart>
+                Adicionar ao carrinho
+              </button>
 
-            <p class="product-feedback" data-feedback></p>
+              <p class="product-feedback" data-feedback></p>
+            {% endif %}
           </article>
         {% endfor %}
       </div>
