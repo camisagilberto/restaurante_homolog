@@ -33,6 +33,19 @@ def _validate_age(value: Any) -> int:
     return age
 
 
+
+
+def _validate_service_mode(value: Any, *, required: bool = True) -> str:
+    mode = normalize_text(value)
+
+    if not mode and not required:
+        return 'full_order_payment'
+
+    if mode not in {'digital_menu', 'full_order_payment'}:
+        raise ValidationError('Escolha entre cardápio digital ou cardápio + pedido + pagamento.')
+
+    return mode
+
 def _validate_order_payment_mode(value: Any, *, required: bool = True) -> str:
     mode = normalize_text(value)
 
@@ -97,6 +110,7 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     owner_name = normalize_text(payload.get('owner_name'))
     restaurant_name = normalize_text(payload.get('restaurant_name'))
     restaurant_address = _only_digits(payload.get('restaurant_address'))
+    service_mode = _validate_service_mode(payload.get('service_mode'), required=False)
     order_payment_mode = _validate_order_payment_mode(payload.get('order_payment_mode'), required=False)
     username = normalize_text(payload.get('username'))
     password = str(payload.get('password') or '').strip()
@@ -147,6 +161,7 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
         'cnpj': cnpj,
         'restaurant_address': restaurant_address,
         'cell_phone': cell_phone,
+        'service_mode': service_mode,
         'order_payment_mode': order_payment_mode,
         'username': username,
         'password': password,
@@ -172,9 +187,9 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
             '''
             INSERT INTO restaurant_profiles (
                 admin_id, owner_name, age, email, restaurant_name, cnpj,
-                restaurant_address, cell_phone, order_payment_mode, table_count, public_token, slug
+                restaurant_address, cell_phone, service_mode, order_payment_mode, table_count, public_token, slug
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
             ''',
             (
                 admin_id,
@@ -185,6 +200,7 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
                 data['cnpj'],
                 data['restaurant_address'],
                 data['cell_phone'],
+                data['service_mode'],
                 data['order_payment_mode'],
                 public_token,
                 slug,
@@ -205,6 +221,7 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
         'cnpj': data['cnpj'],
         'restaurant_address': data['restaurant_address'],
         'cell_phone': data['cell_phone'],
+        'service_mode': data['service_mode'],
         'order_payment_mode': data['order_payment_mode'],
         'age': data['age'],
         'table_count': 0,
@@ -217,6 +234,7 @@ def validate_profile_update_payload(payload: dict[str, Any]) -> dict[str, Any]:
     owner_name = normalize_text(payload.get('owner_name'))
     restaurant_name = normalize_text(payload.get('restaurant_name'))
     restaurant_address = _only_digits(payload.get('restaurant_address'))
+    service_mode = _validate_service_mode(payload.get('service_mode'), required=True)
     order_payment_mode = _validate_order_payment_mode(payload.get('order_payment_mode'), required=True)
     email = normalize_text(payload.get('email')).lower()
     cnpj = _only_digits(payload.get('cnpj'))
@@ -245,6 +263,7 @@ def validate_profile_update_payload(payload: dict[str, Any]) -> dict[str, Any]:
         'cnpj': cnpj,
         'restaurant_address': restaurant_address,
         'cell_phone': cell_phone,
+        'service_mode': service_mode,
         'order_payment_mode': order_payment_mode,
     }
 
@@ -271,6 +290,7 @@ def update_restaurant_profile(db, admin_id: int | None, payload: dict[str, Any])
                cnpj = ?,
                restaurant_address = ?,
                cell_phone = ?,
+               service_mode = ?,
                order_payment_mode = ?,
                slug = ?
          WHERE admin_id = ?
@@ -283,6 +303,7 @@ def update_restaurant_profile(db, admin_id: int | None, payload: dict[str, Any])
             data['cnpj'],
             data['restaurant_address'],
             data['cell_phone'],
+            data['service_mode'],
             data['order_payment_mode'],
             slug,
             admin_id,
