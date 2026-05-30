@@ -65,9 +65,40 @@ CREATE TABLE IF NOT EXISTS orders (
     status TEXT NOT NULL DEFAULT 'novo',
     notes TEXT,
     total_amount REAL NOT NULL DEFAULT 0,
+    payment_required INTEGER NOT NULL DEFAULT 0 CHECK (payment_required IN (0, 1)),
+    payment_status TEXT NOT NULL DEFAULT 'not_required',
+    payment_provider TEXT NOT NULL DEFAULT '',
+    payment_external_id TEXT NOT NULL DEFAULT '',
+    payment_external_reference TEXT NOT NULL DEFAULT '',
+    payment_qr_code TEXT NOT NULL DEFAULT '',
+    payment_qr_code_base64 TEXT NOT NULL DEFAULT '',
+    payment_ticket_url TEXT NOT NULL DEFAULT '',
+    payment_created_at TEXT,
+    payment_approved_at TEXT,
+    payment_expires_at TEXT,
+    payment_error TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CHECK (status IN ('novo', 'preparando', 'pronto', 'entregue', 'cancelado'))
+    CHECK (status IN ('novo', 'preparando', 'pronto', 'entregue', 'cancelado')),
+    CHECK (payment_status IN ('not_required', 'pending', 'approved', 'rejected', 'cancelled', 'expired', 'error'))
+);
+
+CREATE TABLE IF NOT EXISTS restaurant_payment_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id INTEGER NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'mercadopago',
+    provider_user_id TEXT NOT NULL DEFAULT '',
+    access_token_encrypted TEXT NOT NULL DEFAULT '',
+    refresh_token_encrypted TEXT NOT NULL DEFAULT '',
+    token_expires_at TEXT,
+    public_key TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'not_connected',
+    connected_at TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_error TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
+    UNIQUE (restaurant_id, provider),
+    CHECK (status IN ('not_connected', 'connected', 'error', 'disabled'))
 );
 
 CREATE TABLE IF NOT EXISTS customer_coupon_users (
@@ -388,6 +419,18 @@ def _migrate_orders(db: sqlite3.Connection) -> None:
     _ensure_column(db, 'orders', 'customer_name TEXT NOT NULL DEFAULT ""')
     _ensure_column(db, 'orders', 'notes TEXT')
     _ensure_column(db, 'orders', 'total_amount REAL NOT NULL DEFAULT 0')
+    _ensure_column(db, 'orders', 'payment_required INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'orders', "payment_status TEXT NOT NULL DEFAULT 'not_required'")
+    _ensure_column(db, 'orders', "payment_provider TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'orders', "payment_external_id TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'orders', "payment_external_reference TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'orders', "payment_qr_code TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'orders', "payment_qr_code_base64 TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'orders', "payment_ticket_url TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'orders', 'payment_created_at TEXT')
+    _ensure_column(db, 'orders', 'payment_approved_at TEXT')
+    _ensure_column(db, 'orders', 'payment_expires_at TEXT')
+    _ensure_column(db, 'orders', "payment_error TEXT NOT NULL DEFAULT ''")
     _ensure_column(db, 'orders', 'updated_at TEXT')
 
     default_profile = db.execute(
@@ -401,6 +444,62 @@ def _migrate_orders(db: sqlite3.Connection) -> None:
         )
 
     db.execute('UPDATE orders SET customer_name = COALESCE(customer_name, "")')
+    db.execute('UPDATE orders SET payment_required = COALESCE(payment_required, 0)')
+    db.execute('''
+        UPDATE orders
+           SET payment_status = 'not_required'
+         WHERE payment_status IS NULL
+            OR payment_status = ''
+            OR payment_status NOT IN ('not_required', 'pending', 'approved', 'rejected', 'cancelled', 'expired', 'error')
+    ''')
+
+
+def _ensure_restaurant_payment_accounts(db: sqlite3.Connection) -> None:
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS restaurant_payment_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            restaurant_id INTEGER NOT NULL,
+            provider TEXT NOT NULL DEFAULT 'mercadopago',
+            provider_user_id TEXT NOT NULL DEFAULT '',
+            access_token_encrypted TEXT NOT NULL DEFAULT '',
+            refresh_token_encrypted TEXT NOT NULL DEFAULT '',
+            token_expires_at TEXT,
+            public_key TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'not_connected',
+            connected_at TEXT,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_error TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
+            UNIQUE (restaurant_id, provider),
+            CHECK (status IN ('not_connected', 'connected', 'error', 'disabled'))
+        )
+    ''')
+
+    _ensure_column(db, 'restaurant_payment_accounts', "provider TEXT NOT NULL DEFAULT 'mercadopago'")
+    _ensure_column(db, 'restaurant_payment_accounts', "provider_user_id TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'restaurant_payment_accounts', "access_token_encrypted TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'restaurant_payment_accounts', "refresh_token_encrypted TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'restaurant_payment_accounts', 'token_expires_at TEXT')
+    _ensure_column(db, 'restaurant_payment_accounts', "public_key TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'restaurant_payment_accounts', "status TEXT NOT NULL DEFAULT 'not_connected'")
+    _ensure_column(db, 'restaurant_payment_accounts', 'connected_at TEXT')
+    _ensure_column(db, 'restaurant_payment_accounts', 'updated_at TEXT')
+    _ensure_column(db, 'restaurant_payment_accounts', "last_error TEXT NOT NULL DEFAULT ''")
+
+    db.execute('''
+        UPDATE restaurant_payment_accounts
+           SET provider = COALESCE(NULLIF(provider, ''), 'mercadopago'),
+               provider_user_id = COALESCE(provider_user_id, ''),
+               access_token_encrypted = COALESCE(access_token_encrypted, ''),
+               refresh_token_encrypted = COALESCE(refresh_token_encrypted, ''),
+               public_key = COALESCE(public_key, ''),
+               status = CASE
+                   WHEN status IN ('not_connected', 'connected', 'error', 'disabled') THEN status
+                   ELSE 'not_connected'
+               END,
+               updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP),
+               last_error = COALESCE(last_error, '')
+    ''')
 
 
 def _migrate_order_items(db: sqlite3.Connection) -> None:
@@ -502,6 +601,34 @@ def _create_indexes(db: sqlite3.Connection) -> None:
                 'CREATE INDEX IF NOT EXISTS idx_orders_restaurant_table_status ON orders(restaurant_id, table_number, status)'
             )
 
+        if {'restaurant_id', 'payment_required', 'payment_status', 'created_at'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_orders_restaurant_payment_status_created ON orders(restaurant_id, payment_required, payment_status, created_at)'
+            )
+
+        if 'payment_external_reference' in columns:
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_orders_payment_external_reference ON orders(payment_external_reference)'
+            )
+
+        if 'payment_external_id' in columns:
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_orders_payment_external_id ON orders(payment_external_id)'
+            )
+
+    if _table_exists(db, 'restaurant_payment_accounts'):
+        columns = _table_info(db, 'restaurant_payment_accounts')
+
+        if {'restaurant_id', 'provider'}.issubset(columns):
+            db.execute(
+                'CREATE UNIQUE INDEX IF NOT EXISTS idx_restaurant_payment_accounts_restaurant_provider ON restaurant_payment_accounts(restaurant_id, provider)'
+            )
+
+        if {'restaurant_id', 'status'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_restaurant_payment_accounts_restaurant_status ON restaurant_payment_accounts(restaurant_id, status)'
+            )
+
     if _table_exists(db, 'order_items'):
         columns = _table_info(db, 'order_items')
 
@@ -517,6 +644,7 @@ def migrate_schema(db: sqlite3.Connection) -> None:
     _migrate_products(db)
     _migrate_customer_coupon_users(db)
     _migrate_orders(db)
+    _ensure_restaurant_payment_accounts(db)
     _migrate_order_items(db)
 
 
@@ -549,6 +677,12 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
 
         if 'updated_at' in columns:
             db.execute('UPDATE orders SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+    if _table_exists(db, 'restaurant_payment_accounts'):
+        columns = _table_info(db, 'restaurant_payment_accounts')
+
+        if 'updated_at' in columns:
+            db.execute('UPDATE restaurant_payment_accounts SET updated_at = COALESCE(updated_at, ?)', (now,))
 
 
 def init_db(app):
