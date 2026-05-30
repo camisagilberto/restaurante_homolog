@@ -67,9 +67,29 @@ def authenticate_admin(db, username: str, password: str):
     password_column = _password_column(db)
     active_expr = _active_expr(columns)
 
+    admin_password_column = f'a.{password_column}'
+    admin_active_expr = '1'
+    if active_expr == 'is_active':
+        admin_active_expr = 'a.is_active'
+    elif active_expr == '"is active"':
+        admin_active_expr = 'a."is active"'
+
+    identifier = str(username or '').strip()
+
     row = db.execute(
-        f'SELECT id, username, {password_column} AS password_value, {active_expr} AS is_active FROM admins WHERE lower(username) = lower(?) LIMIT 1',
-        (username,),
+        f"""
+        SELECT a.id,
+               a.username,
+               {admin_password_column} AS password_value,
+               {admin_active_expr} AS is_active
+          FROM admins a
+          LEFT JOIN restaurant_profiles rp ON rp.admin_id = a.id
+         WHERE lower(a.username) = lower(?)
+            OR lower(rp.email) = lower(?)
+         ORDER BY a.id DESC
+         LIMIT 1
+        """,
+        (identifier, identifier),
     ).fetchone()
 
     if not row or not row['is_active']:
@@ -88,7 +108,6 @@ def authenticate_admin(db, username: str, password: str):
         return row
 
     return None
-
 
 def verify_manager_password(db, password: str, *, admin_id: int | None = None) -> bool:
     columns = _table_columns(db, 'admins')
