@@ -2,13 +2,13 @@
 {% block title %}Cadastro do restaurante{% endblock %}
 {% block content %}
 <style>
-  .payment-choice-grid {
+  .mode-choice-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
   }
 
-  .payment-choice-card {
+  .mode-choice-card {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 12px;
@@ -20,17 +20,17 @@
     cursor: pointer;
   }
 
-  .payment-choice-card input {
+  .mode-choice-card input {
     margin-top: 4px;
   }
 
-  .payment-choice-card strong {
+  .mode-choice-card strong {
     display: block;
     color: #1e1e1e;
     margin-bottom: 4px;
   }
 
-  .payment-choice-card span {
+  .mode-choice-card span {
     display: block;
     color: #64748b;
     line-height: 1.45;
@@ -43,7 +43,7 @@
   }
 
   @media (max-width: 720px) {
-    .payment-choice-grid {
+    .mode-choice-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -94,24 +94,25 @@
     </div>
 
     <div>
-      <label>Momento do pagamento <span class="required-mark">*</span></label>
-      <div class="payment-choice-grid">
-        <label class="payment-choice-card" for="pay_before">
-          <input id="pay_before" type="radio" name="order_payment_mode" value="pay_before" required>
+      <label>Como o restaurante quer usar o QRTotem? <span class="required-mark">*</span></label>
+      <div class="mode-choice-grid">
+        <label class="mode-choice-card" for="service_mode_digital_menu">
+          <input id="service_mode_digital_menu" type="radio" name="service_mode" value="digital_menu" required>
           <span>
-            <strong>Pagamento antes</strong>
-            <span>O cliente deve pagar antes do pedido seguir como finalizado.</span>
+            <strong>Cardápio digital</strong>
+            <span>O cliente vê o cardápio e acessa os cupons após cadastro. Carrinho, pedidos, pagamento e cozinha ficam desabilitados.</span>
           </span>
         </label>
 
-        <label class="payment-choice-card" for="pay_after">
-          <input id="pay_after" type="radio" name="order_payment_mode" value="pay_after" checked required>
+        <label class="mode-choice-card" for="service_mode_full_order_payment">
+          <input id="service_mode_full_order_payment" type="radio" name="service_mode" value="full_order_payment" checked required>
           <span>
-            <strong>Pagamento depois de finalizar o pedido</strong>
-            <span>O cliente finaliza o pedido e o pagamento é tratado depois pelo restaurante.</span>
+            <strong>Cardápio + pedido + pagamento</strong>
+            <span>O cliente monta o pedido no carrinho, finaliza, paga pelo site e o pedido segue para a cozinha.</span>
           </span>
         </label>
       </div>
+      <input type="hidden" name="order_payment_mode" value="pay_after">
     </div>
 
     <div class="form-row">
