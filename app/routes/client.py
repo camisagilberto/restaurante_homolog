@@ -23,6 +23,7 @@ from ..services.onboarding_service import (
     update_restaurant_profile,
 )
 from ..services.order_service import count_open_orders_for_table, create_order_from_cart, list_orders_for_table
+from ..services.payment_service import payment_connection_summary
 from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
 from ..utils import normalize_text, parse_positive_int
 
@@ -459,7 +460,8 @@ def profile():
             return redirect(url_for('client.profile'))
 
     profile_data = _restaurant_context()
-    return render_template('client/profile_v2.html', profile=profile_data, csrf=csrf_token())
+    payment_status = payment_connection_summary(get_db(), profile_data)
+    return render_template('client/profile_v2.html', profile=profile_data, payment_status=payment_status, csrf=csrf_token())
 
 
 @client_bp.route('/perfil/alterar-senha-usuario', methods=['POST'])
