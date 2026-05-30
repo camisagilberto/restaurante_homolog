@@ -34,6 +34,8 @@
   {% set is_public_client_flow = request.endpoint in public_flow_endpoints and session.get('public_client_mode') %}
   {% set hidden_navigation_endpoints = ['admin.login', 'client.signup'] %}
   {% set show_navigation = is_admin_session and (not is_public_client_flow) and request.endpoint not in hidden_navigation_endpoints %}
+  {% set restaurant_service_mode = session.get('restaurant_service_mode', 'full_order_payment') %}
+  {% set show_kitchen_navigation = restaurant_service_mode != 'digital_menu' %}
 
   {% set client_table = session.get('current_table') or 1 %}
   {% set client_token = session.get('client_restaurant_token') or session.get('restaurant_public_token') %}
@@ -64,10 +66,12 @@
             <span>Produtos</span>
           </a>
 
-          <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>
-            <span class="nav-icon" aria-hidden="true">◷</span>
-            <span>Cozinha</span>
-          </a>
+          {% if show_kitchen_navigation %}
+            <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>
+              <span class="nav-icon" aria-hidden="true">◷</span>
+              <span>Cozinha</span>
+            </a>
+          {% endif %}
 
           <a href="{{ url_for('admin.coupons') }}">
             <span class="nav-icon" aria-hidden="true">%</span>
@@ -114,7 +118,7 @@
           <nav class="app-nav" aria-label="Menu principal do restaurante">
             <a href="{{ client_order_url }}">Cliente</a>
             <a href="{{ url_for('admin.products') }}">Produtos</a>
-            <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>
+            {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>{% endif %}
             <a href="{{ url_for('admin.coupons') }}">Cupons</a>
             <a href="{{ url_for('client.profile') }}">Perfil</a>
             <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
