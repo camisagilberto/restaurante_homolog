@@ -22,8 +22,19 @@ from ..services.onboarding_service import (
     get_restaurant_profile_for_admin,
     update_restaurant_profile,
 )
-from ..services.order_service import count_open_orders_for_table, create_order_from_cart, list_orders_for_table
-from ..services.payment_service import payment_connection_summary
+from ..services.order_service import (
+    count_open_orders_for_table,
+    create_order_from_cart,
+    get_order_for_payment,
+    list_orders_for_table,
+    mark_order_payment_error,
+    update_order_payment_pending,
+)
+from ..services.payment_service import (
+    PROVIDER_MERCADO_PAGO,
+    create_pix_payment_for_order,
+    payment_connection_summary,
+)
 from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
 from ..utils import normalize_text, parse_positive_int
 
@@ -88,6 +99,11 @@ def _orders_unavailable_response(profile=None, *, status_code: int = 403):
     flash(message, 'warning')
     return redirect(_public_menu_url())
 
+
+
+
+def _technical_payer_email(order_id: int) -> str:
+    return f'cliente+pedido{int(order_id)}@qrtotem.com'
 
 def _wants_json() -> bool:
     return request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -1586,36 +1602,118 @@ def finalize_order():
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
 
-    customer_name = normalize_text((_payload() or {}).get('customer_name'))
-    notes = normalize_text((_payload() or {}).get('notes'))
+    payload = _payload() or {}
+    notes = normalize_text(payload.get('notes'))
+    customer_name = f'Cliente mesa {table_number}'
 
-    if not customer_name:
-        message = 'Informe seu nome.'
+    payment_status = payment_connection_summary(db, profile)
+    if payment_status.get('status') != 'connected':
+        message = 'Este restaurante ainda não conectou o Mercado Pago. Avise o responsável antes de finalizar o pedido.'
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
         return redirect(url_for('client.cart'))
 
+    order_id = None
+
     try:
-        order_id = create_order_from_cart(db, restaurant_id, table_number, cart, customer_name, notes)
-    except ValidationError as exc:
+        order_id = create_order_from_cart(
+            db,
+            restaurant_id,
+            table_number,
+            cart,
+            customer_name,
+            notes,
+            payment_required=True,
+            payment_status='pending',
+            payment_provider=PROVIDER_MERCADO_PAGO,
+        )
+
+        order = get_order_for_payment(db, restaurant_id, order_id, table_number)
+        external_reference = f'qrtotem_order_{order_id}'
+        customer_email = _technical_payer_email(order_id)
+        pix_payment = create_pix_payment_for_order(
+            db,
+            restaurant_id=restaurant_id,
+            order_id=order_id,
+            amount=float(order['total_amount']),
+            customer_name=customer_name,
+            customer_email=customer_email,
+            external_reference=external_reference,
+        )
+        update_order_payment_pending(
+            db,
+            restaurant_id=restaurant_id,
+            order_id=order_id,
+            provider=PROVIDER_MERCADO_PAGO,
+            external_id=pix_payment['id'],
+            external_reference=pix_payment['external_reference'],
+            qr_code=pix_payment['qr_code'],
+            qr_code_base64=pix_payment.get('qr_code_base64', ''),
+            ticket_url=pix_payment.get('ticket_url', ''),
+        )
+    except (ValidationError, RuntimeError) as exc:
         message = str(exc)
+        if order_id:
+            mark_order_payment_error(db, restaurant_id=restaurant_id, order_id=order_id, error=message)
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
         return redirect(url_for('client.cart'))
 
     clear_cart(session)
+    payment_url = url_for('client.payment_order', order_id=order_id)
 
     if _wants_json():
         return jsonify(
             success=True,
-            message=f'Pedido #{order_id} enviado para a cozinha.',
-            redirect_url=url_for('client.order_history'),
+            message=f'Pedido #{order_id} criado. Pague o Pix para enviar à cozinha.',
+            redirect_url=payment_url,
+            payment_url=payment_url,
         )
 
-    flash(f'Pedido #{order_id} enviado para a cozinha.', 'success')
-    return redirect(url_for('client.order_history'))
+    flash(f'Pedido #{order_id} criado. Pague o Pix para enviar à cozinha.', 'success')
+    return redirect(payment_url)
+
+
+
+@client_bp.route('/pagamento/pedido/<int:order_id>')
+def payment_order(order_id: int):
+    restaurant_id = _client_restaurant_id()
+    table_number = _current_table()
+
+    if not restaurant_id:
+        flash('Restaurante não identificado.', 'error')
+        return redirect(url_for('client.home'))
+
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+
+    if not profile:
+        flash('Restaurante não encontrado.', 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
+
+    order = get_order_for_payment(db, restaurant_id, order_id, table_number)
+
+    if not order:
+        flash('Pedido não encontrado para esta mesa.', 'error')
+        return redirect(_public_menu_url(table_number))
+
+    if not int(_row_get(order, 'payment_required', 0) or 0):
+        flash('Este pedido não possui pagamento Pix pendente.', 'warning')
+        return redirect(url_for('client.order_history'))
+
+    return render_template(
+        'client/payment.html',
+        order=order,
+        table_number=table_number,
+        menu_url=_public_menu_url(table_number),
+        orders_url=url_for('client.order_history'),
+        csrf=csrf_token(),
+    )
 
 
 @client_bp.route('/pedidos')
