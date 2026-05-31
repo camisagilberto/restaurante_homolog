@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
+from urllib.parse import urlencode
 
+import requests
 from flask import current_app
 
-from .payment_crypto import is_payment_crypto_ready
+from .payment_crypto import encrypt_value, is_payment_crypto_ready
 
 PROVIDER_MERCADO_PAGO = 'mercadopago'
 PAYMENT_ACCOUNT_STATUSES = {'not_connected', 'connected', 'error', 'disabled'}
 SERVICE_MODE_DIGITAL_MENU = 'digital_menu'
 SERVICE_MODE_FULL_ORDER_PAYMENT = 'full_order_payment'
+
+MP_AUTHORIZATION_URL = 'https://auth.mercadopago.com/authorization'
+MP_OAUTH_TOKEN_URL = 'https://api.mercadopago.com/oauth/token'
 
 
 @dataclass(frozen=True)
@@ -51,7 +56,7 @@ def normalize_payment_account_status(status: Any) -> str:
 
 
 def payment_environment_status() -> PaymentEnvironmentStatus:
-    """Valida somente a configuração local necessária para iniciar OAuth nos próximos blocos."""
+    """Valida a configuração local necessária para iniciar o OAuth do Mercado Pago."""
     missing: list[str] = []
     config = current_app.config
 
@@ -167,6 +172,128 @@ def disable_payment_account(db, restaurant_id: int | None, provider: str = PROVI
     return get_payment_account(db, restaurant_id, provider)
 
 
+def build_mercadopago_authorization_url(state: str) -> str:
+    """Monta a URL oficial de autorização OAuth do Mercado Pago."""
+    env = payment_environment_status()
+    if not env.ready:
+        missing = ', '.join(env.missing) or 'configurações de pagamento'
+        raise RuntimeError(f'Configuração Mercado Pago incompleta: {missing}.')
+
+    query = urlencode(
+        {
+            'client_id': current_app.config['MP_CLIENT_ID'],
+            'response_type': 'code',
+            'platform_id': 'mp',
+            'state': state,
+            'redirect_uri': current_app.config['MP_REDIRECT_URI'],
+        }
+    )
+    return f'{MP_AUTHORIZATION_URL}?{query}'
+
+
+def exchange_authorization_code_for_token(code: str) -> dict[str, Any]:
+    """Troca o authorization code retornado pelo Mercado Pago por access token."""
+    clean_code = str(code or '').strip()
+    if not clean_code:
+        raise RuntimeError('Código de autorização Mercado Pago não recebido.')
+
+    payload = {
+        'client_secret': current_app.config['MP_CLIENT_SECRET'],
+        'client_id': current_app.config['MP_CLIENT_ID'],
+        'grant_type': 'authorization_code',
+        'code': clean_code,
+        'redirect_uri': current_app.config['MP_REDIRECT_URI'],
+    }
+
+    try:
+        response = requests.post(
+            MP_OAUTH_TOKEN_URL,
+            json=payload,
+            headers={
+                'accept': 'application/json',
+                'content-type': 'application/json',
+            },
+            timeout=20,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError('Não foi possível conectar ao Mercado Pago para finalizar a autorização.') from exc
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise RuntimeError('O Mercado Pago retornou uma resposta inválida na autorização.') from exc
+
+    if response.status_code >= 400:
+        error = str(data.get('error') or 'erro_desconhecido')
+        description = str(data.get('message') or data.get('error_description') or '').strip()
+        detail = f'{error}: {description}' if description else error
+        raise RuntimeError(f'Falha ao obter token Mercado Pago: {detail}')
+
+    if not data.get('access_token'):
+        raise RuntimeError('O Mercado Pago não retornou access_token na autorização.')
+
+    return data
+
+
+def _token_expiration_iso(token_response: dict[str, Any]) -> str | None:
+    expires_in = token_response.get('expires_in')
+    try:
+        seconds = int(expires_in)
+    except (TypeError, ValueError):
+        return None
+
+    if seconds <= 0:
+        return None
+
+    return (datetime.utcnow() + timedelta(seconds=seconds)).isoformat(timespec='seconds')
+
+
+def save_mercadopago_token_response(db, restaurant_id: int | None, token_response: dict[str, Any]):
+    """Criptografa e salva os tokens OAuth do restaurante."""
+    if not restaurant_id:
+        raise ValueError('Restaurante inválido para salvar conexão Mercado Pago.')
+
+    access_token = str(token_response.get('access_token') or '').strip()
+    if not access_token:
+        raise RuntimeError('Access token Mercado Pago ausente.')
+
+    refresh_token = str(token_response.get('refresh_token') or '').strip()
+    provider_user_id = str(token_response.get('user_id') or '').strip()
+    public_key = str(token_response.get('public_key') or '').strip()
+    token_expires_at = _token_expiration_iso(token_response)
+
+    ensure_payment_account(db, restaurant_id)
+    db.execute(
+        '''
+        UPDATE restaurant_payment_accounts
+           SET provider_user_id = ?,
+               access_token_encrypted = ?,
+               refresh_token_encrypted = ?,
+               token_expires_at = ?,
+               public_key = ?,
+               status = 'connected',
+               connected_at = COALESCE(connected_at, ?),
+               updated_at = ?,
+               last_error = ''
+         WHERE restaurant_id = ?
+           AND provider = ?
+        ''',
+        (
+            provider_user_id,
+            encrypt_value(access_token),
+            encrypt_value(refresh_token),
+            token_expires_at,
+            public_key,
+            _now_iso(),
+            _now_iso(),
+            restaurant_id,
+            PROVIDER_MERCADO_PAGO,
+        ),
+    )
+    db.commit()
+    return get_payment_account(db, restaurant_id)
+
+
 def payment_connection_summary(db, restaurant_profile) -> dict[str, Any]:
     restaurant_id = _row_get(restaurant_profile, 'id')
     service_mode = _row_get(restaurant_profile, 'service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT)
@@ -183,7 +310,7 @@ def payment_connection_summary(db, restaurant_profile) -> dict[str, Any]:
 
     descriptions = {
         'not_connected': 'A conta Mercado Pago ainda não foi conectada a este restaurante.',
-        'connected': 'A conta Mercado Pago está marcada como conectada para este restaurante.',
+        'connected': 'A conta Mercado Pago está conectada a este restaurante.',
         'error': _row_get(account, 'last_error', '') or 'A última tentativa de conexão retornou erro.',
         'disabled': 'A conexão Mercado Pago foi desativada para este restaurante.',
     }
