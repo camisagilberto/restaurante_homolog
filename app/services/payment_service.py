@@ -443,3 +443,62 @@ def create_pix_payment_for_order(
         'ticket_url': ticket_url,
         'raw': data,
     }
+
+
+def fetch_mercadopago_payment_status(db, *, restaurant_id: int, payment_external_id: str) -> dict[str, Any]:
+    """Consulta o pagamento no Mercado Pago usando a conta conectada do restaurante."""
+    payment_id = str(payment_external_id or '').strip()
+    if not payment_id:
+        raise RuntimeError('Pagamento Mercado Pago não encontrado para este pedido.')
+
+    access_token = get_connected_mercadopago_access_token(db, restaurant_id)
+
+    try:
+        response = requests.get(
+            f'{MP_PAYMENT_URL}/{payment_id}',
+            headers={
+                'accept': 'application/json',
+                'Authorization': f'Bearer {access_token}',
+            },
+            timeout=25,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError('Não foi possível consultar o Mercado Pago agora. Tente novamente em alguns segundos.') from exc
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise RuntimeError('O Mercado Pago retornou uma resposta inválida ao consultar o pagamento.') from exc
+
+    if response.status_code >= 400:
+        error = str(data.get('error') or data.get('status') or 'erro_desconhecido')
+        description = str(data.get('message') or data.get('error_description') or data.get('cause') or '').strip()
+        detail = f'{error}: {description}' if description else error
+        raise RuntimeError(f'Falha ao consultar pagamento no Mercado Pago: {detail}')
+
+    mp_status = str(data.get('status') or '').strip().lower()
+    status_detail = str(data.get('status_detail') or '').strip()
+
+    if mp_status == 'approved':
+        normalized_status = 'approved'
+    elif mp_status in {'rejected'}:
+        normalized_status = 'rejected'
+    elif mp_status in {'cancelled', 'canceled'}:
+        normalized_status = 'cancelled'
+    elif mp_status in {'expired'}:
+        normalized_status = 'expired'
+    elif mp_status in {'pending', 'in_process', 'authorized'}:
+        normalized_status = 'pending'
+    else:
+        normalized_status = 'pending'
+
+    return {
+        'id': str(data.get('id') or payment_id),
+        'provider_status': mp_status or 'unknown',
+        'status': normalized_status,
+        'status_detail': status_detail,
+        'approved_at': str(data.get('date_approved') or ''),
+        'external_reference': str(data.get('external_reference') or ''),
+        'raw': data,
+    }
+
