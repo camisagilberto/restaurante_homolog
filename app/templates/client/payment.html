@@ -48,9 +48,18 @@
     {% endif %}
 
     {% if order['payment_status'] == 'pending' %}
-      <div class="notice-card">
-        <strong>Importante:</strong>
-        <p>Após o pagamento, a confirmação automática será implementada no próximo bloco com o webhook. Por enquanto, mantenha esta tela como comprovante de que o Pix foi gerado.</p>
+      <form id="verify-payment-form" method="post" action="{{ url_for('client.verify_payment_order', order_id=order['id']) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary btn-block" data-verify-payment>Verificar pagamento</button>
+      </form>
+      <div id="payment-check-message" class="notice-card">
+        <strong>Depois de pagar:</strong>
+        <p>Clique em <strong>Verificar pagamento</strong>. Assim que o Mercado Pago confirmar, seu pedido será enviado para a cozinha.</p>
+      </div>
+    {% elif order['payment_status'] == 'approved' %}
+      <div class="notice-card success">
+        <strong>Pagamento confirmado.</strong>
+        <p>Seu pedido foi enviado para a cozinha.</p>
       </div>
     {% endif %}
 
@@ -75,25 +84,83 @@
 
 <script>
   (function () {
-    const button = document.querySelector('[data-copy-pix]');
-    if (!button) return;
+    const copyButton = document.querySelector('[data-copy-pix]');
 
-    button.addEventListener('click', async function () {
-      const target = document.querySelector(button.dataset.copyPix);
-      const value = target ? target.value : '';
-      if (!value) return;
+    if (copyButton) {
+      copyButton.addEventListener('click', async function () {
+        const target = document.querySelector(copyButton.dataset.copyPix);
+        const value = target ? target.value : '';
+        if (!value) return;
+
+        try {
+          await navigator.clipboard.writeText(value);
+          const original = copyButton.textContent;
+          copyButton.textContent = 'Código Pix copiado!';
+          window.setTimeout(function () {
+            copyButton.textContent = original;
+          }, 2200);
+        } catch (_) {
+          target.select();
+          document.execCommand('copy');
+          copyButton.textContent = 'Código Pix copiado!';
+        }
+      });
+    }
+
+    const verifyForm = document.getElementById('verify-payment-form');
+    const verifyButton = document.querySelector('[data-verify-payment]');
+    const messageBox = document.getElementById('payment-check-message');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    if (!verifyForm || !verifyButton) return;
+
+    verifyForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const originalText = verifyButton.textContent;
+      verifyButton.disabled = true;
+      verifyButton.textContent = 'Verificando...';
 
       try {
-        await navigator.clipboard.writeText(value);
-        const original = button.textContent;
-        button.textContent = 'Código Pix copiado!';
-        window.setTimeout(function () {
-          button.textContent = original;
-        }, 2200);
-      } catch (_) {
-        target.select();
-        document.execCommand('copy');
-        button.textContent = 'Código Pix copiado!';
+        const response = await fetch(verifyForm.action, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken,
+          },
+          body: JSON.stringify({ csrf_token: csrfToken }),
+        });
+        const data = await response.json().catch(function () { return {}; });
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Não foi possível verificar o pagamento agora.');
+        }
+
+        if (messageBox) {
+          messageBox.classList.toggle('success', Boolean(data.approved));
+          messageBox.innerHTML = '<strong>' + (data.approved ? 'Pagamento confirmado.' : 'Status do Pix') + '</strong><p>' + (data.message || '') + '</p>';
+        }
+
+        if (data.approved) {
+          verifyButton.textContent = 'Pagamento confirmado';
+          window.setTimeout(function () {
+            window.location.href = data.orders_url || '{{ orders_url }}';
+          }, 1500);
+          return;
+        }
+      } catch (error) {
+        if (messageBox) {
+          messageBox.classList.remove('success');
+          messageBox.classList.add('danger');
+          messageBox.innerHTML = '<strong>Atenção:</strong><p>' + (error.message || 'Erro ao verificar pagamento.') + '</p>';
+        } else {
+          alert(error.message || 'Erro ao verificar pagamento.');
+        }
+      } finally {
+        if (verifyButton.textContent !== 'Pagamento confirmado') {
+          verifyButton.disabled = false;
+          verifyButton.textContent = originalText;
+        }
       }
     });
   })();
