@@ -475,12 +475,13 @@ def update_order_status(db, order_id: int, status: str, restaurant_id: int):
         raise ValidationError('Status inválido.')
 
     cursor = db.execute(
-        '''
+        f'''
         UPDATE orders
            SET status = ?,
                updated_at = ?
          WHERE id = ?
            AND restaurant_id = ?
+           {PAYMENT_RELEASE_FILTER}
         ''',
         (
             status,
@@ -491,6 +492,22 @@ def update_order_status(db, order_id: int, status: str, restaurant_id: int):
     )
 
     if cursor.rowcount == 0:
+        pending_payment = db.execute(
+            '''
+            SELECT id
+              FROM orders
+             WHERE id = ?
+               AND restaurant_id = ?
+               AND COALESCE(payment_required, 0) = 1
+               AND COALESCE(payment_status, 'not_required') != 'approved'
+             LIMIT 1
+            ''',
+            (order_id, restaurant_id),
+        ).fetchone()
+
+        if pending_payment:
+            raise ValidationError('Este pedido ainda não foi liberado para a cozinha porque o pagamento Pix não foi aprovado.')
+
         raise ValidationError('Pedido não encontrado para este restaurante.')
 
     db.commit()
