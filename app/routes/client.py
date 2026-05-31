@@ -29,10 +29,12 @@ from ..services.order_service import (
     list_orders_for_table,
     mark_order_payment_error,
     update_order_payment_pending,
+    update_order_payment_status,
 )
 from ..services.payment_service import (
     PROVIDER_MERCADO_PAGO,
     create_pix_payment_for_order,
+    fetch_mercadopago_payment_status,
     payment_connection_summary,
 )
 from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
@@ -1714,6 +1716,114 @@ def payment_order(order_id: int):
         orders_url=url_for('client.order_history'),
         csrf=csrf_token(),
     )
+
+
+@client_bp.route('/pagamento/pedido/<int:order_id>/verificar', methods=['POST'])
+def verify_payment_order(order_id: int):
+    restaurant_id = _client_restaurant_id()
+    table_number = _current_table()
+
+    if not restaurant_id:
+        message = 'Restaurante não identificado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
+
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+
+    if not profile:
+        message = 'Restaurante não encontrado.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 404
+        flash(message, 'error')
+        return redirect(url_for('client.home'))
+
+    if not _is_full_order_mode(profile):
+        return _orders_unavailable_response(profile)
+
+    order = get_order_for_payment(db, restaurant_id, order_id, table_number)
+
+    if not order:
+        message = 'Pedido não encontrado para esta mesa.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 404
+        flash(message, 'error')
+        return redirect(_public_menu_url(table_number))
+
+    if not int(_row_get(order, 'payment_required', 0) or 0):
+        message = 'Este pedido não possui pagamento Pix para verificar.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'warning')
+        return redirect(url_for('client.order_history'))
+
+    current_payment_status = str(_row_get(order, 'payment_status', 'pending') or 'pending')
+    if current_payment_status == 'approved':
+        message = 'Pagamento já confirmado. Seu pedido foi enviado para a cozinha.'
+        if _wants_json():
+            return jsonify(success=True, approved=True, payment_status='approved', message=message, orders_url=url_for('client.order_history'))
+        flash(message, 'success')
+        return redirect(url_for('client.order_history'))
+
+    try:
+        payment_result = fetch_mercadopago_payment_status(
+            db,
+            restaurant_id=restaurant_id,
+            payment_external_id=_row_get(order, 'payment_external_id', ''),
+        )
+        expected_reference = str(_row_get(order, 'payment_external_reference', '') or '')
+        returned_reference = str(payment_result.get('external_reference') or '')
+        if expected_reference and returned_reference and returned_reference != expected_reference:
+            message = 'O pagamento consultado não pertence a este pedido. Avise o restaurante.'
+            if _wants_json():
+                return jsonify(success=False, message=message), 400
+            flash(message, 'error')
+            return redirect(url_for('client.payment_order', order_id=order_id))
+
+        provider_status = payment_result['status']
+
+        if provider_status == 'approved':
+            update_order_payment_status(
+                db,
+                restaurant_id=restaurant_id,
+                order_id=order_id,
+                payment_status='approved',
+                approved_at=payment_result.get('approved_at') or None,
+            )
+            message = 'Pagamento confirmado. Seu pedido foi enviado para a cozinha.'
+            if _wants_json():
+                return jsonify(success=True, approved=True, payment_status='approved', message=message, orders_url=url_for('client.order_history'))
+            flash(message, 'success')
+            return redirect(url_for('client.order_history'))
+
+        if provider_status in {'rejected', 'cancelled', 'expired'}:
+            detail = payment_result.get('status_detail') or payment_result.get('provider_status') or provider_status
+            update_order_payment_status(
+                db,
+                restaurant_id=restaurant_id,
+                order_id=order_id,
+                payment_status=provider_status,
+                payment_error=detail,
+            )
+            message = 'O Mercado Pago informou que este Pix não foi aprovado. Gere um novo pedido ou fale com o restaurante.'
+            if _wants_json():
+                return jsonify(success=True, approved=False, payment_status=provider_status, message=message)
+            flash(message, 'warning')
+            return redirect(url_for('client.payment_order', order_id=order_id))
+
+        message = 'Pagamento ainda não confirmado. Se você acabou de pagar, aguarde alguns segundos e tente novamente.'
+        if _wants_json():
+            return jsonify(success=True, approved=False, payment_status='pending', message=message)
+        flash(message, 'info')
+        return redirect(url_for('client.payment_order', order_id=order_id))
+    except RuntimeError as exc:
+        message = str(exc)
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.payment_order', order_id=order_id))
 
 
 @client_bp.route('/pedidos')
