@@ -193,14 +193,14 @@
         {% endif %}
 
         <div class="status-actions" style="margin-top: 14px;">
-          <a class="btn btn-primary" href="{{ url_for('payments.mercadopago_connect') }}">Conectar Mercado Pago</a>
+          <a class="btn btn-primary" href="{{ url_for('payments.mercadopago_connect') }}">{% if payment_status.status == 'connected' %}Reconectar Mercado Pago{% else %}Conectar Mercado Pago{% endif %}</a>
 
           {% if payment_status.status in ['connected', 'error', 'disabled'] %}
             <button type="submit" class="btn btn-secondary" formaction="{{ url_for('payments.mercadopago_disconnect') }}" formmethod="post">Desconectar</button>
           {% endif %}
         </div>
 
-        <p class="muted" style="margin-top: 10px; font-size: .9rem;">Neste Bloco 3A o botão ainda não redireciona para o Mercado Pago. Ele apenas valida a estrutura, o status e as configurações. O OAuth real será ativado no Bloco 3B.</p>
+        <p class="muted" style="margin-top: 10px; font-size: .9rem;">Ao clicar em Conectar Mercado Pago, o responsável será redirecionado para autorizar a integração. Após a autorização, o status deverá mudar para Conectado.</p>
       {% endif %}
     </div>
 
