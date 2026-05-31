@@ -1481,3 +1481,74 @@ summary:focus-visible {
   transform: translateY(-1px);
 }
 
+
+
+.payment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.payment-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.payment-status-card {
+  border: 1px solid rgba(30, 30, 30, .08);
+  border-radius: 22px;
+  padding: 18px;
+  background: rgba(249, 115, 22, .06);
+}
+
+.pix-qr-box {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid rgba(30, 30, 30, .08);
+}
+
+.pix-qr-box img {
+  width: min(280px, 100%);
+  height: auto;
+}
+
+.pix-label {
+  font-weight: 800;
+}
+
+.pix-code {
+  width: 100%;
+  resize: vertical;
+  border-radius: 18px;
+  border: 1px solid rgba(30, 30, 30, .14);
+  padding: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .9rem;
+}
+
+.form-hint {
+  margin-top: -8px;
+  font-size: .85rem;
+}
+
+.notice-card {
+  border-radius: 18px;
+  border: 1px solid rgba(249, 115, 22, .22);
+  background: rgba(249, 115, 22, .08);
+  padding: 14px 16px;
+}
+
+.notice-card.danger {
+  border-color: rgba(220, 38, 38, .24);
+  background: rgba(220, 38, 38, .08);
+}
+
+@media (max-width: 900px) {
+  .payment-layout {
+    grid-template-columns: 1fr;
+  }
+}
