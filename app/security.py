@@ -53,6 +53,8 @@ def _request_token() -> str:
 def csrf_protect():
     if request.method in SAFE_METHODS or request.endpoint == 'static':
         return None
+    if request.endpoint == 'payments.mercadopago_webhook':
+        return None
     expected = session.get('csrf_token')
     provided = _request_token()
     if not expected or not provided or not secrets.compare_digest(str(expected), str(provided)):
