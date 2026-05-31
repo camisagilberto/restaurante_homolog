@@ -215,30 +215,27 @@
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
 
-      const customerName = form.querySelector('[name="customer_name"]')?.value || '';
       const notes = form.querySelector('[name="notes"]')?.value || '';
       const submitButton = form.querySelector('button[type="submit"]');
 
       submitButton.disabled = true;
-      submitButton.textContent = 'Enviando...';
+      submitButton.textContent = 'Gerando Pix...';
 
       try {
         const { response, data } = await requestJSON('/pedido/finalizar', {
-          customer_name: customerName,
           notes,
         });
 
         if (!response.ok || !data.success) {
-          throw new Error(data.message || 'Não foi possível finalizar.');
+          throw new Error(data.message || 'Não foi possível gerar o Pix.');
         }
 
-        window.alert(data.message || 'Pedido enviado com sucesso.');
-        window.location.href = data.redirect_url || '/mesa/1';
+        window.location.href = data.payment_url || data.redirect_url || '/mesa/1';
       } catch (error) {
-        alert(error.message || 'Erro ao finalizar pedido.');
+        alert(error.message || 'Erro ao gerar Pix.');
       } finally {
         submitButton.disabled = false;
-        submitButton.textContent = 'Finalizar pedido';
+        submitButton.textContent = 'Gerar Pix';
       }
     });
   }
