@@ -420,6 +420,54 @@ def mark_order_payment_error(db, *, restaurant_id: int, order_id: int, error: st
     db.commit()
 
 
+
+
+def update_order_payment_status(
+    db,
+    *,
+    restaurant_id: int,
+    order_id: int,
+    payment_status: str,
+    approved_at: str | None = None,
+    payment_error: str = '',
+):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    normalized_status = str(payment_status or '').strip().lower()
+
+    if normalized_status not in PAYMENT_STATUS_LABELS:
+        raise ValidationError('Status de pagamento inválido.')
+
+    now = _now_iso()
+    approved_value = approved_at or now if normalized_status == 'approved' else None
+
+    cursor = db.execute(
+        """
+        UPDATE orders
+           SET payment_status = ?,
+               payment_approved_at = CASE WHEN ? = 'approved' THEN COALESCE(NULLIF(?, ''), ?) ELSE payment_approved_at END,
+               payment_error = ?,
+               updated_at = ?
+         WHERE id = ?
+           AND restaurant_id = ?
+        """,
+        (
+            normalized_status,
+            normalized_status,
+            str(approved_value or ''),
+            now,
+            str(payment_error or '')[:500],
+            now,
+            order_id,
+            restaurant_id,
+        ),
+    )
+
+    if cursor.rowcount == 0:
+        raise ValidationError('Pedido não encontrado para atualizar pagamento.')
+
+    db.commit()
+
+
 def update_order_status(db, order_id: int, status: str, restaurant_id: int):
     restaurant_id = _require_restaurant_id(restaurant_id)
 
