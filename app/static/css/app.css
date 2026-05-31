@@ -1557,3 +1557,54 @@ summary:focus-visible {
   border-color: rgba(22, 163, 74, 0.28);
   background: rgba(22, 163, 74, 0.08);
 }
+
+.status-pill.status-approved,
+.status-pill.status-pending,
+.status-pill.status-rejected,
+.status-pill.status-cancelled,
+.status-pill.status-expired,
+.status-pill.status-error {
+  border: 1px solid transparent;
+}
+
+.status-pill.status-approved {
+  background: rgba(22, 163, 74, .10);
+  color: var(--success);
+  border-color: rgba(22, 163, 74, .22);
+}
+
+.status-pill.status-pending {
+  background: rgba(249, 115, 22, .12);
+  color: var(--primary-strong);
+  border-color: rgba(249, 115, 22, .22);
+}
+
+.status-pill.status-rejected,
+.status-pill.status-cancelled,
+.status-pill.status-expired,
+.status-pill.status-error {
+  background: rgba(220, 38, 38, .08);
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, .20);
+}
+
+.payment-auto-status {
+  margin-top: 8px;
+}
+
+.payment-status-card.status-approved {
+  background: rgba(22, 163, 74, .08);
+  border-color: rgba(22, 163, 74, .18);
+}
+
+.payment-status-card.status-rejected,
+.payment-status-card.status-cancelled,
+.payment-status-card.status-expired,
+.payment-status-card.status-error {
+  background: rgba(220, 38, 38, .06);
+  border-color: rgba(220, 38, 38, .16);
+}
+
+.order-payment-badge {
+  margin: -4px 0 10px;
+}
