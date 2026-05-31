@@ -22,6 +22,12 @@
         <strong>{{ entry.order['total_amount']|currency }}</strong>
       </div>
 
+      {% if entry.order['payment_required'] %}
+        <div class="order-payment-badge">
+          <span class="status-pill status-approved">Pix aprovado</span>
+        </div>
+      {% endif %}
+
       {% if entry.order['notes'] %}
         <p class="order-notes">
           <strong>Observações:</strong> {{ entry.order['notes'] }}
@@ -72,7 +78,7 @@
   {% else %}
     <div class="empty-state panel">
       <h3>Nenhum pedido ainda</h3>
-      <p class="muted">Quando os clientes enviarem pedidos, eles aparecerão aqui automaticamente.</p>
+      <p class="muted">Quando os clientes enviarem pedidos pagos ou sem pagamento obrigatório, eles aparecerão aqui automaticamente.</p>
     </div>
   {% endfor %}
 </div>
