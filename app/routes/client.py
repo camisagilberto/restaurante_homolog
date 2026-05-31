@@ -1718,6 +1718,73 @@ def payment_order(order_id: int):
     )
 
 
+@client_bp.route('/pagamento/pedido/<int:order_id>/status')
+def payment_order_status(order_id: int):
+    """Retorna o status atual do Pix salvo no QRTotem.
+
+    Esta rota é leve e serve para a tela de pagamento atualizar sozinha
+    depois que o webhook do Mercado Pago confirmar o Pix no servidor.
+    Ela não consulta o Mercado Pago a cada chamada; a consulta externa continua
+    no webhook e no botão manual "Verificar pagamento".
+    """
+    restaurant_id = _client_restaurant_id()
+    table_number = _current_table()
+
+    if not restaurant_id:
+        return jsonify(success=False, message='Restaurante não identificado.'), 400
+
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+
+    if not profile:
+        return jsonify(success=False, message='Restaurante não encontrado.'), 404
+
+    if not _is_full_order_mode(profile):
+        return jsonify(
+            success=False,
+            message='Este restaurante utiliza o QRTotem apenas como cardápio digital.',
+        ), 403
+
+    order = get_order_for_payment(db, restaurant_id, order_id, table_number)
+
+    if not order:
+        return jsonify(success=False, message='Pedido não encontrado para esta mesa.'), 404
+
+    if not int(_row_get(order, 'payment_required', 0) or 0):
+        return jsonify(success=False, message='Este pedido não possui pagamento Pix.'), 400
+
+    payment_status = str(_row_get(order, 'payment_status', 'pending') or 'pending')
+    payment_error = str(_row_get(order, 'payment_error', '') or '')
+
+    messages = {
+        'pending': 'Pagamento ainda não confirmado. Assim que o Pix for aprovado, o pedido será enviado para a cozinha automaticamente.',
+        'approved': 'Pagamento confirmado. Seu pedido foi enviado para a cozinha.',
+        'rejected': 'O Mercado Pago informou que este Pix foi recusado. Gere um novo pedido ou fale com o restaurante.',
+        'cancelled': 'Este Pix foi cancelado. Gere um novo pedido ou fale com o restaurante.',
+        'expired': 'Este Pix expirou. Gere um novo pedido ou fale com o restaurante.',
+        'error': 'Não foi possível confirmar este pagamento. Fale com o restaurante.',
+    }
+
+    labels = {
+        'pending': 'Aguardando pagamento',
+        'approved': 'Pagamento aprovado',
+        'rejected': 'Pagamento recusado',
+        'cancelled': 'Pagamento cancelado',
+        'expired': 'Pagamento expirado',
+        'error': 'Erro no pagamento',
+    }
+
+    return jsonify(
+        success=True,
+        approved=payment_status == 'approved',
+        payment_status=payment_status,
+        payment_status_label=labels.get(payment_status, payment_status),
+        message=messages.get(payment_status, payment_status),
+        payment_error=payment_error,
+        orders_url=url_for('client.order_history'),
+    )
+
+
 @client_bp.route('/pagamento/pedido/<int:order_id>/verificar', methods=['POST'])
 def verify_payment_order(order_id: int):
     restaurant_id = _client_restaurant_id()
