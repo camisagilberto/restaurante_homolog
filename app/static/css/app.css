@@ -1552,3 +1552,8 @@ summary:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+.notice-card.success {
+  border-color: rgba(22, 163, 74, 0.28);
+  background: rgba(22, 163, 74, 0.08);
+}
