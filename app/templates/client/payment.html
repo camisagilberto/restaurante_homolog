@@ -11,14 +11,26 @@
   <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
 </section>
 
-<div class="payment-layout">
+<div
+  class="payment-layout"
+  data-payment-page
+  data-status-url="{{ url_for('client.payment_order_status', order_id=order['id']) }}"
+  data-orders-url="{{ orders_url }}"
+  data-current-status="{{ order['payment_status'] }}"
+>
   <section class="panel payment-panel">
-    <div class="payment-status-card status-{{ order['payment_status'] }}">
-      <span class="status-pill status-{{ order['payment_status'] }}">
+    <div id="payment-status-card" class="payment-status-card status-{{ order['payment_status'] }}">
+      <span id="payment-status-pill" class="status-pill status-{{ order['payment_status'] }}">
         {% if order['payment_status'] == 'pending' %}
           Aguardando pagamento
         {% elif order['payment_status'] == 'approved' %}
           Pagamento aprovado
+        {% elif order['payment_status'] == 'rejected' %}
+          Pagamento recusado
+        {% elif order['payment_status'] == 'cancelled' %}
+          Pagamento cancelado
+        {% elif order['payment_status'] == 'expired' %}
+          Pix expirado
         {% elif order['payment_status'] == 'error' %}
           Erro no pagamento
         {% else %}
@@ -27,22 +39,31 @@
       </span>
       <h3>Total: {{ order['total_amount']|currency }}</h3>
       <p class="muted">Mesa {{ table_number }} · {{ order['customer_name'] }}</p>
+      <p id="payment-auto-status" class="muted payment-auto-status">
+        {% if order['payment_status'] == 'approved' %}
+          Pagamento confirmado. Seu pedido já foi enviado para a cozinha.
+        {% else %}
+          A tela atualiza automaticamente. Você pode bloquear o celular; o pedido será liberado pelo servidor quando o Mercado Pago confirmar.
+        {% endif %}
+      </p>
     </div>
 
     {% if order['payment_qr_code_base64'] %}
-      <div class="pix-qr-box">
+      <div class="pix-qr-box" data-pix-visible-while-pending>
         <img src="data:image/png;base64,{{ order['payment_qr_code_base64'] }}" alt="QR Code Pix do pedido #{{ order['id'] }}">
       </div>
     {% endif %}
 
     {% if order['payment_qr_code'] %}
-      <label for="pix-code" class="pix-label">Pix copia e cola</label>
-      <textarea id="pix-code" class="pix-code" rows="7" readonly>{{ order['payment_qr_code'] }}</textarea>
-      <button type="button" class="btn btn-primary btn-block" data-copy-pix="#pix-code">Copiar código Pix</button>
+      <div data-pix-visible-while-pending>
+        <label for="pix-code" class="pix-label">Pix copia e cola</label>
+        <textarea id="pix-code" class="pix-code" rows="7" readonly>{{ order['payment_qr_code'] }}</textarea>
+        <button type="button" class="btn btn-primary btn-block" data-copy-pix="#pix-code">Copiar código Pix</button>
+      </div>
     {% endif %}
 
     {% if order['payment_ticket_url'] %}
-      <a class="btn btn-secondary btn-block" href="{{ order['payment_ticket_url'] }}" target="_blank" rel="noopener noreferrer">
+      <a class="btn btn-secondary btn-block" href="{{ order['payment_ticket_url'] }}" target="_blank" rel="noopener noreferrer" data-pix-visible-while-pending>
         Abrir pagamento no Mercado Pago
       </a>
     {% endif %}
@@ -53,20 +74,30 @@
         <button type="submit" class="btn btn-primary btn-block" data-verify-payment>Verificar pagamento</button>
       </form>
       <div id="payment-check-message" class="notice-card">
-        <strong>Depois de pagar:</strong>
-        <p>Clique em <strong>Verificar pagamento</strong>. Assim que o Mercado Pago confirmar, seu pedido será enviado para a cozinha.</p>
+        <strong>Aguardando confirmação automática</strong>
+        <p>Depois de pagar, aguarde alguns segundos. A tela vai atualizar sozinha quando o Mercado Pago confirmar. Se demorar, use o botão <strong>Verificar pagamento</strong>.</p>
       </div>
     {% elif order['payment_status'] == 'approved' %}
-      <div class="notice-card success">
+      <div id="payment-check-message" class="notice-card success">
         <strong>Pagamento confirmado.</strong>
         <p>Seu pedido foi enviado para a cozinha.</p>
+      </div>
+    {% else %}
+      <div id="payment-check-message" class="notice-card danger">
+        <strong>Status do pagamento:</strong>
+        <p>{{ order['payment_status'] }}</p>
       </div>
     {% endif %}
 
     {% if order['payment_error'] %}
-      <div class="notice-card danger">
+      <div id="payment-error-box" class="notice-card danger">
         <strong>Erro registrado:</strong>
         <p>{{ order['payment_error'] }}</p>
+      </div>
+    {% else %}
+      <div id="payment-error-box" class="notice-card danger" hidden>
+        <strong>Erro registrado:</strong>
+        <p></p>
       </div>
     {% endif %}
   </section>
@@ -76,7 +107,7 @@
     <div class="summary-line"><span>Número</span><strong>#{{ order['id'] }}</strong></div>
     <div class="summary-line"><span>Mesa</span><strong>{{ table_number }}</strong></div>
     <div class="summary-line"><span>Total</span><strong>{{ order['total_amount']|currency }}</strong></div>
-    <div class="summary-line"><span>Status Pix</span><strong>{{ order['payment_status'] }}</strong></div>
+    <div class="summary-line"><span>Status Pix</span><strong id="payment-summary-status">{{ order['payment_status'] }}</strong></div>
 
     <a class="btn btn-secondary btn-block" href="{{ orders_url }}">Ver pedidos da mesa</a>
   </aside>
@@ -84,6 +115,7 @@
 
 <script>
   (function () {
+    const paymentPage = document.querySelector('[data-payment-page]');
     const copyButton = document.querySelector('[data-copy-pix]');
 
     if (copyButton) {
@@ -107,62 +139,177 @@
       });
     }
 
+    if (!paymentPage) return;
+
+    const statusUrl = paymentPage.dataset.statusUrl;
+    const ordersUrl = paymentPage.dataset.ordersUrl;
+    const statusCard = document.getElementById('payment-status-card');
+    const statusPill = document.getElementById('payment-status-pill');
+    const autoStatus = document.getElementById('payment-auto-status');
+    const summaryStatus = document.getElementById('payment-summary-status');
     const verifyForm = document.getElementById('verify-payment-form');
     const verifyButton = document.querySelector('[data-verify-payment]');
     const messageBox = document.getElementById('payment-check-message');
+    const errorBox = document.getElementById('payment-error-box');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    if (!verifyForm || !verifyButton) return;
+    const FINAL_STATUSES = new Set(['approved', 'rejected', 'cancelled', 'expired', 'error']);
+    const CHECK_INTERVAL_MS = 4000;
+    let currentStatus = paymentPage.dataset.currentStatus || 'pending';
+    let isPolling = false;
+    let pollingStopped = currentStatus !== 'pending';
 
-    verifyForm.addEventListener('submit', async function (event) {
-      event.preventDefault();
-      const originalText = verifyButton.textContent;
-      verifyButton.disabled = true;
-      verifyButton.textContent = 'Verificando...';
+    function setStatusClasses(status) {
+      if (statusCard) {
+        statusCard.className = 'payment-status-card status-' + status;
+      }
+      if (statusPill) {
+        statusPill.className = 'status-pill status-' + status;
+      }
+    }
+
+    function setMessage(kind, title, message) {
+      if (!messageBox) return;
+      messageBox.classList.remove('success', 'danger');
+      if (kind) messageBox.classList.add(kind);
+      messageBox.innerHTML = '<strong>' + title + '</strong><p>' + message + '</p>';
+    }
+
+    function hidePixActionsIfApproved(status) {
+      if (status !== 'approved') return;
+      document.querySelectorAll('[data-pix-visible-while-pending]').forEach(function (node) {
+        node.hidden = true;
+      });
+      if (verifyForm) {
+        verifyForm.hidden = true;
+      }
+    }
+
+    function updatePaymentUi(data, source) {
+      const status = data.payment_status || 'pending';
+      const label = data.payment_status_label || status;
+      const message = data.message || '';
+
+      currentStatus = status;
+      paymentPage.dataset.currentStatus = status;
+      setStatusClasses(status);
+
+      if (statusPill) statusPill.textContent = label;
+      if (summaryStatus) summaryStatus.textContent = status;
+
+      if (autoStatus) {
+        if (status === 'approved') {
+          autoStatus.textContent = 'Pagamento confirmado. Seu pedido foi enviado para a cozinha.';
+        } else if (status === 'pending') {
+          autoStatus.textContent = 'Aguardando confirmação automática do Mercado Pago...';
+        } else {
+          autoStatus.textContent = message || 'Status atualizado pelo Mercado Pago.';
+        }
+      }
+
+      if (status === 'approved') {
+        setMessage('success', 'Pagamento confirmado.', 'Seu pedido foi enviado para a cozinha.');
+        hidePixActionsIfApproved(status);
+        pollingStopped = true;
+
+        if (verifyButton) {
+          verifyButton.disabled = true;
+          verifyButton.textContent = 'Pagamento confirmado';
+        }
+        return;
+      }
+
+      if (['rejected', 'cancelled', 'expired', 'error'].includes(status)) {
+        setMessage('danger', 'Pagamento não aprovado.', message || 'Gere um novo pedido ou fale com o restaurante.');
+        pollingStopped = true;
+      } else if (source === 'manual') {
+        setMessage('', 'Status do Pix', message || 'Pagamento ainda não confirmado.');
+      }
+
+      if (errorBox) {
+        const errorText = data.payment_error || '';
+        errorBox.hidden = !errorText;
+        const p = errorBox.querySelector('p');
+        if (p) p.textContent = errorText;
+      }
+    }
+
+    async function fetchStatus(force) {
+      if (!statusUrl || isPolling || pollingStopped) return;
+      if (!force && document.hidden) return;
+
+      isPolling = true;
 
       try {
-        const response = await fetch(verifyForm.action, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrfToken,
-          },
-          body: JSON.stringify({ csrf_token: csrfToken }),
+        const response = await fetch(statusUrl, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          cache: 'no-store'
         });
         const data = await response.json().catch(function () { return {}; });
 
         if (!response.ok || !data.success) {
-          throw new Error(data.message || 'Não foi possível verificar o pagamento agora.');
+          throw new Error(data.message || 'Não foi possível consultar o status do Pix.');
         }
 
-        if (messageBox) {
-          messageBox.classList.toggle('success', Boolean(data.approved));
-          messageBox.innerHTML = '<strong>' + (data.approved ? 'Pagamento confirmado.' : 'Status do Pix') + '</strong><p>' + (data.message || '') + '</p>';
+        if (data.payment_status !== currentStatus || data.approved) {
+          updatePaymentUi(data, 'auto');
+        } else if (autoStatus && currentStatus === 'pending') {
+          const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          autoStatus.textContent = 'Aguardando confirmação automática do Mercado Pago... Última verificação: ' + now;
         }
-
-        if (data.approved) {
-          verifyButton.textContent = 'Pagamento confirmado';
-          window.setTimeout(function () {
-            window.location.href = data.orders_url || '{{ orders_url }}';
-          }, 1500);
-          return;
-        }
-      } catch (error) {
-        if (messageBox) {
-          messageBox.classList.remove('success');
-          messageBox.classList.add('danger');
-          messageBox.innerHTML = '<strong>Atenção:</strong><p>' + (error.message || 'Erro ao verificar pagamento.') + '</p>';
-        } else {
-          alert(error.message || 'Erro ao verificar pagamento.');
+      } catch (_) {
+        if (autoStatus && currentStatus === 'pending') {
+          autoStatus.textContent = 'Conexão instável. A tela tentará verificar novamente automaticamente.';
         }
       } finally {
-        if (verifyButton.textContent !== 'Pagamento confirmado') {
-          verifyButton.disabled = false;
-          verifyButton.textContent = originalText;
-        }
+        isPolling = false;
       }
+    }
+
+    if (verifyForm && verifyButton) {
+      verifyForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const originalText = verifyButton.textContent;
+        verifyButton.disabled = true;
+        verifyButton.textContent = 'Verificando...';
+
+        try {
+          const response = await fetch(verifyForm.action, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ csrf_token: csrfToken }),
+          });
+          const data = await response.json().catch(function () { return {}; });
+
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Não foi possível verificar o pagamento agora.');
+          }
+
+          updatePaymentUi(data, 'manual');
+        } catch (error) {
+          setMessage('danger', 'Atenção:', error.message || 'Erro ao verificar pagamento.');
+        } finally {
+          if (currentStatus !== 'approved') {
+            verifyButton.disabled = false;
+            verifyButton.textContent = originalText;
+          }
+        }
+      });
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) fetchStatus(true);
     });
+
+    if (currentStatus === 'pending') {
+      window.setInterval(function () { fetchStatus(false); }, CHECK_INTERVAL_MS);
+      window.setTimeout(function () { fetchStatus(true); }, 1200);
+    }
   })();
 </script>
 {% endblock %}
