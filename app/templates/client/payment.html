@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Pagamento Pix do Pedido #{{ order['id'] }}{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Pagamento Pix</p>
+    <h2>Pedido #{{ order['id'] }}</h2>
+    <p class="muted">Pague o Pix abaixo. O pedido será enviado para a cozinha depois da confirmação do pagamento.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
+</section>
+
+<div class="payment-layout">
+  <section class="panel payment-panel">
+    <div class="payment-status-card status-{{ order['payment_status'] }}">
+      <span class="status-pill status-{{ order['payment_status'] }}">
+        {% if order['payment_status'] == 'pending' %}
+          Aguardando pagamento
+        {% elif order['payment_status'] == 'approved' %}
+          Pagamento aprovado
+        {% elif order['payment_status'] == 'error' %}
+          Erro no pagamento
+        {% else %}
+          {{ order['payment_status'] }}
+        {% endif %}
+      </span>
+      <h3>Total: {{ order['total_amount']|currency }}</h3>
+      <p class="muted">Mesa {{ table_number }} · {{ order['customer_name'] }}</p>
+    </div>
+
+    {% if order['payment_qr_code_base64'] %}
+      <div class="pix-qr-box">
+        <img src="data:image/png;base64,{{ order['payment_qr_code_base64'] }}" alt="QR Code Pix do pedido #{{ order['id'] }}">
+      </div>
+    {% endif %}
+
+    {% if order['payment_qr_code'] %}
+      <label for="pix-code" class="pix-label">Pix copia e cola</label>
+      <textarea id="pix-code" class="pix-code" rows="7" readonly>{{ order['payment_qr_code'] }}</textarea>
+      <button type="button" class="btn btn-primary btn-block" data-copy-pix="#pix-code">Copiar código Pix</button>
+    {% endif %}
+
+    {% if order['payment_ticket_url'] %}
+      <a class="btn btn-secondary btn-block" href="{{ order['payment_ticket_url'] }}" target="_blank" rel="noopener noreferrer">
+        Abrir pagamento no Mercado Pago
+      </a>
+    {% endif %}
+
+    {% if order['payment_status'] == 'pending' %}
+      <div class="notice-card">
+        <strong>Importante:</strong>
+        <p>Após o pagamento, a confirmação automática será implementada no próximo bloco com o webhook. Por enquanto, mantenha esta tela como comprovante de que o Pix foi gerado.</p>
+      </div>
+    {% endif %}
+
+    {% if order['payment_error'] %}
+      <div class="notice-card danger">
+        <strong>Erro registrado:</strong>
+        <p>{{ order['payment_error'] }}</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <aside class="panel summary-panel">
+    <h3>Resumo do pedido</h3>
+    <div class="summary-line"><span>Número</span><strong>#{{ order['id'] }}</strong></div>
+    <div class="summary-line"><span>Mesa</span><strong>{{ table_number }}</strong></div>
+    <div class="summary-line"><span>Total</span><strong>{{ order['total_amount']|currency }}</strong></div>
+    <div class="summary-line"><span>Status Pix</span><strong>{{ order['payment_status'] }}</strong></div>
+
+    <a class="btn btn-secondary btn-block" href="{{ orders_url }}">Ver pedidos da mesa</a>
+  </aside>
+</div>
+
+<script>
+  (function () {
+    const button = document.querySelector('[data-copy-pix]');
+    if (!button) return;
+
+    button.addEventListener('click', async function () {
+      const target = document.querySelector(button.dataset.copyPix);
+      const value = target ? target.value : '';
+      if (!value) return;
+
+      try {
+        await navigator.clipboard.writeText(value);
+        const original = button.textContent;
+        button.textContent = 'Código Pix copiado!';
+        window.setTimeout(function () {
+          button.textContent = original;
+        }, 2200);
+      } catch (_) {
+        target.select();
+        document.execCommand('copy');
+        button.textContent = 'Código Pix copiado!';
+      }
+    });
+  })();
+</script>
+{% endblock %}
