@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 import requests
 from flask import current_app
 
-from .payment_crypto import encrypt_value, is_payment_crypto_ready
+from .payment_crypto import decrypt_value, encrypt_value, is_payment_crypto_ready
 
 PROVIDER_MERCADO_PAGO = 'mercadopago'
 PAYMENT_ACCOUNT_STATUSES = {'not_connected', 'connected', 'error', 'disabled'}
@@ -17,6 +17,7 @@ SERVICE_MODE_FULL_ORDER_PAYMENT = 'full_order_payment'
 
 MP_AUTHORIZATION_URL = 'https://auth.mercadopago.com/authorization'
 MP_OAUTH_TOKEN_URL = 'https://api.mercadopago.com/oauth/token'
+MP_PAYMENT_URL = 'https://api.mercadopago.com/v1/payments'
 
 
 @dataclass(frozen=True)
@@ -343,4 +344,102 @@ def payment_connection_summary(db, restaurant_profile) -> dict[str, Any]:
         'connected_at': _row_get(account, 'connected_at', ''),
         'updated_at': _row_get(account, 'updated_at', ''),
         'last_error': _row_get(account, 'last_error', ''),
+    }
+
+
+
+def get_connected_mercadopago_access_token(db, restaurant_id: int | None) -> str:
+    """Retorna o access_token descriptografado da conta Mercado Pago conectada."""
+    account = get_payment_account(db, restaurant_id)
+
+    if not account or normalize_payment_account_status(_row_get(account, 'status')) != 'connected':
+        raise RuntimeError('Mercado Pago não conectado para este restaurante.')
+
+    encrypted_token = _row_get(account, 'access_token_encrypted', '')
+    if not encrypted_token:
+        raise RuntimeError('Token Mercado Pago ausente. Reconecte a conta do restaurante.')
+
+    return decrypt_value(encrypted_token)
+
+
+def create_pix_payment_for_order(
+    db,
+    *,
+    restaurant_id: int,
+    order_id: int,
+    amount: float,
+    customer_name: str,
+    customer_email: str,
+    external_reference: str,
+) -> dict[str, Any]:
+    """Cria uma cobrança Pix no Mercado Pago usando a conta conectada do restaurante."""
+    try:
+        transaction_amount = round(float(amount), 2)
+    except (TypeError, ValueError):
+        raise RuntimeError('Valor do pedido inválido para gerar Pix.')
+
+    if transaction_amount <= 0:
+        raise RuntimeError('O pedido precisa ter valor maior que zero para gerar Pix.')
+
+    clean_email = str(customer_email or '').strip().lower()
+    if '@' not in clean_email or '.' not in clean_email.split('@')[-1]:
+        raise RuntimeError('E-mail técnico inválido para gerar o Pix.')
+
+    access_token = get_connected_mercadopago_access_token(db, restaurant_id)
+
+    payer_name = str(customer_name or 'Cliente').strip() or 'Cliente'
+    payload: dict[str, Any] = {
+        'transaction_amount': transaction_amount,
+        'description': f'QRTotem - Pedido #{order_id}',
+        'payment_method_id': 'pix',
+        'external_reference': external_reference,
+        'payer': {
+            'email': clean_email,
+            'first_name': payer_name[:60],
+        },
+    }
+
+    try:
+        response = requests.post(
+            MP_PAYMENT_URL,
+            json=payload,
+            headers={
+                'accept': 'application/json',
+                'content-type': 'application/json',
+                'Authorization': f'Bearer {access_token}',
+                'X-Idempotency-Key': f'qrtotem-order-{restaurant_id}-{order_id}',
+            },
+            timeout=25,
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError('Não foi possível conectar ao Mercado Pago para gerar o Pix.') from exc
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise RuntimeError('O Mercado Pago retornou uma resposta inválida ao gerar o Pix.') from exc
+
+    if response.status_code >= 400:
+        error = str(data.get('error') or data.get('status') or 'erro_desconhecido')
+        description = str(data.get('message') or data.get('error_description') or data.get('cause') or '').strip()
+        detail = f'{error}: {description}' if description else error
+        raise RuntimeError(f'Falha ao gerar Pix no Mercado Pago: {detail}')
+
+    payment_id = str(data.get('id') or '').strip()
+    transaction_data = (data.get('point_of_interaction') or {}).get('transaction_data') or {}
+    qr_code = str(transaction_data.get('qr_code') or '').strip()
+    qr_code_base64 = str(transaction_data.get('qr_code_base64') or '').strip()
+    ticket_url = str(transaction_data.get('ticket_url') or '').strip()
+
+    if not payment_id or not qr_code:
+        raise RuntimeError('O Mercado Pago não retornou os dados Pix necessários.')
+
+    return {
+        'id': payment_id,
+        'status': str(data.get('status') or 'pending'),
+        'external_reference': str(data.get('external_reference') or external_reference),
+        'qr_code': qr_code,
+        'qr_code_base64': qr_code_base64,
+        'ticket_url': ticket_url,
+        'raw': data,
     }
