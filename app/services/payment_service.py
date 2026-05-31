@@ -35,6 +35,13 @@ def _now_iso() -> str:
     return datetime.utcnow().isoformat(timespec='seconds')
 
 
+def _webhook_notification_url() -> str:
+    base_url = str(current_app.config.get('BASE_URL') or '').strip().rstrip('/')
+    if not base_url:
+        return ''
+    return f'{base_url}/pagamentos/mercadopago/webhook'
+
+
 def _row_get(row: Any, key: str, default: Any = None) -> Any:
     if not row:
         return default
@@ -398,6 +405,10 @@ def create_pix_payment_for_order(
             'first_name': payer_name[:60],
         },
     }
+
+    notification_url = _webhook_notification_url()
+    if notification_url:
+        payload['notification_url'] = notification_url
 
     try:
         response = requests.post(
