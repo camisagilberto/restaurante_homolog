@@ -3,10 +3,11 @@ from __future__ import annotations
 import secrets
 from time import time
 
-from flask import Blueprint, flash, jsonify, redirect, request, session, url_for
+from flask import Blueprint, current_app, flash, jsonify, redirect, request, session, url_for
 
 from ..db import get_db
 from ..security import login_required
+from ..services.order_service import update_order_payment_status
 from ..services.onboarding_service import get_restaurant_profile_for_admin
 from ..services.payment_service import (
     SERVICE_MODE_DIGITAL_MENU,
@@ -17,6 +18,7 @@ from ..services.payment_service import (
     payment_connection_summary,
     save_mercadopago_token_response,
     update_payment_account_status,
+    fetch_mercadopago_payment_status,
 )
 
 payments_bp = Blueprint('payments', __name__, url_prefix='/pagamentos')
@@ -55,6 +57,73 @@ def _clear_oauth_session() -> None:
     session.pop(OAUTH_STATE_SESSION_KEY, None)
     session.pop(OAUTH_RESTAURANT_SESSION_KEY, None)
     session.pop(OAUTH_STARTED_AT_SESSION_KEY, None)
+
+
+def _extract_webhook_payment_id() -> str:
+    """Extrai o ID do pagamento em diferentes formatos usados pelo Mercado Pago."""
+    data = request.get_json(silent=True) or {}
+
+    candidates = [
+        request.args.get('data.id'),
+        request.args.get('id'),
+        request.args.get('payment_id'),
+    ]
+
+    if isinstance(data, dict):
+        nested_data = data.get('data') if isinstance(data.get('data'), dict) else {}
+        candidates.extend(
+            [
+                nested_data.get('id') if isinstance(nested_data, dict) else None,
+                data.get('id'),
+                data.get('resource'),
+            ]
+        )
+
+    for candidate in candidates:
+        value = str(candidate or '').strip()
+        if value:
+            # Alguns webhooks antigos podem mandar uma URL em "resource".
+            return value.rstrip('/').split('/')[-1]
+
+    return ''
+
+
+def _is_payment_webhook_event() -> bool:
+    """Ignora notificações que não sejam de pagamento."""
+    data = request.get_json(silent=True) or {}
+    query_topic = str(request.args.get('topic') or request.args.get('type') or '').strip().lower()
+
+    body_type = ''
+    body_action = ''
+
+    if isinstance(data, dict):
+        body_type = str(data.get('type') or '').strip().lower()
+        body_action = str(data.get('action') or '').strip().lower()
+
+    values = {query_topic, body_type, body_action}
+    return (
+        not any(values)
+        or 'payment' in values
+        or 'payment.created' in values
+        or 'payment.updated' in values
+    )
+
+
+def _find_order_by_payment_external_id(db, payment_external_id: str):
+    payment_id = str(payment_external_id or '').strip()
+    if not payment_id:
+        return None
+
+    return db.execute(
+        """
+        SELECT *
+          FROM orders
+         WHERE payment_provider = ?
+           AND payment_external_id = ?
+         LIMIT 1
+        """,
+        ('mercadopago', payment_id),
+    ).fetchone()
 
 
 def _oauth_session_is_valid(profile, received_state: str) -> bool:
@@ -179,6 +248,77 @@ def mercadopago_callback():
         return redirect(url_for('client.profile'))
     finally:
         _clear_oauth_session()
+
+
+@payments_bp.route('/mercadopago/webhook', methods=['POST'])
+def mercadopago_webhook():
+    """Recebe notificações do Mercado Pago e atualiza o status do pedido.
+
+    A rota não depende da sessão do cliente/restaurante. Para evitar confiar apenas
+    no payload recebido, ela usa o ID do pagamento recebido no webhook para consultar
+    o Mercado Pago novamente com o token da conta conectada ao restaurante.
+    """
+    db = get_db()
+
+    if not _is_payment_webhook_event():
+        return jsonify(success=True, ignored=True, reason='Evento ignorado.'), 200
+
+    payment_external_id = _extract_webhook_payment_id()
+    if not payment_external_id:
+        current_app.logger.warning('Webhook Mercado Pago sem ID de pagamento. args=%s body=%s', dict(request.args), request.get_json(silent=True))
+        return jsonify(success=False, message='ID de pagamento ausente.'), 400
+
+    order = _find_order_by_payment_external_id(db, payment_external_id)
+    if not order:
+        # Pode acontecer se o Mercado Pago enviar teste de webhook ou evento antigo.
+        current_app.logger.info('Webhook Mercado Pago ignorado: pagamento %s não encontrado no QRTotem.', payment_external_id)
+        return jsonify(success=True, ignored=True, reason='Pagamento não encontrado no QRTotem.'), 200
+
+    restaurant_id = int(order['restaurant_id'])
+    order_id = int(order['id'])
+
+    try:
+        payment_result = fetch_mercadopago_payment_status(
+            db,
+            restaurant_id=restaurant_id,
+            payment_external_id=payment_external_id,
+        )
+    except RuntimeError as exc:
+        current_app.logger.exception('Falha ao consultar Mercado Pago no webhook para pedido %s.', order_id)
+        return jsonify(success=False, message=str(exc)), 502
+
+    expected_reference = str(order['payment_external_reference'] or '')
+    returned_reference = str(payment_result.get('external_reference') or '')
+
+    if expected_reference and returned_reference and returned_reference != expected_reference:
+        current_app.logger.warning(
+            'Webhook Mercado Pago com external_reference divergente. pedido=%s esperado=%s recebido=%s',
+            order_id,
+            expected_reference,
+            returned_reference,
+        )
+        return jsonify(success=True, ignored=True, reason='Referência externa divergente.'), 200
+
+    provider_status = str(payment_result.get('status') or 'pending')
+
+    if provider_status in {'approved', 'rejected', 'cancelled', 'expired', 'pending'}:
+        update_order_payment_status(
+            db,
+            restaurant_id=restaurant_id,
+            order_id=order_id,
+            payment_status=provider_status,
+            approved_at=payment_result.get('approved_at') or None,
+            payment_error='' if provider_status in {'approved', 'pending'} else payment_result.get('status_detail', ''),
+        )
+
+    return jsonify(
+        success=True,
+        order_id=order_id,
+        payment_external_id=payment_external_id,
+        payment_status=provider_status,
+        approved=provider_status == 'approved',
+    ), 200
+
 
 
 @payments_bp.route('/mercadopago/desconectar', methods=['POST'])
