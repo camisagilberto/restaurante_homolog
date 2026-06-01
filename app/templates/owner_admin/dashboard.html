@@ -238,6 +238,33 @@
     color: #334155;
   }
 
+  .owner-inline-form {
+    display: inline;
+  }
+
+  .owner-action-btn {
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-weight: 900;
+    cursor: pointer;
+    background: #1e1e1e;
+    color: #ffffff;
+  }
+
+  .owner-action-btn-danger {
+    background: #dc2626;
+  }
+
+  .owner-action-btn-success {
+    background: #16a34a;
+  }
+
+  .owner-row-inactive {
+    opacity: .68;
+    background: #fafafa;
+  }
+
   .owner-table {
     width: 100%;
     border-collapse: collapse;
@@ -320,7 +347,7 @@
     <article class="owner-card">
       <span class="owner-card-label">Restaurantes cadastrados</span>
       <strong>{{ data.restaurant_count }}</strong>
-      <small>{{ data.active_restaurants }} com pedidos neste mês</small>
+      <small>{{ data.active_restaurants }} ativo(s) · {{ data.restaurants_with_orders_month }} com pedidos neste mês</small>
     </article>
 
     <article class="owner-card">
@@ -332,7 +359,7 @@
     <article class="owner-card">
       <span class="owner-card-label">Receita mensal prevista</span>
       <strong>{{ data.monthly_revenue_formatted }}</strong>
-      <small>{{ data.restaurant_count }} restaurante(s) x {{ data.monthly_price_formatted }}</small>
+      <small>{{ data.active_restaurants }} restaurante(s) ativo(s) x {{ data.monthly_price_formatted }}</small>
     </article>
 
     <article class="owner-card {% if data.critical_issues > 0 %}owner-card-danger{% endif %}">
@@ -401,6 +428,7 @@
               <th>Pedidos</th>
               <th>Último pedido</th>
               <th>Volume</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -413,10 +441,17 @@
                 <td>{{ restaurant['orders_month'] }}</td>
                 <td>{{ restaurant['last_order_at'] or 'Sem pedidos no mês' }}</td>
                 <td>{{ restaurant['gross_volume']|currency }}</td>
+                <td>
+                  {% if restaurant['is_active'] %}
+                    <span class="owner-pill owner-pill-success">Ativo</span>
+                  {% else %}
+                    <span class="owner-pill owner-pill-danger">Inativo</span>
+                  {% endif %}
+                </td>
               </tr>
             {% else %}
               <tr>
-                <td colspan="4">Nenhum restaurante cadastrado ainda.</td>
+                <td colspan="5">Nenhum restaurante cadastrado ainda.</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -443,6 +478,68 @@
       </div>
     </section>
   </div>
+
+  <section class="owner-card">
+    <div class="owner-section-title">
+      <h3>Controle de restaurantes</h3>
+      <span>Ativar/inativar manualmente</span>
+    </div>
+
+    <div class="owner-table-wrap">
+      <table class="owner-table">
+        <thead>
+          <tr>
+            <th>Restaurante</th>
+            <th>Modo</th>
+            <th>Status</th>
+            <th>Pedidos</th>
+            <th>Último pedido</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for restaurant in data.restaurants %}
+            <tr class="{% if not restaurant['is_active'] %}owner-row-inactive{% endif %}">
+              <td>
+                {{ restaurant['restaurant_name'] }}
+                <span class="muted">{{ restaurant['owner_name'] }} · {{ restaurant['email'] }}</span>
+              </td>
+              <td>
+                {% if restaurant['service_mode'] == 'digital_menu' %}
+                  Cardápio digital
+                {% else %}
+                  Cardápio + pedido + pagamento
+                {% endif %}
+              </td>
+              <td>
+                {% if restaurant['is_active'] %}
+                  <span class="owner-pill owner-pill-success">Ativo</span>
+                {% else %}
+                  <span class="owner-pill owner-pill-danger">Inativo</span>
+                {% endif %}
+              </td>
+              <td>{{ restaurant['total_orders'] }}</td>
+              <td>{{ restaurant['last_order_at'] or 'Sem pedidos' }}</td>
+              <td>
+                <form class="owner-inline-form" method="post" action="{{ url_for('owner_admin.toggle_restaurant_status', restaurant_id=restaurant['id']) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf }}">
+                  {% if restaurant['is_active'] %}
+                    <button class="owner-action-btn owner-action-btn-danger" type="submit">Inativar</button>
+                  {% else %}
+                    <button class="owner-action-btn owner-action-btn-success" type="submit">Ativar</button>
+                  {% endif %}
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="6">Nenhum restaurante cadastrado ainda.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <div class="owner-grid-2">
     <section class="owner-card">
@@ -478,7 +575,7 @@
             <strong>Mensalidade padrão</strong>
             <span class="owner-pill owner-pill-neutral">Manual</span>
           </div>
-          <p>{{ data.monthly_price_formatted }} por restaurante. A confirmação de pago/pendente deve ser integrada ao Mercado Pago/PIX no próximo passo.</p>
+          <p>{{ data.monthly_price_formatted }} por restaurante ativo. Use o controle acima para inativar manualmente restaurantes inadimplentes ou pausados.</p>
         </div>
 
         <div class="owner-payment-row">
@@ -486,7 +583,7 @@
             <strong>Receita prevista</strong>
             <span class="owner-pill owner-pill-success">{{ data.monthly_revenue_formatted }}</span>
           </div>
-          <p>Cálculo automático com base na quantidade de restaurantes cadastrados.</p>
+          <p>Cálculo automático com base na quantidade de restaurantes ativos.</p>
         </div>
       </div>
     </section>
