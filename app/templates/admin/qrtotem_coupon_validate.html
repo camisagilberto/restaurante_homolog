@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Validar cupom QRTotem{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Validação do atendente</p>
+    <h2>Validar cupom QRTotem</h2>
+    <p class="muted">Digite o código numérico de 6 dígitos apresentado pelo cliente. Confirme o uso somente após verificar se o consumo atingiu o valor mínimo informado.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('admin.coupons') }}">Promoções</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" class="stacked-form coupon-code-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="lookup">
+    <label for="code">Código numérico</label>
+    <input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" value="{{ code }}" placeholder="Ex.: 123456" required>
+    <button type="submit" class="btn btn-primary">Consultar código</button>
+  </form>
+</section>
+
+{% if lookup_result %}
+<section class="panel coupon-validation-result">
+  <p class="eyebrow">Cupom encontrado</p>
+  <h3>{{ lookup_result['campaign_title'] }}</h3>
+  <div class="coupon-rule-list">
+    <span>Desconto: <strong>{{ lookup_result['value']|currency }}</strong></span>
+    <span>Valor mínimo de consumo: <strong>{{ lookup_result['min_purchase_amount']|currency }}</strong></span>
+    <span>Cliente: <strong>{{ lookup_result['customer_name'] }}</strong></span>
+    <span>E-mail: <strong>{{ lookup_result['customer_email'] }}</strong></span>
+    <span>Código válido até: <strong>{{ lookup_result['code_expires_at'] }}</strong></span>
+  </div>
+  <div class="status-callout warning">
+    <strong>Antes de confirmar</strong>
+    <span>Confirme que o cliente consumiu pelo menos {{ lookup_result['min_purchase_amount']|currency }}. Depois de validado, este cupom não poderá ser usado novamente.</span>
+  </div>
+  <form method="post" class="stacked-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="confirm">
+    <input type="hidden" name="claim_id" value="{{ lookup_result['id'] }}">
+    <button type="submit" class="btn btn-primary">Confirmar uso do cupom</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Últimos cupons QRTotem validados neste restaurante</h3>
+    <span class="muted">Histórico simples</span>
+  </div>
+  {% if recent_uses %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Data/hora</th>
+            <th>Cupom</th>
+            <th>Cliente</th>
+            <th>Valor</th>
+            <th>Mínimo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in recent_uses %}
+            <tr>
+              <td>{{ item['used_at'] or item['updated_at'] }}</td>
+              <td>{{ item['campaign_title'] }}</td>
+              <td>{{ item['customer_name'] }}<br><small>{{ item['customer_email'] }}</small></td>
+              <td>{{ item['value']|currency }}</td>
+              <td>{{ item['min_purchase_amount']|currency }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhum cupom QRTotem validado neste restaurante ainda.</p>
+  {% endif %}
+</section>
+{% endblock %}
