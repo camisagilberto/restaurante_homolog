@@ -1714,3 +1714,74 @@ summary:focus-visible {
 .summary-strip--compact {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
+
+.coupon-trackable-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.coupon-trackable-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(30, 30, 30, .08);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .06);
+}
+
+.coupon-trackable-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.coupon-trackable-head h3 { margin: 0; }
+.coupon-trackable-head strong { font-size: 1.45rem; color: #f97316; white-space: nowrap; }
+
+.coupon-rule-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: .92rem;
+}
+
+.coupon-code-box {
+  display: grid;
+  gap: 4px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  text-align: center;
+}
+
+.coupon-code-box span { color: #9a3412; font-weight: 800; }
+.coupon-code-box strong { font-size: 2.35rem; letter-spacing: .18em; color: #1e1e1e; }
+.coupon-code-box small { color: #64748b; }
+
+.status-callout {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #475569;
+}
+.status-callout.success { background: #dcfce7; color: #166534; }
+.status-callout.warning { background: #fef3c7; color: #92400e; }
+
+.simple-table-wrap { width: 100%; overflow-x: auto; }
+.simple-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+.simple-table th, .simple-table td { padding: 12px; border-bottom: 1px solid rgba(30, 30, 30, .08); text-align: left; vertical-align: top; }
+.simple-table th { color: #64748b; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; }
+.simple-table small { color: #64748b; }
+.form-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-grid-2 label { display: grid; gap: 8px; }
+.form-full { grid-column: 1 / -1; }
+.checkbox-line { display: flex !important; align-items: center; gap: 8px; }
