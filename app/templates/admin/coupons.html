@@ -1,31 +1,30 @@
 {% extends 'base.html' %}
-{% block title %}Cupons{% endblock %}
+{% block title %}Promoções{% endblock %}
 
 {% block content %}
 <section class="hero-card hero-card--table">
   <div class="hero-card-copy">
-    <p class="eyebrow">Produtos promocionais</p>
+    <p class="eyebrow">Promoções do restaurante</p>
     <div class="table-title-row">
-      <h2>{{ profile.restaurant_name or 'Cupons' }}</h2>
+      <h2>{{ profile.restaurant_name or 'Promoções' }}</h2>
       <span class="badge-inline">{{ profile.username or 'Usuário' }}</span>
     </div>
-    <p class="muted">Cadastre aqui somente os itens promocionais exibidos na página de cupons do cliente.</p>
-    <p class="muted">Estes produtos não se misturam com os produtos do cardápio principal.</p>
+    <p class="muted">Cadastre aqui as promoções livres exibidas para o cliente. Elas não expiram, não geram código e podem ser usadas quantas vezes o cliente quiser.</p>
+    <p class="muted">Os cupons rastreáveis do QRTotem serão tratados em outra área, separada dessas promoções.</p>
   </div>
 
   <div class="hero-actions">
-    <a class="btn btn-secondary" href="{{ url_for('admin.validate_coupon_code') }}">Validar cupom</a>
-    <a class="btn btn-primary" href="{{ url_for('client.send_promotions') }}">Enviar promoções</a>
+    <a class="btn btn-primary" href="{{ url_for('client.send_promotions') }}">Enviar mensagens</a>
   </div>
 </section>
 
 <section class="summary-strip">
   <div class="summary-card">
-    <span class="summary-label">Cupons cadastrados</span>
+    <span class="summary-label">Promoções cadastradas</span>
     <strong>{{ products|length }}</strong>
   </div>
   <div class="summary-card">
-    <span class="summary-label">Cupons ativos</span>
+    <span class="summary-label">Promoções ativas</span>
     <strong>{{ active_count }}</strong>
   </div>
 </section>
@@ -48,7 +47,7 @@
 
     <div class="form-row">
       <div>
-        <label>Preço promocional</label>
+        <label>Preço promocional ou valor</label>
         <input type="text" name="price" placeholder="19,90" required>
       </div>
 
@@ -65,19 +64,19 @@
 
     <label class="check-inline">
       <input type="checkbox" name="active" checked>
-      Cupom ativo
+      Promoção ativa
     </label>
 
-    <button type="submit" class="btn btn-primary">Salvar cupom</button>
+    <button type="submit" class="btn btn-primary">Salvar promoção</button>
   </form>
 </section>
 
 <section class="panel">
   <div class="section-heading">
-    <h3>Catálogo de cupons</h3>
+    <h3>Lista de promoções</h3>
 
     <form method="get" class="search-form">
-      <input type="search" name="q" value="{{ query }}" placeholder="Buscar cupom...">
+      <input type="search" name="q" value="{{ query }}" placeholder="Buscar promoção...">
       <button class="btn btn-secondary" type="submit">Buscar</button>
     </form>
   </div>
@@ -110,7 +109,7 @@
             </button>
           </form>
 
-          <form method="post" action="{{ url_for('admin.delete_coupon_route', product_id=product['id']) }}" data-password-confirm="Digite a senha do usuário para excluir este cupom.">
+          <form method="post" action="{{ url_for('admin.delete_coupon_route', product_id=product['id']) }}" data-password-confirm="Digite a senha do usuário para excluir este promoção.">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="manager_password" value="">
             <button class="btn btn-danger" type="submit">Excluir</button>
@@ -119,7 +118,7 @@
       </article>
     {% else %}
       <div class="empty-state">
-        <h3>Nenhum cupom encontrado</h3>
+        <h3>Nenhum promoção encontrado</h3>
         <p class="muted">Tente outro termo de busca ou cadastre um novo item promocional.</p>
       </div>
     {% endfor %}
