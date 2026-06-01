@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Restaurante indisponível{% endblock %}
+
+{% block content %}
+<section class="card" style="max-width: 680px; margin: 40px auto; text-align: center;">
+  <p class="eyebrow">QRTotem</p>
+  <h2>{{ profile['restaurant_name'] if profile else 'Restaurante indisponível' }}</h2>
+  <p>{{ message or 'Este restaurante está temporariamente indisponível no QRTotem.' }}</p>
+  <p class="muted">Tente novamente mais tarde ou fale com a equipe do restaurante.</p>
+</section>
+{% endblock %}
