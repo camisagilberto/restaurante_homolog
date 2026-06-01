@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Validar cupom{% endblock %}
+
+{% block content %}
+<section class="hero-card hero-card--table">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Validação de cupom</p>
+    <div class="table-title-row">
+      <h2>{{ profile.restaurant_name or 'Validar cupom' }}</h2>
+      <span class="badge-inline">Código numérico</span>
+    </div>
+    <p class="muted">Digite o código apresentado pelo cliente. Códigos gerados pelos clientes duram apenas 10 minutos.</p>
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('admin.coupons') }}">Voltar aos cupons</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form method="post" action="{{ url_for('admin.validate_coupon_code') }}" class="stacked-form coupon-validator-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="lookup">
+
+    <label for="code">Código do cupom</label>
+    <input id="code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" value="{{ code or '' }}" placeholder="Ex.: 483921" required autofocus>
+
+    <button type="submit" class="btn btn-primary">Verificar código</button>
+  </form>
+</section>
+
+{% if lookup_result and lookup_result['status'] == 'code_generated' %}
+<section class="panel coupon-validation-result">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">Cupom válido</p>
+      <h3>{{ lookup_result['coupon_name'] }}</h3>
+    </div>
+    <span class="status-pill status-success">Válido</span>
+  </div>
+
+  <div class="summary-strip summary-strip--compact">
+    <div class="summary-card">
+      <span class="summary-label">Cliente</span>
+      <strong>{{ lookup_result['customer_name'] }}</strong>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Usuário</span>
+      <strong>{{ lookup_result['customer_username'] }}</strong>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Código</span>
+      <strong>{{ lookup_result['code'] }}</strong>
+    </div>
+  </div>
+
+  <p class="muted">Confira os dados antes de confirmar. Depois de confirmado, este código não poderá ser usado novamente.</p>
+
+  <form method="post" action="{{ url_for('admin.validate_coupon_code') }}" class="form-actions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="confirm">
+    <input type="hidden" name="redemption_id" value="{{ lookup_result['id'] }}">
+    <button type="submit" class="btn btn-primary">Confirmar uso do cupom</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Últimos resgates</h3>
+    <span class="muted">Acompanhamento simples para operação</span>
+  </div>
+
+  <div class="admin-list">
+    {% for redemption in recent_redemptions %}
+      <article class="admin-row">
+        <div class="admin-row-main">
+          <div>
+            <h4>{{ redemption['coupon_name'] }}</h4>
+            <p class="muted">{{ redemption['customer_name'] }} · @{{ redemption['customer_username'] }}</p>
+            {% if redemption['code'] %}<p class="product-desc">Código: {{ redemption['code'] }}</p>{% endif %}
+          </div>
+          <span class="status-pill {% if redemption['status'] == 'used' %}status-success{% elif redemption['status'] == 'expired' %}status-muted{% elif redemption['status'] == 'code_generated' %}status-warning{% else %}status-muted{% endif %}">
+            {% if redemption['status'] == 'reserved' %}Reservado{% elif redemption['status'] == 'code_generated' %}Código gerado{% elif redemption['status'] == 'used' %}Usado{% elif redemption['status'] == 'expired' %}Expirado{% else %}{{ redemption['status'] }}{% endif %}
+          </span>
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state">
+        <h3>Nenhum resgate registrado</h3>
+        <p class="muted">Os resgates de cupons aparecerão aqui.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
