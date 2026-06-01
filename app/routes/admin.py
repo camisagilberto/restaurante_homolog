@@ -399,7 +399,9 @@ def validate_coupon_code():
             ).fetchone()
 
             if not row:
-                flash('Código não encontrado.', 'error')
+                flash('Código não encontrado. Consulte o código novamente antes de confirmar.', 'error')
+            elif code and str(row['code'] or '') != code:
+                flash('Código não confere com a consulta realizada. Consulte novamente.', 'error')
             elif row['status'] != 'code_generated':
                 flash('Este código não está mais disponível para uso.', 'error')
             elif row['code_expires_at'] and datetime.fromisoformat(str(row['code_expires_at']).replace('Z', '+00:00')).replace(tzinfo=None) <= datetime.utcnow():
@@ -552,7 +554,7 @@ def validate_qrtotem_coupon_code():
     profile = _profile_context(db)
     code = ''.join(ch for ch in str(request.form.get('code') or '').strip() if ch.isdigit())
     action = str(request.form.get('action') or 'lookup').strip().lower()
-    claim_id = request.form.get('redemption_id')
+    claim_id = request.form.get('redemption_id') or request.form.get('claim_id')
     lookup_result = None
 
     if request.method == 'POST':
@@ -573,7 +575,9 @@ def validate_qrtotem_coupon_code():
             ).fetchone()
 
             if not row:
-                flash('Código não encontrado.', 'error')
+                flash('Código não encontrado. Consulte o código novamente antes de confirmar.', 'error')
+            elif code and str(row['code'] or '') != code:
+                flash('Código não confere com a consulta realizada. Consulte novamente.', 'error')
             elif row['status'] != 'code_generated':
                 flash('Este código não está mais disponível para uso.', 'error')
             elif row['code_expires_at'] and datetime.fromisoformat(str(row['code_expires_at']).replace('Z', '+00:00')).replace(tzinfo=None) <= datetime.utcnow():
