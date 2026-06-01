@@ -35,6 +35,7 @@ from ..services.payment_service import (
     PROVIDER_MERCADO_PAGO,
     create_pix_payment_for_order,
     fetch_mercadopago_payment_status,
+    humanize_payment_error,
     payment_connection_summary,
 )
 from ..services.table_service import build_qr_code_data_uri, parse_table_count, save_table_count
@@ -1655,7 +1656,7 @@ def finalize_order():
             ticket_url=pix_payment.get('ticket_url', ''),
         )
     except (ValidationError, RuntimeError) as exc:
-        message = str(exc)
+        message = humanize_payment_error(exc)
         if order_id:
             mark_order_payment_error(db, restaurant_id=restaurant_id, order_id=order_id, error=message)
         if _wants_json():
@@ -1754,7 +1755,7 @@ def payment_order_status(order_id: int):
         return jsonify(success=False, message='Este pedido não possui pagamento Pix.'), 400
 
     payment_status = str(_row_get(order, 'payment_status', 'pending') or 'pending')
-    payment_error = str(_row_get(order, 'payment_error', '') or '')
+    payment_error = humanize_payment_error(_row_get(order, 'payment_error', '') or '') if _row_get(order, 'payment_error', '') else ''
 
     messages = {
         'pending': 'Pagamento ainda não confirmado. Assim que o Pix for aprovado, o pedido será enviado para a cozinha automaticamente.',
@@ -1886,7 +1887,7 @@ def verify_payment_order(order_id: int):
         flash(message, 'info')
         return redirect(url_for('client.payment_order', order_id=order_id))
     except RuntimeError as exc:
-        message = str(exc)
+        message = humanize_payment_error(exc)
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
