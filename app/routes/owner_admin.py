@@ -94,6 +94,11 @@ def _get_dashboard_data(db) -> dict:
 
     active_restaurants = _safe_count(
         db,
+        'SELECT COUNT(*) FROM restaurant_profiles WHERE COALESCE(is_active, 1) = 1',
+    ) if _table_exists(db, 'restaurant_profiles') else 0
+
+    restaurants_with_orders_month = _safe_count(
+        db,
         '''
         SELECT COUNT(DISTINCT restaurant_id)
           FROM orders
@@ -178,6 +183,8 @@ def _get_dashboard_data(db) -> dict:
                 rp.restaurant_name,
                 rp.owner_name,
                 rp.email,
+                COALESCE(rp.is_active, 1) AS is_active,
+                COALESCE(rp.service_mode, 'full_order_payment') AS service_mode,
                 COALESCE(COUNT(o.id), 0) AS orders_month,
                 MAX(o.created_at) AS last_order_at,
                 COALESCE(SUM(o.total_amount), 0) AS gross_volume
@@ -190,6 +197,27 @@ def _get_dashboard_data(db) -> dict:
              LIMIT 5
             ''',
             (month,),
+        ).fetchall()
+
+    restaurants = []
+    if _table_exists(db, 'restaurant_profiles'):
+        restaurants = db.execute(
+            '''
+            SELECT
+                rp.id,
+                rp.restaurant_name,
+                rp.owner_name,
+                rp.email,
+                COALESCE(rp.is_active, 1) AS is_active,
+                COALESCE(rp.service_mode, 'full_order_payment') AS service_mode,
+                COUNT(o.id) AS total_orders,
+                MAX(o.created_at) AS last_order_at
+              FROM restaurant_profiles rp
+              LEFT JOIN orders o
+                ON o.restaurant_id = rp.id
+             GROUP BY rp.id
+             ORDER BY COALESCE(rp.is_active, 1) DESC, rp.restaurant_name ASC
+            '''
         ).fetchall()
 
     growth = []
@@ -276,7 +304,7 @@ def _get_dashboard_data(db) -> dict:
         },
     ]
 
-    monthly_revenue = restaurant_count * MONTHLY_PRICE
+    monthly_revenue = active_restaurants * MONTHLY_PRICE
     critical_issues = stale_orders + restaurants_without_active_products
     max_growth = max([int(row['total_orders'] or 0) for row in growth], default=0)
 
@@ -285,6 +313,7 @@ def _get_dashboard_data(db) -> dict:
         'monthly_price_formatted': format_currency(MONTHLY_PRICE),
         'restaurant_count': restaurant_count,
         'active_restaurants': active_restaurants,
+        'restaurants_with_orders_month': restaurants_with_orders_month,
         'orders_month': orders_month,
         'orders_variation': _percentage_change(orders_month, orders_previous_month),
         'monthly_revenue': monthly_revenue,
@@ -293,6 +322,7 @@ def _get_dashboard_data(db) -> dict:
         'radar_total': radar_total,
         'critical_issues': critical_issues,
         'top_restaurants': top_restaurants,
+        'restaurants': restaurants,
         'growth': growth,
         'max_growth': max_growth,
         'alerts': alerts,
@@ -345,3 +375,28 @@ def dashboard():
         data=dashboard_data,
         csrf=csrf_token(),
     )
+
+
+@owner_admin_bp.route('/restaurantes/<int:restaurant_id>/toggle', methods=['POST'])
+@_owner_login_required
+def toggle_restaurant_status(restaurant_id: int):
+    db = get_db()
+    profile = db.execute(
+        'SELECT id, restaurant_name, COALESCE(is_active, 1) AS is_active FROM restaurant_profiles WHERE id = ? LIMIT 1',
+        (restaurant_id,),
+    ).fetchone()
+
+    if not profile:
+        flash('Restaurante não encontrado.', 'error')
+        return redirect(url_for('owner_admin.dashboard'))
+
+    new_status = 0 if int(profile['is_active'] or 0) else 1
+    db.execute(
+        'UPDATE restaurant_profiles SET is_active = ? WHERE id = ?',
+        (new_status, restaurant_id),
+    )
+    db.commit()
+
+    action = 'ativado' if new_status else 'inativado'
+    flash(f'Restaurante {profile["restaurant_name"]} {action} com sucesso.', 'success')
+    return redirect(url_for('owner_admin.dashboard'))
