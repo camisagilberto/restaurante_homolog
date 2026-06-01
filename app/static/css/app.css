@@ -1649,3 +1649,68 @@ summary:focus-visible {
   color: var(--muted);
   font-size: .92rem;
 }
+
+/* Bloco 8B/9 - avisos e cupons rastreáveis */
+.inactive-owner-banner {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(217, 119, 6, .28);
+  background: rgba(217, 119, 6, .10);
+  color: var(--graphite);
+  box-shadow: var(--shadow-soft);
+}
+
+.inactive-owner-banner strong {
+  font-weight: 800;
+  color: var(--warning);
+}
+
+.coupon-action-box {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.coupon-code-display {
+  width: 100%;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px dashed rgba(249, 115, 22, .45);
+  background: var(--primary-soft);
+  color: var(--graphite);
+  font-size: clamp(1.8rem, 8vw, 3rem);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-align: center;
+}
+
+.small-text {
+  font-size: .88rem;
+}
+
+.coupon-validator-form {
+  max-width: 520px;
+}
+
+.coupon-validator-form input[inputmode="numeric"],
+.coupon-validator-form input[name="code"] {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-align: center;
+}
+
+.coupon-validation-result {
+  border-color: rgba(22, 163, 74, .24);
+  background: rgba(22, 163, 74, .045);
+}
+
+.summary-strip--compact {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
