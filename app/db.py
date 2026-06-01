@@ -151,8 +151,11 @@ CREATE TABLE IF NOT EXISTS qrtotem_coupon_campaigns (
     min_purchase_amount REAL NOT NULL CHECK (min_purchase_amount > 0),
     total_quantity INTEGER NOT NULL DEFAULT 0 CHECK (total_quantity >= 0),
     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+    restaurant_id INTEGER,
+    credit_allocation_id INTEGER,
     starts_at TEXT,
     ends_at TEXT,
+    expires_at TEXT,
     created_by TEXT NOT NULL DEFAULT 'owner',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -182,6 +185,42 @@ CREATE TABLE IF NOT EXISTS qrtotem_coupon_redemptions (
     FOREIGN KEY (used_restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE SET NULL,
     FOREIGN KEY (validated_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
     CHECK (status IN ('code_generated', 'used', 'expired', 'cancelled'))
+);
+
+
+CREATE TABLE IF NOT EXISTS qrtotem_restaurant_credit_distributions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    notes TEXT NOT NULL DEFAULT '',
+    amount_per_restaurant REAL NOT NULL CHECK (amount_per_restaurant > 0),
+    validity_days INTEGER NOT NULL DEFAULT 30 CHECK (validity_days > 0),
+    expires_at TEXT NOT NULL,
+    active_restaurants_count INTEGER NOT NULL DEFAULT 0,
+    inactive_restaurants_count INTEGER NOT NULL DEFAULT 0,
+    total_credit_amount REAL NOT NULL DEFAULT 0,
+    created_by TEXT NOT NULL DEFAULT 'owner',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS qrtotem_restaurant_credit_allocations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    distribution_id INTEGER NOT NULL,
+    restaurant_id INTEGER NOT NULL,
+    restaurant_name_snapshot TEXT NOT NULL DEFAULT '',
+    owner_name_snapshot TEXT NOT NULL DEFAULT '',
+    email_snapshot TEXT NOT NULL DEFAULT '',
+    restaurant_was_active INTEGER NOT NULL DEFAULT 0 CHECK (restaurant_was_active IN (0, 1)),
+    status TEXT NOT NULL DEFAULT 'not_received',
+    initial_amount REAL NOT NULL DEFAULT 0 CHECK (initial_amount >= 0),
+    allocated_amount REAL NOT NULL DEFAULT 0 CHECK (allocated_amount >= 0),
+    expires_at TEXT,
+    not_received_reason TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (distribution_id) REFERENCES qrtotem_restaurant_credit_distributions(id) ON DELETE CASCADE,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
+    CHECK (status IN ('available', 'not_received', 'expired', 'consumed'))
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
@@ -655,6 +694,117 @@ def _ensure_qrtotem_coupon_tables(db: sqlite3.Connection) -> None:
     """, (now, now, now, now))
 
 
+
+def _ensure_restaurant_credit_tables(db: sqlite3.Connection) -> None:
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS qrtotem_restaurant_credit_distributions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            notes TEXT NOT NULL DEFAULT '',
+            amount_per_restaurant REAL NOT NULL CHECK (amount_per_restaurant > 0),
+            validity_days INTEGER NOT NULL DEFAULT 30 CHECK (validity_days > 0),
+            expires_at TEXT NOT NULL,
+            active_restaurants_count INTEGER NOT NULL DEFAULT 0,
+            inactive_restaurants_count INTEGER NOT NULL DEFAULT 0,
+            total_credit_amount REAL NOT NULL DEFAULT 0,
+            created_by TEXT NOT NULL DEFAULT 'owner',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS qrtotem_restaurant_credit_allocations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            distribution_id INTEGER NOT NULL,
+            restaurant_id INTEGER NOT NULL,
+            restaurant_name_snapshot TEXT NOT NULL DEFAULT '',
+            owner_name_snapshot TEXT NOT NULL DEFAULT '',
+            email_snapshot TEXT NOT NULL DEFAULT '',
+            restaurant_was_active INTEGER NOT NULL DEFAULT 0 CHECK (restaurant_was_active IN (0, 1)),
+            status TEXT NOT NULL DEFAULT 'not_received',
+            initial_amount REAL NOT NULL DEFAULT 0 CHECK (initial_amount >= 0),
+            allocated_amount REAL NOT NULL DEFAULT 0 CHECK (allocated_amount >= 0),
+            expires_at TEXT,
+            not_received_reason TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (distribution_id) REFERENCES qrtotem_restaurant_credit_distributions(id) ON DELETE CASCADE,
+            FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
+            CHECK (status IN ('available', 'not_received', 'expired', 'consumed'))
+        )
+    """)
+
+    for column_def in [
+        "title TEXT NOT NULL DEFAULT ''",
+        "notes TEXT NOT NULL DEFAULT ''",
+        "amount_per_restaurant REAL NOT NULL DEFAULT 0",
+        "validity_days INTEGER NOT NULL DEFAULT 30",
+        "expires_at TEXT",
+        "active_restaurants_count INTEGER NOT NULL DEFAULT 0",
+        "inactive_restaurants_count INTEGER NOT NULL DEFAULT 0",
+        "total_credit_amount REAL NOT NULL DEFAULT 0",
+        "created_by TEXT NOT NULL DEFAULT 'owner'",
+        "created_at TEXT",
+        "updated_at TEXT",
+    ]:
+        _ensure_column(db, 'qrtotem_restaurant_credit_distributions', column_def)
+
+    for column_def in [
+        "distribution_id INTEGER NOT NULL DEFAULT 0",
+        "restaurant_id INTEGER NOT NULL DEFAULT 0",
+        "restaurant_name_snapshot TEXT NOT NULL DEFAULT ''",
+        "owner_name_snapshot TEXT NOT NULL DEFAULT ''",
+        "email_snapshot TEXT NOT NULL DEFAULT ''",
+        "restaurant_was_active INTEGER NOT NULL DEFAULT 0",
+        "status TEXT NOT NULL DEFAULT 'not_received'",
+        "initial_amount REAL NOT NULL DEFAULT 0",
+        "allocated_amount REAL NOT NULL DEFAULT 0",
+        "expires_at TEXT",
+        "not_received_reason TEXT NOT NULL DEFAULT ''",
+        "created_at TEXT",
+        "updated_at TEXT",
+    ]:
+        _ensure_column(db, 'qrtotem_restaurant_credit_allocations', column_def)
+
+    now = datetime.utcnow().isoformat(timespec='seconds')
+    db.execute("""
+        UPDATE qrtotem_restaurant_credit_distributions
+           SET notes = COALESCE(notes, ''),
+               amount_per_restaurant = COALESCE(amount_per_restaurant, 0),
+               validity_days = COALESCE(validity_days, 30),
+               expires_at = COALESCE(expires_at, datetime(COALESCE(created_at, ?), '+30 days')),
+               active_restaurants_count = COALESCE(active_restaurants_count, 0),
+               inactive_restaurants_count = COALESCE(inactive_restaurants_count, 0),
+               total_credit_amount = COALESCE(total_credit_amount, 0),
+               created_at = COALESCE(created_at, ?),
+               updated_at = COALESCE(updated_at, ?)
+    """, (now, now, now))
+
+    db.execute("""
+        UPDATE qrtotem_restaurant_credit_allocations
+           SET restaurant_name_snapshot = COALESCE(restaurant_name_snapshot, ''),
+               owner_name_snapshot = COALESCE(owner_name_snapshot, ''),
+               email_snapshot = COALESCE(email_snapshot, ''),
+               restaurant_was_active = CASE WHEN restaurant_was_active IN (0, 1) THEN restaurant_was_active ELSE 0 END,
+               status = CASE WHEN status IN ('available', 'not_received', 'expired', 'consumed') THEN status ELSE 'not_received' END,
+               initial_amount = COALESCE(initial_amount, 0),
+               allocated_amount = COALESCE(allocated_amount, 0),
+               not_received_reason = COALESCE(not_received_reason, ''),
+               created_at = COALESCE(created_at, ?),
+               updated_at = COALESCE(updated_at, ?)
+    """, (now, now))
+
+    db.execute("""
+        UPDATE qrtotem_restaurant_credit_allocations
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'available'
+           AND expires_at IS NOT NULL
+           AND datetime(expires_at) <= datetime('now')
+    """)
+
+
 def _migrate_orders(db: sqlite3.Connection) -> None:
     if not _table_exists(db, 'orders'):
         return
@@ -850,6 +1000,16 @@ def _create_indexes(db: sqlite3.Connection) -> None:
                 'CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_restaurant_created ON coupon_redemptions(restaurant_id, created_at)'
             )
 
+    if _table_exists(db, 'qrtotem_restaurant_credit_distributions'):
+        columns = _table_info(db, 'qrtotem_restaurant_credit_distributions')
+        if 'updated_at' in columns:
+            db.execute('UPDATE qrtotem_restaurant_credit_distributions SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+    if _table_exists(db, 'qrtotem_restaurant_credit_allocations'):
+        columns = _table_info(db, 'qrtotem_restaurant_credit_allocations')
+        if 'updated_at' in columns:
+            db.execute('UPDATE qrtotem_restaurant_credit_allocations SET updated_at = COALESCE(updated_at, ?)', (now,))
+
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
 
@@ -923,6 +1083,26 @@ def _create_indexes(db: sqlite3.Connection) -> None:
             )
 
 
+
+    if _table_exists(db, 'qrtotem_restaurant_credit_distributions'):
+        columns = _table_info(db, 'qrtotem_restaurant_credit_distributions')
+        if 'created_at' in columns:
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_qrtotem_credit_distributions_created ON qrtotem_restaurant_credit_distributions(created_at)'
+            )
+
+    if _table_exists(db, 'qrtotem_restaurant_credit_allocations'):
+        columns = _table_info(db, 'qrtotem_restaurant_credit_allocations')
+        if {'distribution_id', 'status'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_qrtotem_credit_allocations_distribution_status ON qrtotem_restaurant_credit_allocations(distribution_id, status)'
+            )
+        if {'restaurant_id', 'status'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_qrtotem_credit_allocations_restaurant_status ON qrtotem_restaurant_credit_allocations(restaurant_id, status)'
+            )
+
+
 def migrate_schema(db: sqlite3.Connection) -> None:
     _migrate_admin_passwords(db)
     _migrate_restaurant_profiles(db)
@@ -930,6 +1110,7 @@ def migrate_schema(db: sqlite3.Connection) -> None:
     _migrate_customer_coupon_users(db)
     _ensure_coupon_redemptions(db)
     _ensure_qrtotem_coupon_tables(db)
+    _ensure_restaurant_credit_tables(db)
     _migrate_orders(db)
     _ensure_restaurant_payment_accounts(db)
     _migrate_order_items(db)
@@ -975,6 +1156,16 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
         columns = _table_info(db, 'qrtotem_coupon_redemptions')
         if 'updated_at' in columns:
             db.execute('UPDATE qrtotem_coupon_redemptions SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+    if _table_exists(db, 'qrtotem_restaurant_credit_distributions'):
+        columns = _table_info(db, 'qrtotem_restaurant_credit_distributions')
+        if 'updated_at' in columns:
+            db.execute('UPDATE qrtotem_restaurant_credit_distributions SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+    if _table_exists(db, 'qrtotem_restaurant_credit_allocations'):
+        columns = _table_info(db, 'qrtotem_restaurant_credit_allocations')
+        if 'updated_at' in columns:
+            db.execute('UPDATE qrtotem_restaurant_credit_allocations SET updated_at = COALESCE(updated_at, ?)', (now,))
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
