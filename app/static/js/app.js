@@ -240,6 +240,17 @@
     });
   }
 
+  function initCouponCodeConfirm() {
+    document.querySelectorAll('[data-coupon-code-confirm]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        const confirmed = confirm('O código numérico terá validade de apenas 10 minutos. Gere o código somente se você for fazer o pagamento neste intervalo. Tem certeza que deseja gerar o código agora?');
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      });
+    });
+  }
+
   function initTableEditor() {
     const trigger = document.querySelector('[data-open-table-editor]');
     if (!trigger) return;
@@ -378,5 +389,6 @@
     initPasswordConfirmForms();
     initKitchenExitGuard();
     initKitchenDelete();
+    initCouponCodeConfirm();
   });
 })();
