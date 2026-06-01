@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 
 from ..db import get_db
@@ -40,6 +42,72 @@ def _restaurant_id(db) -> int | None:
         return profile['id']
 
     return session.get('restaurant_id')
+
+
+def _expire_coupon_redemptions(db) -> None:
+    now = datetime.utcnow().replace(microsecond=0).isoformat(timespec='seconds')
+    db.execute(
+        """
+        UPDATE coupon_redemptions
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'reserved'
+           AND expires_at IS NOT NULL
+           AND datetime(expires_at) <= datetime(?)
+        """,
+        (now,),
+    )
+    db.execute(
+        """
+        UPDATE coupon_redemptions
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'code_generated'
+           AND code_expires_at IS NOT NULL
+           AND datetime(code_expires_at) <= datetime(?)
+        """,
+        (now,),
+    )
+
+
+def _coupon_code_lookup(db, restaurant_id: int, code: str):
+    _expire_coupon_redemptions(db)
+    return db.execute(
+        """
+        SELECT cr.*,
+               p.name AS coupon_name,
+               p.price AS coupon_price,
+               ccu.name AS customer_name,
+               ccu.username AS customer_username,
+               ccu.email AS customer_email
+          FROM coupon_redemptions cr
+          JOIN products p ON p.id = cr.coupon_id
+          JOIN customer_coupon_users ccu ON ccu.id = cr.customer_id
+         WHERE cr.restaurant_id = ?
+           AND cr.code = ?
+         ORDER BY cr.created_at DESC, cr.id DESC
+         LIMIT 1
+        """,
+        (restaurant_id, code),
+    ).fetchone()
+
+
+def _recent_coupon_redemptions(db, restaurant_id: int, limit: int = 12):
+    return db.execute(
+        """
+        SELECT cr.*,
+               p.name AS coupon_name,
+               ccu.name AS customer_name,
+               ccu.username AS customer_username
+          FROM coupon_redemptions cr
+          JOIN products p ON p.id = cr.coupon_id
+          JOIN customer_coupon_users ccu ON ccu.id = cr.customer_id
+         WHERE cr.restaurant_id = ?
+         ORDER BY cr.updated_at DESC, cr.created_at DESC, cr.id DESC
+         LIMIT ?
+        """,
+        (restaurant_id, limit),
+    ).fetchall()
 
 
 def _store_profile_in_session(admin, profile=None) -> None:
@@ -229,6 +297,104 @@ def coupons():
         query=query,
         active_count=active_count,
         profile=profile,
+        csrf=csrf_token(),
+    )
+
+
+@admin_bp.route('/cupons/validar', methods=['GET', 'POST'])
+@login_required
+def validate_coupon_code():
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        flash('Perfil do restaurante não encontrado.', 'error')
+        return redirect(url_for('client.signup'))
+
+    profile = _profile_context(db)
+    code = ''.join(ch for ch in str(request.form.get('code') or '').strip() if ch.isdigit())
+    action = str(request.form.get('action') or 'lookup').strip().lower()
+    redemption_id = request.form.get('redemption_id')
+    lookup_result = None
+
+    if request.method == 'POST':
+        if action == 'confirm':
+            try:
+                redemption_id_int = int(redemption_id or 0)
+            except (TypeError, ValueError):
+                redemption_id_int = 0
+
+            row = db.execute(
+                """
+                SELECT *
+                  FROM coupon_redemptions
+                 WHERE id = ?
+                   AND restaurant_id = ?
+                 LIMIT 1
+                """,
+                (redemption_id_int, restaurant_id),
+            ).fetchone()
+
+            if not row:
+                flash('Código não encontrado.', 'error')
+            elif row['status'] != 'code_generated':
+                flash('Este código não está mais disponível para uso.', 'error')
+            elif row['code_expires_at'] and datetime.fromisoformat(str(row['code_expires_at']).replace('Z', '+00:00')).replace(tzinfo=None) <= datetime.utcnow():
+                db.execute(
+                    "UPDATE coupon_redemptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (redemption_id_int,),
+                )
+                db.commit()
+                flash('Código expirado. Peça para o cliente resgatar ou gerar outro cupom.', 'error')
+            else:
+                db.execute(
+                    """
+                    UPDATE coupon_redemptions
+                       SET status = 'used',
+                           used_at = CURRENT_TIMESTAMP,
+                           validated_by_admin_id = ?,
+                           updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ?
+                       AND restaurant_id = ?
+                       AND status = 'code_generated'
+                    """,
+                    (session.get('admin_id'), redemption_id_int, restaurant_id),
+                )
+                db.commit()
+                flash('Cupom validado e marcado como usado.', 'success')
+                return redirect(url_for('admin.validate_coupon_code'))
+        else:
+            if not code:
+                flash('Digite o código numérico apresentado pelo cliente.', 'error')
+            else:
+                lookup_result = _coupon_code_lookup(db, restaurant_id, code)
+                db.commit()
+
+                if not lookup_result:
+                    flash('Código inválido, expirado ou de outro restaurante.', 'error')
+                elif lookup_result['status'] != 'code_generated':
+                    flash('Código inválido, expirado ou já utilizado.', 'error')
+                elif lookup_result['code_expires_at'] and datetime.fromisoformat(str(lookup_result['code_expires_at']).replace('Z', '+00:00')).replace(tzinfo=None) <= datetime.utcnow():
+                    db.execute(
+                        "UPDATE coupon_redemptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                        (lookup_result['id'],),
+                    )
+                    db.commit()
+                    lookup_result = None
+                    flash('Código expirado. Peça para o cliente gerar outro código.', 'error')
+                else:
+                    flash('Cupom válido. Confira as informações e confirme o uso.', 'success')
+
+    _expire_coupon_redemptions(db)
+    recent_redemptions = _recent_coupon_redemptions(db, restaurant_id)
+    db.commit()
+
+    return render_template(
+        'admin/coupon_validate.html',
+        profile=profile,
+        code=code,
+        lookup_result=lookup_result,
+        recent_redemptions=recent_redemptions,
         csrf=csrf_token(),
     )
 
