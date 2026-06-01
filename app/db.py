@@ -141,6 +141,49 @@ CREATE TABLE IF NOT EXISTS coupon_redemptions (
     CHECK (status IN ('reserved', 'code_generated', 'used', 'expired', 'cancelled'))
 );
 
+
+CREATE TABLE IF NOT EXISTS qrtotem_coupon_campaigns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    coupon_type TEXT NOT NULL DEFAULT 'global',
+    value REAL NOT NULL CHECK (value > 0),
+    min_purchase_amount REAL NOT NULL CHECK (min_purchase_amount > 0),
+    total_quantity INTEGER NOT NULL DEFAULT 0 CHECK (total_quantity >= 0),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+    starts_at TEXT,
+    ends_at TEXT,
+    created_by TEXT NOT NULL DEFAULT 'owner',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (coupon_type IN ('global', 'referral', 'restaurant_credit'))
+);
+
+CREATE TABLE IF NOT EXISTS qrtotem_coupon_redemptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campaign_id INTEGER NOT NULL,
+    customer_id INTEGER,
+    customer_name TEXT NOT NULL DEFAULT '',
+    customer_email TEXT NOT NULL DEFAULT '',
+    customer_username TEXT NOT NULL DEFAULT '',
+    generated_restaurant_id INTEGER,
+    used_restaurant_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'code_generated',
+    code TEXT NOT NULL DEFAULT '',
+    code_generated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    code_expires_at TEXT NOT NULL,
+    used_at TEXT,
+    validated_by_admin_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (campaign_id) REFERENCES qrtotem_coupon_campaigns(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customer_coupon_users(id) ON DELETE SET NULL,
+    FOREIGN KEY (generated_restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE SET NULL,
+    FOREIGN KEY (used_restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE SET NULL,
+    FOREIGN KEY (validated_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+    CHECK (status IN ('code_generated', 'used', 'expired', 'cancelled'))
+);
+
 CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
@@ -496,6 +539,122 @@ def _ensure_coupon_redemptions(db: sqlite3.Connection) -> None:
     """, (now, now, now, now))
 
 
+
+def _ensure_qrtotem_coupon_tables(db: sqlite3.Connection) -> None:
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS qrtotem_coupon_campaigns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            coupon_type TEXT NOT NULL DEFAULT 'global',
+            value REAL NOT NULL CHECK (value > 0),
+            min_purchase_amount REAL NOT NULL CHECK (min_purchase_amount > 0),
+            total_quantity INTEGER NOT NULL DEFAULT 0 CHECK (total_quantity >= 0),
+            active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+            starts_at TEXT,
+            ends_at TEXT,
+            created_by TEXT NOT NULL DEFAULT 'owner',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CHECK (coupon_type IN ('global', 'referral', 'restaurant_credit'))
+        )
+    """)
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS qrtotem_coupon_redemptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            campaign_id INTEGER NOT NULL,
+            customer_id INTEGER,
+            customer_name TEXT NOT NULL DEFAULT '',
+            customer_email TEXT NOT NULL DEFAULT '',
+            customer_username TEXT NOT NULL DEFAULT '',
+            generated_restaurant_id INTEGER,
+            used_restaurant_id INTEGER,
+            status TEXT NOT NULL DEFAULT 'code_generated',
+            code TEXT NOT NULL DEFAULT '',
+            code_generated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            code_expires_at TEXT NOT NULL,
+            used_at TEXT,
+            validated_by_admin_id INTEGER,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (campaign_id) REFERENCES qrtotem_coupon_campaigns(id) ON DELETE CASCADE,
+            FOREIGN KEY (customer_id) REFERENCES customer_coupon_users(id) ON DELETE SET NULL,
+            FOREIGN KEY (generated_restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE SET NULL,
+            FOREIGN KEY (used_restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE SET NULL,
+            FOREIGN KEY (validated_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+            CHECK (status IN ('code_generated', 'used', 'expired', 'cancelled'))
+        )
+    """)
+
+    for column_def in [
+        "title TEXT NOT NULL DEFAULT ''",
+        "description TEXT NOT NULL DEFAULT ''",
+        "coupon_type TEXT NOT NULL DEFAULT 'global'",
+        "value REAL NOT NULL DEFAULT 0",
+        "min_purchase_amount REAL NOT NULL DEFAULT 0",
+        "total_quantity INTEGER NOT NULL DEFAULT 0",
+        "active INTEGER NOT NULL DEFAULT 1",
+        "starts_at TEXT",
+        "ends_at TEXT",
+        "created_by TEXT NOT NULL DEFAULT 'owner'",
+        "created_at TEXT",
+        "updated_at TEXT",
+    ]:
+        _ensure_column(db, 'qrtotem_coupon_campaigns', column_def)
+
+    for column_def in [
+        "campaign_id INTEGER NOT NULL DEFAULT 0",
+        "customer_id INTEGER",
+        "customer_name TEXT NOT NULL DEFAULT ''",
+        "customer_email TEXT NOT NULL DEFAULT ''",
+        "customer_username TEXT NOT NULL DEFAULT ''",
+        "generated_restaurant_id INTEGER",
+        "used_restaurant_id INTEGER",
+        "status TEXT NOT NULL DEFAULT 'code_generated'",
+        "code TEXT NOT NULL DEFAULT ''",
+        "code_generated_at TEXT",
+        "code_expires_at TEXT",
+        "used_at TEXT",
+        "validated_by_admin_id INTEGER",
+        "created_at TEXT",
+        "updated_at TEXT",
+    ]:
+        _ensure_column(db, 'qrtotem_coupon_redemptions', column_def)
+
+    now = datetime.utcnow().isoformat(timespec='seconds')
+    db.execute("""
+        UPDATE qrtotem_coupon_campaigns
+           SET min_purchase_amount = CASE
+                   WHEN COALESCE(min_purchase_amount, 0) < COALESCE(value, 0) + 5 THEN COALESCE(value, 0) + 5
+                   ELSE min_purchase_amount
+               END,
+               coupon_type = CASE
+                   WHEN coupon_type IN ('global', 'referral', 'restaurant_credit') THEN coupon_type
+                   ELSE 'global'
+               END,
+               active = CASE WHEN active IN (0, 1) THEN active ELSE 1 END,
+               created_at = COALESCE(created_at, ?),
+               updated_at = COALESCE(updated_at, ?)
+    """, (now, now))
+
+    db.execute("""
+        UPDATE qrtotem_coupon_redemptions
+           SET status = CASE
+                   WHEN status IN ('code_generated', 'used', 'expired', 'cancelled') THEN status
+                   ELSE 'code_generated'
+               END,
+               code = COALESCE(code, ''),
+               customer_name = COALESCE(customer_name, ''),
+               customer_email = lower(COALESCE(customer_email, '')),
+               customer_username = COALESCE(customer_username, ''),
+               code_generated_at = COALESCE(code_generated_at, ?),
+               code_expires_at = COALESCE(code_expires_at, datetime(?, '+10 minutes')),
+               created_at = COALESCE(created_at, ?),
+               updated_at = COALESCE(updated_at, ?)
+    """, (now, now, now, now))
+
+
 def _migrate_orders(db: sqlite3.Connection) -> None:
     if not _table_exists(db, 'orders'):
         return
@@ -741,12 +900,36 @@ def _create_indexes(db: sqlite3.Connection) -> None:
             )
 
 
+    if _table_exists(db, 'qrtotem_coupon_campaigns'):
+        columns = _table_info(db, 'qrtotem_coupon_campaigns')
+        if {'active', 'coupon_type'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_qrtotem_coupon_campaigns_active_type ON qrtotem_coupon_campaigns(active, coupon_type)'
+            )
+
+    if _table_exists(db, 'qrtotem_coupon_redemptions'):
+        columns = _table_info(db, 'qrtotem_coupon_redemptions')
+        if {'campaign_id', 'status'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_qrtotem_coupon_redemptions_campaign_status ON qrtotem_coupon_redemptions(campaign_id, status)'
+            )
+        if 'code' in columns:
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_qrtotem_coupon_redemptions_code ON qrtotem_coupon_redemptions(code)'
+            )
+        if {'customer_email', 'campaign_id', 'status'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_qrtotem_coupon_redemptions_customer_campaign ON qrtotem_coupon_redemptions(customer_email, campaign_id, status)'
+            )
+
+
 def migrate_schema(db: sqlite3.Connection) -> None:
     _migrate_admin_passwords(db)
     _migrate_restaurant_profiles(db)
     _migrate_products(db)
     _migrate_customer_coupon_users(db)
     _ensure_coupon_redemptions(db)
+    _ensure_qrtotem_coupon_tables(db)
     _migrate_orders(db)
     _ensure_restaurant_payment_accounts(db)
     _migrate_order_items(db)
@@ -781,6 +964,17 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
 
         if 'updated_at' in columns:
             db.execute('UPDATE coupon_redemptions SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+
+    if _table_exists(db, 'qrtotem_coupon_campaigns'):
+        columns = _table_info(db, 'qrtotem_coupon_campaigns')
+        if 'updated_at' in columns:
+            db.execute('UPDATE qrtotem_coupon_campaigns SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+    if _table_exists(db, 'qrtotem_coupon_redemptions'):
+        columns = _table_info(db, 'qrtotem_coupon_redemptions')
+        if 'updated_at' in columns:
+            db.execute('UPDATE qrtotem_coupon_redemptions SET updated_at = COALESCE(updated_at, ?)', (now,))
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
