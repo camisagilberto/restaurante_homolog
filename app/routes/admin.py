@@ -29,6 +29,7 @@ def _profile_context(db):
         'cell_phone': session.get('restaurant_cell_phone', ''),
         'username': session.get('admin_username', ''),
         'public_token': session.get('restaurant_public_token', ''),
+        'is_active': session.get('restaurant_is_active', 1),
     }
 
 
@@ -59,6 +60,7 @@ def _store_profile_in_session(admin, profile=None) -> None:
         session['restaurant_order_payment_mode'] = profile['order_payment_mode'] if 'order_payment_mode' in profile.keys() else 'pay_after'
         service_mode = profile['service_mode'] if 'service_mode' in profile.keys() else 'full_order_payment'
         session['restaurant_service_mode'] = service_mode if service_mode in {'digital_menu', 'full_order_payment'} else 'full_order_payment'
+        session['restaurant_is_active'] = int(profile['is_active'] if 'is_active' in profile.keys() else 1)
         session['restaurant_table_count'] = profile['table_count'] if 'table_count' in profile.keys() else 0
         session['restaurant_public_token'] = profile['public_token'] if 'public_token' in profile.keys() else ''
         session['restaurant_slug'] = profile['slug'] if 'slug' in profile.keys() else ''
