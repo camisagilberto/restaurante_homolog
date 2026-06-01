@@ -28,7 +28,7 @@
       {% if is_coupon_page and is_client_mirror %}
         Esta é a página espelho dos cupons. Os mesmos itens promocionais aparecerão para os clientes que acessarem os cupons pelo QR Code.
       {% elif is_coupon_page and can_order %}
-        Escolha os itens promocionais, adicione ao carrinho e finalize junto com os demais produtos.
+        Resgate um cupom e gere o código numérico somente quando estiver no caixa para usar em até 10 minutos.
       {% elif is_coupon_page %}
         Veja os cupons disponíveis. O acesso aos cupons mantém o restaurante conectado aos clientes cadastrados.
       {% elif is_client_mirror %}
@@ -116,7 +116,30 @@
               <div class="product-price">{{ product['price']|currency }}</div>
             </div>
 
-            {% if can_order %}
+            {% if is_coupon_page and not is_client_mirror %}
+              {% set redemption = (coupon_redemptions|default({})).get(product['id']) %}
+              <div class="coupon-action-box">
+                {% if redemption and redemption.status == 'reserved' %}
+                  <span class="status-pill status-warning">Cupom resgatado</span>
+                  <p class="muted">Reservado até {{ redemption.expires_label }}.</p>
+                  <form method="post" action="{{ url_for('client.generate_coupon_code', redemption_id=redemption.id) }}" data-coupon-code-confirm>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary btn-block">Gerar código numérico</button>
+                  </form>
+                  <p class="muted small-text">O código terá validade de 10 minutos após ser gerado.</p>
+                {% elif redemption and redemption.status == 'code_generated' %}
+                  <span class="status-pill status-success">Código gerado</span>
+                  <div class="coupon-code-display" aria-label="Código do cupom">{{ redemption.code }}</div>
+                  <p class="muted">Mostre este número ao atendente. Válido até {{ redemption.code_expires_label }}.</p>
+                {% else %}
+                  <form method="post" action="{{ url_for('client.redeem_coupon', coupon_id=product['id']) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary btn-block">Resgatar cupom</button>
+                  </form>
+                  <p class="muted small-text">Depois de resgatado, gere o código apenas quando estiver no caixa.</p>
+                {% endif %}
+              </div>
+            {% elif can_order %}
               <div class="quantity-control">
                 <button type="button" class="icon-btn" data-qty-dec aria-label="Diminuir">−</button>
                 <input type="number" min="0" value="{{ (cart_quantities|default({})).get(product['id'], 0) }}" class="qty-input" data-qty-input>
