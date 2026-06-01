@@ -494,11 +494,11 @@ def _render_client_menu(
 
     current_customer = _current_customer(db, profile['id'])
     radar_enabled = bool(current_customer and current_customer['radar_enabled'])
+    # A página acessada pelo botão "Cupons" é, no MVP, uma página de PROMOÇÕES
+    # cadastradas livremente pelo restaurante. Estas promoções não expiram, não geram
+    # código e não têm rastreio de uso. Cupons rastreáveis do QRTotem serão tratados
+    # em um módulo separado, para não misturar regras diferentes.
     coupon_redemptions = {}
-
-    if is_coupon_page and current_customer and not is_client_mirror:
-        coupon_redemptions = _active_coupon_redemption_by_coupon(db, profile['id'], customer_id=current_customer['id'])
-        db.commit()
 
     show_radar_flag = (
         (not session.get('admin_logged_in') or _is_public_client_mode())
@@ -1292,6 +1292,9 @@ def coupon_menu():
 
 @client_bp.route('/cupons-cliente/resgatar/<int:coupon_id>', methods=['POST'])
 def redeem_coupon(coupon_id):
+    flash('As promoções cadastradas pelo restaurante são de uso livre e não precisam de código. Cupons rastreáveis do QRTotem ficarão em uma área separada.', 'info')
+    return redirect(url_for('client.coupon_menu'))
+
     restaurant_id = _client_restaurant_id()
 
     if not restaurant_id:
@@ -1375,6 +1378,9 @@ def redeem_coupon(coupon_id):
 
 @client_bp.route('/cupons-cliente/resgate/<int:redemption_id>/gerar-codigo', methods=['POST'])
 def generate_coupon_code(redemption_id):
+    flash('As promoções cadastradas pelo restaurante são de uso livre e não precisam de código. Cupons rastreáveis do QRTotem ficarão em uma área separada.', 'info')
+    return redirect(url_for('client.coupon_menu'))
+
     restaurant_id = _client_restaurant_id()
 
     if not restaurant_id or not _has_coupon_access(restaurant_id):
