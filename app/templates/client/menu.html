@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
-{% block title %}{% if is_coupon_page %}Cupons{% elif is_client_mirror %}Cliente Espelho{% else %}Mesa {{ table_number }}{% endif %}{% endblock %}
+{% block title %}{% if is_coupon_page %}Promoções{% elif is_client_mirror %}Cliente Espelho{% else %}Mesa {{ table_number }}{% endif %}{% endblock %}
 
 {% block content %}
 <section class="hero-card hero-card--table">
   <div class="hero-card-copy">
-    <p class="eyebrow">{% if is_coupon_page %}Cupons do restaurante{% elif is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
+    <p class="eyebrow">{% if is_coupon_page %}Promoções do restaurante{% elif is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
 
     <div class="table-title-row">
       {% if is_coupon_page and is_client_mirror %}
-        <h2>Cupons Espelho</h2>
+        <h2>Promoções Espelho</h2>
       {% elif is_coupon_page %}
-        <h2>Cupons</h2>
+        <h2>Promoções</h2>
       {% elif is_client_mirror %}
         <h2>Cliente Espelho</h2>
       {% else %}
@@ -26,11 +26,11 @@
 
     <p class="muted">
       {% if is_coupon_page and is_client_mirror %}
-        Esta é a página espelho dos cupons. Os mesmos itens promocionais aparecerão para os clientes que acessarem os cupons pelo QR Code.
+        Esta é a página espelho das promoções. Os mesmos itens promocionais aparecerão para os clientes que acessarem as promoções pelo QR Code.
       {% elif is_coupon_page and can_order %}
-        Resgate um cupom e gere o código numérico somente quando estiver no caixa para usar em até 10 minutos.
+        Veja as promoções disponíveis neste restaurante. Elas não precisam de código e podem ser usadas livremente conforme a regra informada pela equipe.
       {% elif is_coupon_page %}
-        Veja os cupons disponíveis. O acesso aos cupons mantém o restaurante conectado aos clientes cadastrados.
+        Veja as promoções disponíveis. O acesso às promoções mantém o restaurante conectado aos clientes cadastrados.
       {% elif is_client_mirror %}
         Esta é a página de cliente sem mesa atrelada. O cardápio exibido aqui é o mesmo usado nos QR Codes das mesas.
       {% elif can_order %}
@@ -51,7 +51,7 @@
         <a class="btn btn-secondary" href="{{ profile_url }}">Meu perfil</a>
       {% endif %}
     {% else %}
-      <a class="btn btn-primary" href="{{ coupon_url }}">Cupons</a>
+      <a class="btn btn-primary" href="{{ coupon_url }}">Promoções</a>
     {% endif %}
 
     {% if show_radar_flag %}
@@ -116,28 +116,10 @@
               <div class="product-price">{{ product['price']|currency }}</div>
             </div>
 
-            {% if is_coupon_page and not is_client_mirror %}
-              {% set redemption = (coupon_redemptions|default({})).get(product['id']) %}
+            {% if is_coupon_page %}
               <div class="coupon-action-box">
-                {% if redemption and redemption.status == 'reserved' %}
-                  <span class="status-pill status-warning">Cupom resgatado</span>
-                  <p class="muted">Reservado até {{ redemption.expires_label }}.</p>
-                  <form method="post" action="{{ url_for('client.generate_coupon_code', redemption_id=redemption.id) }}" data-coupon-code-confirm>
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-primary btn-block">Gerar código numérico</button>
-                  </form>
-                  <p class="muted small-text">O código terá validade de 10 minutos após ser gerado.</p>
-                {% elif redemption and redemption.status == 'code_generated' %}
-                  <span class="status-pill status-success">Código gerado</span>
-                  <div class="coupon-code-display" aria-label="Código do cupom">{{ redemption.code }}</div>
-                  <p class="muted">Mostre este número ao atendente. Válido até {{ redemption.code_expires_label }}.</p>
-                {% else %}
-                  <form method="post" action="{{ url_for('client.redeem_coupon', coupon_id=product['id']) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-primary btn-block">Resgatar cupom</button>
-                  </form>
-                  <p class="muted small-text">Depois de resgatado, gere o código apenas quando estiver no caixa.</p>
-                {% endif %}
+                <span class="status-pill status-success">Promoção disponível</span>
+                <p class="muted small-text">Esta promoção é cadastrada pelo restaurante e não precisa de código. Consulte a equipe para usar no atendimento.</p>
               </div>
             {% elif can_order %}
               <div class="quantity-control">
@@ -160,8 +142,8 @@
 {% else %}
   <section class="panel empty-state">
     {% if is_coupon_page %}
-      <h3>Nenhum cupom disponível</h3>
-      <p class="muted">O restaurante ainda não possui cupons ativos.</p>
+      <h3>Nenhuma promoção disponível</h3>
+      <p class="muted">O restaurante ainda não possui promoções ativas.</p>
     {% else %}
       <h3>Nenhum produto disponível</h3>
       <p class="muted">O restaurante ainda não possui produtos ativos no cardápio.</p>
