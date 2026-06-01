@@ -45,6 +45,19 @@ def _service_mode_from_profile(profile) -> str:
     return 'full_order_payment'
 
 
+def _is_restaurant_active(profile) -> bool:
+    if not profile:
+        return True
+
+    try:
+        if 'is_active' in profile.keys():
+            return bool(int(profile['is_active'] or 0))
+    except (AttributeError, TypeError, ValueError):
+        pass
+
+    return True
+
+
 def _restaurant_profile(db):
     return get_restaurant_profile_for_admin(db, session.get('admin_id'))
 
@@ -66,6 +79,11 @@ def kitchen_required(view):
 
         db = get_db()
         profile = _restaurant_profile(db)
+
+        if profile and not _is_restaurant_active(profile):
+            session.pop('kitchen_authorized', None)
+            flash('Este restaurante está inativo no QRTotem. A cozinha fica bloqueada até a reativação.', 'warning')
+            return redirect(url_for('admin.products'))
 
         if profile and _service_mode_from_profile(profile) == SERVICE_MODE_DIGITAL_MENU:
             session.pop('kitchen_authorized', None)
@@ -99,6 +117,10 @@ def validar_acesso():
     db = get_db()
     admin_id = session.get('admin_id')
     profile = _restaurant_profile(db)
+
+    if profile and not _is_restaurant_active(profile):
+        session.pop('kitchen_authorized', None)
+        return jsonify(success=False, message='Este restaurante está inativo no QRTotem. A cozinha fica bloqueada até a reativação.'), 403
 
     if profile and _service_mode_from_profile(profile) == SERVICE_MODE_DIGITAL_MENU:
         session.pop('kitchen_authorized', None)
