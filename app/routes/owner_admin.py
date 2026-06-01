@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
@@ -37,6 +37,24 @@ def _parse_int(value: str) -> int:
         return max(0, int(str(value or '').strip()))
     except (TypeError, ValueError):
         return 0
+
+
+
+def _iso(dt: datetime) -> str:
+    return dt.replace(microsecond=0).isoformat()
+
+
+def _expire_restaurant_credit_allocations(db) -> None:
+    db.execute(
+        """
+        UPDATE qrtotem_restaurant_credit_allocations
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'available'
+           AND expires_at IS NOT NULL
+           AND datetime(expires_at) <= datetime('now')
+        """
+    )
 
 
 def _coupon_type_label(coupon_type: str) -> str:
@@ -427,6 +445,174 @@ def toggle_restaurant_status(restaurant_id: int):
     action = 'ativado' if new_status else 'inativado'
     flash(f'Restaurante {profile["restaurant_name"]} {action} com sucesso.', 'success')
     return redirect(url_for('owner_admin.dashboard'))
+
+
+
+@owner_admin_bp.route('/creditos-restaurantes', methods=['GET', 'POST'])
+@_owner_login_required
+def restaurant_credits():
+    db = get_db()
+    _expire_restaurant_credit_allocations(db)
+
+    if request.method == 'POST':
+        title = str(request.form.get('title') or '').strip()
+        notes = str(request.form.get('notes') or '').strip()
+        amount = _parse_money(request.form.get('amount_per_restaurant'))
+        validity_days = 30
+
+        restaurants = db.execute(
+            """
+            SELECT id,
+                   restaurant_name,
+                   owner_name,
+                   email,
+                   COALESCE(is_active, 1) AS is_active
+              FROM restaurant_profiles
+             ORDER BY restaurant_name ASC
+            """
+        ).fetchall()
+
+        if not title:
+            flash('Informe um nome para a distribuição de crédito.', 'error')
+        elif amount <= 0:
+            flash('Informe um valor de crédito maior que zero.', 'error')
+        elif not restaurants:
+            flash('Não há restaurantes cadastrados para receber crédito.', 'warning')
+        else:
+            now = datetime.utcnow()
+            expires_at = now + timedelta(days=validity_days)
+            active_count = sum(1 for row in restaurants if int(row['is_active'] or 0) == 1)
+            inactive_count = len(restaurants) - active_count
+            total_credit = round(active_count * amount, 2)
+
+            cursor = db.execute(
+                """
+                INSERT INTO qrtotem_restaurant_credit_distributions (
+                    title,
+                    notes,
+                    amount_per_restaurant,
+                    validity_days,
+                    expires_at,
+                    active_restaurants_count,
+                    inactive_restaurants_count,
+                    total_credit_amount,
+                    created_by,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'owner', ?, ?)
+                """,
+                (
+                    title,
+                    notes,
+                    amount,
+                    validity_days,
+                    _iso(expires_at),
+                    active_count,
+                    inactive_count,
+                    total_credit,
+                    _iso(now),
+                    _iso(now),
+                ),
+            )
+            distribution_id = cursor.lastrowid
+
+            for row in restaurants:
+                was_active = 1 if int(row['is_active'] or 0) == 1 else 0
+                received_amount = amount if was_active else 0.0
+                status = 'available' if was_active else 'not_received'
+                reason = '' if was_active else 'Restaurante inativo no momento da distribuição.'
+
+                db.execute(
+                    """
+                    INSERT INTO qrtotem_restaurant_credit_allocations (
+                        distribution_id,
+                        restaurant_id,
+                        restaurant_name_snapshot,
+                        owner_name_snapshot,
+                        email_snapshot,
+                        restaurant_was_active,
+                        status,
+                        initial_amount,
+                        allocated_amount,
+                        expires_at,
+                        not_received_reason,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+                    """,
+                    (
+                        distribution_id,
+                        row['id'],
+                        row['restaurant_name'] or '',
+                        row['owner_name'] or '',
+                        row['email'] or '',
+                        was_active,
+                        status,
+                        received_amount,
+                        _iso(expires_at) if was_active else None,
+                        reason,
+                        _iso(now),
+                        _iso(now),
+                    ),
+                )
+
+            db.commit()
+            flash(
+                f'Distribuição criada: {active_count} restaurante(s) ativo(s) receberam crédito e {inactive_count} inativo(s) ficaram registrados sem crédito.',
+                'success',
+            )
+            return redirect(url_for('owner_admin.restaurant_credits'))
+
+    db.commit()
+
+    distributions = db.execute(
+        """
+        SELECT d.*,
+               COUNT(a.id) AS total_restaurants,
+               COALESCE(SUM(CASE WHEN a.restaurant_was_active = 1 THEN 1 ELSE 0 END), 0) AS received_count,
+               COALESCE(SUM(CASE WHEN a.restaurant_was_active = 0 THEN 1 ELSE 0 END), 0) AS not_received_count,
+               COALESCE(SUM(CASE WHEN a.status = 'available' THEN a.initial_amount - a.allocated_amount ELSE 0 END), 0) AS available_balance,
+               COALESCE(SUM(CASE WHEN a.status = 'expired' THEN a.initial_amount - a.allocated_amount ELSE 0 END), 0) AS expired_balance
+          FROM qrtotem_restaurant_credit_distributions d
+          LEFT JOIN qrtotem_restaurant_credit_allocations a ON a.distribution_id = d.id
+         GROUP BY d.id
+         ORDER BY d.created_at DESC, d.id DESC
+         LIMIT 40
+        """
+    ).fetchall()
+
+    allocations = db.execute(
+        """
+        SELECT a.*,
+               d.title AS distribution_title,
+               d.amount_per_restaurant,
+               d.created_at AS distribution_created_at
+          FROM qrtotem_restaurant_credit_allocations a
+          JOIN qrtotem_restaurant_credit_distributions d ON d.id = a.distribution_id
+         ORDER BY d.created_at DESC, a.restaurant_name_snapshot ASC
+         LIMIT 250
+        """
+    ).fetchall()
+
+    totals = db.execute(
+        """
+        SELECT COALESCE(SUM(CASE WHEN status = 'available' THEN initial_amount - allocated_amount ELSE 0 END), 0) AS available_balance,
+               COALESCE(SUM(CASE WHEN status = 'expired' THEN initial_amount - allocated_amount ELSE 0 END), 0) AS expired_balance,
+               COALESCE(SUM(CASE WHEN status = 'available' THEN allocated_amount ELSE 0 END), 0) AS allocated_amount
+          FROM qrtotem_restaurant_credit_allocations
+        """
+    ).fetchone()
+
+    return render_template(
+        'owner_admin/restaurant_credits.html',
+        distributions=distributions,
+        allocations=allocations,
+        totals=totals,
+        validity_days=30,
+        csrf=csrf_token(),
+    )
 
 
 @owner_admin_bp.route('/cupons-qrtotem', methods=['GET', 'POST'])
