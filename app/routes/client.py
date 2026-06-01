@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import secrets
+from datetime import datetime, timedelta
+
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 
 from ..db import get_db
@@ -52,6 +55,9 @@ COUPON_CUSTOMER_RESTAURANT_SESSION_KEY = 'coupon_customer_restaurant_id'
 COUPON_CUSTOMER_ID_SESSION_KEY = 'coupon_customer_id'
 COUPON_CUSTOMER_USERNAME_SESSION_KEY = 'coupon_customer_username'
 CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY = 'customer_after_login_target'
+COUPON_RESERVATION_MINUTES = 180
+COUPON_CODE_MINUTES = 10
+
 
 
 SERVICE_MODE_DIGITAL_MENU = 'digital_menu'
@@ -271,6 +277,151 @@ def _current_customer(db, restaurant_id: int | None = None):
     ).fetchone()
 
 
+def _utcnow() -> datetime:
+    return datetime.utcnow().replace(microsecond=0)
+
+
+def _iso(dt: datetime) -> str:
+    return dt.isoformat(timespec='seconds')
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace('Z', '+00:00')).replace(tzinfo=None)
+    except ValueError:
+        try:
+            return datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return None
+
+
+def _format_datetime_br(value: str | None) -> str:
+    dt = _parse_iso_datetime(value)
+    return dt.strftime('%d/%m/%Y às %H:%M') if dt else ''
+
+
+def _expire_coupon_redemptions(db) -> None:
+    now = _iso(_utcnow())
+    db.execute(
+        """
+        UPDATE coupon_redemptions
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'reserved'
+           AND expires_at IS NOT NULL
+           AND datetime(expires_at) <= datetime(?)
+        """,
+        (now,),
+    )
+    db.execute(
+        """
+        UPDATE coupon_redemptions
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'code_generated'
+           AND code_expires_at IS NOT NULL
+           AND datetime(code_expires_at) <= datetime(?)
+        """,
+        (now,),
+    )
+
+
+def _coupon_redemption_state(row) -> dict:
+    if not row:
+        return {'status': 'none'}
+
+    return {
+        'id': row['id'],
+        'status': row['status'],
+        'code': row['code'],
+        'expires_at': row['expires_at'],
+        'expires_label': _format_datetime_br(row['expires_at']),
+        'code_expires_at': row['code_expires_at'],
+        'code_expires_label': _format_datetime_br(row['code_expires_at']),
+    }
+
+
+def _active_coupon_redemption_by_coupon(db, restaurant_id: int, customer_id: int) -> dict[int, dict]:
+    _expire_coupon_redemptions(db)
+
+    rows = db.execute(
+        """
+        SELECT *
+          FROM coupon_redemptions
+         WHERE restaurant_id = ?
+           AND customer_id = ?
+           AND status IN ('reserved', 'code_generated')
+         ORDER BY created_at DESC, id DESC
+        """,
+        (restaurant_id, customer_id),
+    ).fetchall()
+
+    result: dict[int, dict] = {}
+    for row in rows:
+        coupon_id = int(row['coupon_id'])
+        if coupon_id not in result:
+            result[coupon_id] = _coupon_redemption_state(row)
+    return result
+
+
+def _get_active_coupon(db, restaurant_id: int, coupon_id: int):
+    return db.execute(
+        """
+        SELECT *
+          FROM products
+         WHERE id = ?
+           AND restaurant_id = ?
+           AND kind = 'coupon'
+           AND active = 1
+         LIMIT 1
+        """,
+        (coupon_id, restaurant_id),
+    ).fetchone()
+
+
+def _get_customer_redemption(db, redemption_id: int, restaurant_id: int, customer_id: int):
+    _expire_coupon_redemptions(db)
+    return db.execute(
+        """
+        SELECT cr.*, p.name AS coupon_name, p.price AS coupon_price
+          FROM coupon_redemptions cr
+          JOIN products p ON p.id = cr.coupon_id
+         WHERE cr.id = ?
+           AND cr.restaurant_id = ?
+           AND cr.customer_id = ?
+         LIMIT 1
+        """,
+        (redemption_id, restaurant_id, customer_id),
+    ).fetchone()
+
+
+def _generate_numeric_coupon_code(db, restaurant_id: int) -> str:
+    for _ in range(40):
+        code = ''.join(str(secrets.randbelow(10)) for _ in range(6))
+        if code.startswith('0'):
+            code = f'{secrets.randbelow(9) + 1}{code[1:]}'
+
+        existing = db.execute(
+            """
+            SELECT id
+              FROM coupon_redemptions
+             WHERE restaurant_id = ?
+               AND code = ?
+               AND status = 'code_generated'
+               AND code_expires_at IS NOT NULL
+               AND datetime(code_expires_at) > datetime(?)
+             LIMIT 1
+            """,
+            (restaurant_id, code, _iso(_utcnow())),
+        ).fetchone()
+        if not existing:
+            return code
+
+    return str(secrets.randbelow(900000) + 100000)
+
+
 def _coupon_entry_url() -> str:
     return url_for('client.coupon_entry')
 
@@ -343,6 +494,11 @@ def _render_client_menu(
 
     current_customer = _current_customer(db, profile['id'])
     radar_enabled = bool(current_customer and current_customer['radar_enabled'])
+    coupon_redemptions = {}
+
+    if is_coupon_page and current_customer and not is_client_mirror:
+        coupon_redemptions = _active_coupon_redemption_by_coupon(db, profile['id'], customer_id=current_customer['id'])
+        db.commit()
 
     show_radar_flag = (
         (not session.get('admin_logged_in') or _is_public_client_mode())
@@ -374,6 +530,9 @@ def _render_client_menu(
         restaurant_is_active=restaurant_active,
         can_send_promotions=bool(session.get('admin_logged_in') and not _is_public_client_mode() and is_coupon_page and is_client_mirror),
         send_promotions_url=url_for('client.send_promotions'),
+        coupon_redemptions=coupon_redemptions,
+        coupon_reservation_minutes=COUPON_RESERVATION_MINUTES,
+        coupon_code_minutes=COUPON_CODE_MINUTES,
     )
 
 
@@ -1119,6 +1278,9 @@ def coupon_menu():
         flash('Restaurante não encontrado.', 'error')
         return redirect(url_for('client.home'))
 
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
     return _render_client_menu(
         profile,
         _current_table(),
@@ -1126,6 +1288,155 @@ def coupon_menu():
         is_client_mirror=False,
         is_coupon_page=True,
     )
+
+
+@client_bp.route('/cupons-cliente/resgatar/<int:coupon_id>', methods=['POST'])
+def redeem_coupon(coupon_id):
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id:
+        flash('Restaurante não identificado.', 'error')
+        return redirect(url_for('client.home'))
+
+    if not _has_coupon_access(restaurant_id):
+        flash('Informe seu usuário para resgatar cupons.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+    if profile and not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
+    customer = _current_customer(db, restaurant_id)
+    coupon = _get_active_coupon(db, restaurant_id, coupon_id)
+
+    if not customer:
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'coupons'
+        flash('Faça login novamente para resgatar o cupom.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    if not coupon:
+        flash('Cupom não encontrado ou inativo.', 'error')
+        return redirect(url_for('client.coupon_menu'))
+
+    _expire_coupon_redemptions(db)
+
+    existing = db.execute(
+        """
+        SELECT *
+          FROM coupon_redemptions
+         WHERE restaurant_id = ?
+           AND coupon_id = ?
+           AND customer_id = ?
+           AND status IN ('reserved', 'code_generated')
+         ORDER BY created_at DESC, id DESC
+         LIMIT 1
+        """,
+        (restaurant_id, coupon_id, customer['id']),
+    ).fetchone()
+
+    if existing:
+        db.commit()
+        flash('Este cupom já está resgatado para você.', 'warning')
+        return redirect(url_for('client.coupon_menu'))
+
+    now = _utcnow()
+    expires_at = now + timedelta(minutes=COUPON_RESERVATION_MINUTES)
+
+    db.execute(
+        """
+        INSERT INTO coupon_redemptions (
+            restaurant_id,
+            coupon_id,
+            customer_id,
+            status,
+            reserved_at,
+            expires_at,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, 'reserved', ?, ?, ?, ?)
+        """,
+        (
+            restaurant_id,
+            coupon_id,
+            customer['id'],
+            _iso(now),
+            _iso(expires_at),
+            _iso(now),
+            _iso(now),
+        ),
+    )
+    db.commit()
+
+    flash('Cupom resgatado. Quando estiver no caixa, gere o código numérico para o atendente validar.', 'success')
+    return redirect(url_for('client.coupon_menu'))
+
+
+@client_bp.route('/cupons-cliente/resgate/<int:redemption_id>/gerar-codigo', methods=['POST'])
+def generate_coupon_code(redemption_id):
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id or not _has_coupon_access(restaurant_id):
+        flash('Informe seu usuário para usar o cupom.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    customer = _current_customer(db, restaurant_id)
+    if not customer:
+        flash('Faça login novamente para usar o cupom.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    redemption = _get_customer_redemption(db, redemption_id, restaurant_id, customer['id'])
+
+    if not redemption:
+        flash('Cupom não encontrado.', 'error')
+        return redirect(url_for('client.coupon_menu'))
+
+    if redemption['status'] == 'code_generated':
+        db.commit()
+        flash('O código deste cupom já foi gerado e ainda está válido.', 'warning')
+        return redirect(url_for('client.coupon_menu'))
+
+    if redemption['status'] != 'reserved':
+        db.commit()
+        flash('Este cupom não está mais disponível para gerar código.', 'error')
+        return redirect(url_for('client.coupon_menu'))
+
+    now = _utcnow()
+    expires_at = _parse_iso_datetime(redemption['expires_at'])
+    if expires_at and expires_at <= now:
+        db.execute(
+            "UPDATE coupon_redemptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (redemption_id,),
+        )
+        db.commit()
+        flash('A reserva deste cupom expirou. Resgate novamente se ele ainda estiver disponível.', 'warning')
+        return redirect(url_for('client.coupon_menu'))
+
+    code = _generate_numeric_coupon_code(db, restaurant_id)
+    code_expires_at = now + timedelta(minutes=COUPON_CODE_MINUTES)
+
+    db.execute(
+        """
+        UPDATE coupon_redemptions
+           SET status = 'code_generated',
+               code = ?,
+               code_generated_at = ?,
+               code_expires_at = ?,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?
+           AND restaurant_id = ?
+           AND customer_id = ?
+           AND status = 'reserved'
+        """,
+        (code, _iso(now), _iso(code_expires_at), redemption_id, restaurant_id, customer['id']),
+    )
+    db.commit()
+
+    flash('Código gerado. Mostre o número ao atendente em até 10 minutos.', 'success')
+    return redirect(url_for('client.coupon_menu'))
+
 
 
 @client_bp.route('/cliente/perfil', methods=['GET', 'POST'])
