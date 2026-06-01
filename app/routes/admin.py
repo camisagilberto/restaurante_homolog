@@ -304,6 +304,9 @@ def coupons():
 @admin_bp.route('/cupons/validar', methods=['GET', 'POST'])
 @login_required
 def validate_coupon_code():
+    flash('As promoções do restaurante não precisam de validação por código. Os cupons rastreáveis do QRTotem serão criados em uma área separada.', 'info')
+    return redirect(url_for('admin.coupons'))
+
     db = get_db()
     restaurant_id = _restaurant_id(db)
 
