@@ -1608,3 +1608,44 @@ summary:focus-visible {
 .order-payment-badge {
   margin: -4px 0 10px;
 }
+
+
+.checkout-info-card,
+.payment-help-box {
+  border-radius: 16px;
+  border: 1px solid rgba(249, 115, 22, .20);
+  background: rgba(249, 115, 22, .07);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.checkout-info-card strong,
+.payment-help-box strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--graphite);
+}
+
+.checkout-info-card p,
+.payment-help-box p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: .92rem;
+  line-height: 1.45;
+}
+
+.payment-checklist {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payment-checklist li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: var(--muted);
+  font-size: .92rem;
+}
