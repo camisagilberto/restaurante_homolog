@@ -119,6 +119,28 @@ CREATE TABLE IF NOT EXISTS customer_coupon_users (
     UNIQUE (restaurant_id, username)
 );
 
+CREATE TABLE IF NOT EXISTS coupon_redemptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    restaurant_id INTEGER NOT NULL,
+    coupon_id INTEGER NOT NULL,
+    customer_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'reserved',
+    code TEXT NOT NULL DEFAULT '',
+    reserved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TEXT NOT NULL,
+    code_generated_at TEXT,
+    code_expires_at TEXT,
+    used_at TEXT,
+    validated_by_admin_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
+    FOREIGN KEY (coupon_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customer_coupon_users(id) ON DELETE CASCADE,
+    FOREIGN KEY (validated_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+    CHECK (status IN ('reserved', 'code_generated', 'used', 'expired', 'cancelled'))
+);
+
 CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
@@ -420,6 +442,60 @@ def _migrate_customer_coupon_users(db: sqlite3.Connection) -> None:
     _ensure_column(db, 'customer_coupon_users', 'updated_at TEXT')
 
 
+def _ensure_coupon_redemptions(db: sqlite3.Connection) -> None:
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS coupon_redemptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            restaurant_id INTEGER NOT NULL,
+            coupon_id INTEGER NOT NULL,
+            customer_id INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'reserved',
+            code TEXT NOT NULL DEFAULT '',
+            reserved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            expires_at TEXT NOT NULL,
+            code_generated_at TEXT,
+            code_expires_at TEXT,
+            used_at TEXT,
+            validated_by_admin_id INTEGER,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE CASCADE,
+            FOREIGN KEY (coupon_id) REFERENCES products(id) ON DELETE CASCADE,
+            FOREIGN KEY (customer_id) REFERENCES customer_coupon_users(id) ON DELETE CASCADE,
+            FOREIGN KEY (validated_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+            CHECK (status IN ('reserved', 'code_generated', 'used', 'expired', 'cancelled'))
+        )
+    """)
+
+    _ensure_column(db, 'coupon_redemptions', 'restaurant_id INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'coupon_redemptions', 'coupon_id INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'coupon_redemptions', 'customer_id INTEGER NOT NULL DEFAULT 0')
+    _ensure_column(db, 'coupon_redemptions', "status TEXT NOT NULL DEFAULT 'reserved'")
+    _ensure_column(db, 'coupon_redemptions', "code TEXT NOT NULL DEFAULT ''")
+    _ensure_column(db, 'coupon_redemptions', 'reserved_at TEXT')
+    _ensure_column(db, 'coupon_redemptions', 'expires_at TEXT')
+    _ensure_column(db, 'coupon_redemptions', 'code_generated_at TEXT')
+    _ensure_column(db, 'coupon_redemptions', 'code_expires_at TEXT')
+    _ensure_column(db, 'coupon_redemptions', 'used_at TEXT')
+    _ensure_column(db, 'coupon_redemptions', 'validated_by_admin_id INTEGER')
+    _ensure_column(db, 'coupon_redemptions', 'created_at TEXT')
+    _ensure_column(db, 'coupon_redemptions', 'updated_at TEXT')
+
+    now = datetime.utcnow().isoformat(timespec='seconds')
+    db.execute("""
+        UPDATE coupon_redemptions
+           SET status = CASE
+                   WHEN status IN ('reserved', 'code_generated', 'used', 'expired', 'cancelled') THEN status
+                   ELSE 'reserved'
+               END,
+               code = COALESCE(code, ''),
+               reserved_at = COALESCE(reserved_at, ?),
+               expires_at = COALESCE(expires_at, datetime(?, '+3 hours')),
+               created_at = COALESCE(created_at, ?),
+               updated_at = COALESCE(updated_at, ?)
+    """, (now, now, now, now))
+
+
 def _migrate_orders(db: sqlite3.Connection) -> None:
     if not _table_exists(db, 'orders'):
         return
@@ -597,6 +673,24 @@ def _create_indexes(db: sqlite3.Connection) -> None:
                 'CREATE INDEX IF NOT EXISTS idx_customer_coupon_users_restaurant_radar ON customer_coupon_users(restaurant_id, radar_enabled)'
             )
 
+    if _table_exists(db, 'coupon_redemptions'):
+        columns = _table_info(db, 'coupon_redemptions')
+
+        if {'restaurant_id', 'customer_id', 'coupon_id', 'status'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_customer_coupon_status ON coupon_redemptions(restaurant_id, customer_id, coupon_id, status)'
+            )
+
+        if {'restaurant_id', 'code', 'status'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_code_status ON coupon_redemptions(restaurant_id, code, status)'
+            )
+
+        if {'restaurant_id', 'created_at'}.issubset(columns):
+            db.execute(
+                'CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_restaurant_created ON coupon_redemptions(restaurant_id, created_at)'
+            )
+
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
 
@@ -652,6 +746,7 @@ def migrate_schema(db: sqlite3.Connection) -> None:
     _migrate_restaurant_profiles(db)
     _migrate_products(db)
     _migrate_customer_coupon_users(db)
+    _ensure_coupon_redemptions(db)
     _migrate_orders(db)
     _ensure_restaurant_payment_accounts(db)
     _migrate_order_items(db)
@@ -680,6 +775,12 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
 
         if 'radar_enabled' in columns:
             db.execute('UPDATE customer_coupon_users SET radar_enabled = COALESCE(radar_enabled, 0)')
+
+    if _table_exists(db, 'coupon_redemptions'):
+        columns = _table_info(db, 'coupon_redemptions')
+
+        if 'updated_at' in columns:
+            db.execute('UPDATE coupon_redemptions SET updated_at = COALESCE(updated_at, ?)', (now,))
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
