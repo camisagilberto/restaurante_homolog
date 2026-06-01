@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}Cupons QRTotem{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Painel interno</p>
+    <h2>Cupons rastreáveis QRTotem</h2>
+    <p class="muted">Crie cupons globais e acompanhe quem usou, em qual restaurante, dia e horário. Todos os cupons têm valor mínimo automático de R$5 acima do valor do cupom.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('owner_admin.dashboard') }}">Voltar ao painel</a>
+  </div>
+</section>
+
+<section class="panel">
+  <h3>Criar cupom rastreável</h3>
+  <form method="post" class="stacked-form form-grid-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome do cupom
+      <input name="name" type="text" placeholder="Ex.: Cupom QRTotem R$10" required>
+    </label>
+    <label>Tipo
+      <select name="coupon_type">
+        <option value="global">Global QRTotem</option>
+        <option value="referral">Indicação</option>
+        <option value="restaurant_credit">Crédito do restaurante</option>
+      </select>
+    </label>
+    <label>Valor do cupom
+      <input name="discount_amount" type="text" inputmode="decimal" placeholder="10,00" required>
+    </label>
+    <label>Quantidade disponível
+      <input name="total_quantity" type="number" min="1" step="1" placeholder="5" required>
+    </label>
+    <label class="form-full">Descrição
+      <textarea name="description" rows="3" placeholder="Ex.: Válido em qualquer restaurante parceiro QRTotem."></textarea>
+    </label>
+    <label class="checkbox-line form-full">
+      <input type="checkbox" name="active" value="1" checked>
+      <span>Criar ativo</span>
+    </label>
+    <div class="form-full">
+      <button class="btn btn-primary" type="submit">Criar cupom</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Campanhas cadastradas</h3>
+    <span class="muted">Controle de limite e status</span>
+  </div>
+  {% if campaigns %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Cupom</th>
+            <th>Tipo</th>
+            <th>Valor</th>
+            <th>Mínimo</th>
+            <th>Usados</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for campaign in campaigns %}
+            <tr>
+              <td>{% if campaign['active'] %}<span class="status-pill status-success">Ativo</span>{% else %}<span class="status-pill status-muted">Inativo</span>{% endif %}</td>
+              <td><strong>{{ campaign['title'] }}</strong><br><small>{{ campaign['description'] }}</small></td>
+              <td>{{ coupon_type_label(campaign['coupon_type']) }}</td>
+              <td>{{ campaign['value']|currency }}</td>
+              <td>{{ campaign['min_purchase_amount']|currency }}</td>
+              <td>{{ campaign['used_count'] }} / {{ campaign['total_quantity'] }}</td>
+              <td>
+                <form method="post" action="{{ url_for('owner_admin.toggle_qrtotem_coupon', campaign_id=campaign['id']) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-secondary btn-sm" type="submit">{% if campaign['active'] %}Inativar{% else %}Ativar{% endif %}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhum cupom rastreável cadastrado ainda.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Histórico de uso</h3>
+    <span class="muted">Quem usou, onde, dia e horário</span>
+  </div>
+  {% if usage_history %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Data/hora</th>
+            <th>Cliente</th>
+            <th>Restaurante</th>
+            <th>Cupom</th>
+            <th>Valor</th>
+            <th>Mínimo</th>
+            <th>Código</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in usage_history %}
+            <tr>
+              <td>{{ item['used_at'] }}</td>
+              <td><strong>{{ item['customer_name'] }}</strong><br><small>{{ item['customer_email'] }}</small></td>
+              <td>{{ item['restaurant_name'] or 'Não informado' }}</td>
+              <td>{{ item['campaign_title'] }}</td>
+              <td>{{ item['value']|currency }}</td>
+              <td>{{ item['min_purchase_amount']|currency }}</td>
+              <td>{{ item['code'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhum uso confirmado ainda.</p>
+  {% endif %}
+</section>
+{% endblock %}
