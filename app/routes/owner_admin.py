@@ -16,6 +16,33 @@ owner_admin_bp = Blueprint('owner_admin', __name__, url_prefix='/ops-qrtotem')
 MONTHLY_PRICE = 149.99
 
 
+COUPON_TYPE_LABELS = {
+    'global': 'Global QRTotem',
+    'referral': 'Indicação',
+    'restaurant_credit': 'Crédito do restaurante',
+}
+
+
+def _parse_money(value: str) -> float:
+    normalized = str(value or '').strip().replace('.', '').replace(',', '.')
+    try:
+        parsed = float(normalized)
+    except (TypeError, ValueError):
+        return 0.0
+    return round(parsed, 2)
+
+
+def _parse_int(value: str) -> int:
+    try:
+        return max(0, int(str(value or '').strip()))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _coupon_type_label(coupon_type: str) -> str:
+    return COUPON_TYPE_LABELS.get(coupon_type or 'global', 'Global QRTotem')
+
+
 def _owner_credentials() -> tuple[str, str]:
     username = os.getenv('OWNER_ADMIN_USERNAME', 'dono')
     password = os.getenv('OWNER_ADMIN_PASSWORD', 'troque-esta-senha')
@@ -400,3 +427,110 @@ def toggle_restaurant_status(restaurant_id: int):
     action = 'ativado' if new_status else 'inativado'
     flash(f'Restaurante {profile["restaurant_name"]} {action} com sucesso.', 'success')
     return redirect(url_for('owner_admin.dashboard'))
+
+
+@owner_admin_bp.route('/cupons-qrtotem', methods=['GET', 'POST'])
+@_owner_login_required
+def qrtotem_coupons():
+    db = get_db()
+
+    if request.method == 'POST':
+        name = str(request.form.get('name') or '').strip()
+        description = str(request.form.get('description') or '').strip()
+        coupon_type = str(request.form.get('coupon_type') or 'global').strip()
+        discount_amount = _parse_money(request.form.get('discount_amount'))
+        total_quantity = _parse_int(request.form.get('total_quantity'))
+        active = 1 if request.form.get('active') == '1' else 0
+
+        if coupon_type not in COUPON_TYPE_LABELS:
+            coupon_type = 'global'
+
+        min_order_amount = round(discount_amount + 5, 2) if discount_amount > 0 else 0
+
+        if not name:
+            flash('Informe o nome do cupom.', 'error')
+        elif discount_amount <= 0:
+            flash('Informe um valor de cupom maior que zero.', 'error')
+        elif total_quantity <= 0:
+            flash('Informe a quantidade de cupons disponíveis.', 'error')
+        else:
+            db.execute(
+                """
+                INSERT INTO qrtotem_coupon_campaigns (
+                    title,
+                    description,
+                    coupon_type,
+                    value,
+                    min_purchase_amount,
+                    total_quantity,
+                    active,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (name, description, coupon_type, discount_amount, min_order_amount, total_quantity, active),
+            )
+            db.commit()
+            flash('Cupom rastreável criado com sucesso.', 'success')
+            return redirect(url_for('owner_admin.qrtotem_coupons'))
+
+    campaigns = db.execute(
+        """
+        SELECT c.*,
+               COALESCE(SUM(CASE WHEN cl.status = 'used' THEN 1 ELSE 0 END), 0) AS used_count,
+               COALESCE(SUM(CASE WHEN cl.status = 'code_generated' THEN 1 ELSE 0 END), 0) AS pending_count
+          FROM qrtotem_coupon_campaigns c
+          LEFT JOIN qrtotem_coupon_redemptions cl ON cl.campaign_id = c.id
+         GROUP BY c.id
+         ORDER BY c.created_at DESC, c.id DESC
+        """
+    ).fetchall()
+
+    usage_history = db.execute(
+        """
+        SELECT cl.*,
+               c.title AS campaign_title,
+               c.value,
+               c.min_purchase_amount,
+               c.coupon_type,
+               rp.restaurant_name,
+               cu.name AS customer_name,
+               cu.username AS customer_username,
+               cu.email AS customer_email,
+               cu.cell_phone AS customer_cell_phone
+          FROM qrtotem_coupon_redemptions cl
+          JOIN qrtotem_coupon_campaigns c ON c.id = cl.campaign_id
+          JOIN customer_coupon_users cu ON cu.id = cl.customer_id
+          LEFT JOIN restaurant_profiles rp ON rp.id = cl.used_restaurant_id
+         WHERE cl.status = 'used'
+         ORDER BY cl.used_at DESC, cl.id DESC
+         LIMIT 80
+        """
+    ).fetchall()
+
+    return render_template(
+        'owner_admin/qrtotem_coupons.html',
+        campaigns=campaigns,
+        usage_history=usage_history,
+        coupon_type_labels=COUPON_TYPE_LABELS,
+        coupon_type_label=_coupon_type_label,
+        csrf=csrf_token(),
+    )
+
+
+@owner_admin_bp.route('/cupons-qrtotem/<int:campaign_id>/toggle', methods=['POST'])
+@_owner_login_required
+def toggle_qrtotem_coupon(campaign_id: int):
+    db = get_db()
+    campaign = db.execute('SELECT id, active FROM qrtotem_coupon_campaigns WHERE id = ? LIMIT 1', (campaign_id,)).fetchone()
+
+    if not campaign:
+        flash('Cupom rastreável não encontrado.', 'error')
+        return redirect(url_for('owner_admin.qrtotem_coupons'))
+
+    new_status = 0 if int(campaign['active'] or 0) else 1
+    db.execute('UPDATE qrtotem_coupon_campaigns SET active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', (new_status, campaign_id))
+    db.commit()
+    flash('Status do cupom atualizado.', 'success')
+    return redirect(url_for('owner_admin.qrtotem_coupons'))
