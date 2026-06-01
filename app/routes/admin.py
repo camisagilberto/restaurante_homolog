@@ -110,6 +110,66 @@ def _recent_coupon_redemptions(db, restaurant_id: int, limit: int = 12):
     ).fetchall()
 
 
+
+def _expire_qrtotem_coupon_redemptions(db) -> None:
+    now = datetime.utcnow().replace(microsecond=0).isoformat(timespec='seconds')
+    db.execute(
+        """
+        UPDATE qrtotem_coupon_redemptions
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'code_generated'
+           AND code_expires_at IS NOT NULL
+           AND datetime(code_expires_at) <= datetime(?)
+        """,
+        (now,),
+    )
+
+
+def _qrtotem_coupon_code_lookup(db, code: str):
+    _expire_qrtotem_coupon_redemptions(db)
+    return db.execute(
+        """
+        SELECT cl.*,
+               c.title AS campaign_title,
+               c.value,
+               c.min_purchase_amount,
+               c.coupon_type,
+               cu.name AS customer_name,
+               cu.username AS customer_username,
+               cu.email AS customer_email,
+               cu.cell_phone AS customer_cell_phone
+          FROM qrtotem_coupon_redemptions cl
+          JOIN qrtotem_coupon_campaigns c ON c.id = cl.campaign_id
+          JOIN customer_coupon_users cu ON cu.id = cl.customer_id
+         WHERE cl.code = ?
+         ORDER BY cl.created_at DESC, cl.id DESC
+         LIMIT 1
+        """,
+        (code,),
+    ).fetchone()
+
+
+def _recent_qrtotem_coupon_uses(db, restaurant_id: int, limit: int = 12):
+    return db.execute(
+        """
+        SELECT cl.*,
+               c.title AS campaign_title,
+               c.value,
+               c.min_purchase_amount,
+               cu.name AS customer_name,
+               cu.username AS customer_username,
+               cu.email AS customer_email
+          FROM qrtotem_coupon_redemptions cl
+          JOIN qrtotem_coupon_campaigns c ON c.id = cl.campaign_id
+          JOIN customer_coupon_users cu ON cu.id = cl.customer_id
+         WHERE cl.used_restaurant_id = ?
+         ORDER BY cl.updated_at DESC, cl.created_at DESC, cl.id DESC
+         LIMIT ?
+        """,
+        (restaurant_id, limit),
+    ).fetchall()
+
 def _store_profile_in_session(admin, profile=None) -> None:
     session.clear()
     session['admin_logged_in'] = True
@@ -477,3 +537,94 @@ def delete_coupon_route(product_id):
     message = message.replace('Produto', 'Cupom').replace('produto', 'cupom')
     flash(message, 'success' if removed else 'warning')
     return redirect(url_for('admin.coupons'))
+
+
+@admin_bp.route('/cupons-qrtotem/validar', methods=['GET', 'POST'])
+@login_required
+def validate_qrtotem_coupon_code():
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        flash('Perfil do restaurante não encontrado.', 'error')
+        return redirect(url_for('client.signup'))
+
+    profile = _profile_context(db)
+    code = ''.join(ch for ch in str(request.form.get('code') or '').strip() if ch.isdigit())
+    action = str(request.form.get('action') or 'lookup').strip().lower()
+    claim_id = request.form.get('redemption_id')
+    lookup_result = None
+
+    if request.method == 'POST':
+        if action == 'confirm':
+            try:
+                claim_id_int = int(claim_id or 0)
+            except (TypeError, ValueError):
+                claim_id_int = 0
+
+            row = db.execute(
+                """
+                SELECT *
+                  FROM qrtotem_coupon_redemptions
+                 WHERE id = ?
+                 LIMIT 1
+                """,
+                (claim_id_int,),
+            ).fetchone()
+
+            if not row:
+                flash('Código não encontrado.', 'error')
+            elif row['status'] != 'code_generated':
+                flash('Este código não está mais disponível para uso.', 'error')
+            elif row['code_expires_at'] and datetime.fromisoformat(str(row['code_expires_at']).replace('Z', '+00:00')).replace(tzinfo=None) <= datetime.utcnow():
+                db.execute("UPDATE qrtotem_coupon_redemptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE id = ?", (claim_id_int,))
+                db.commit()
+                flash('Código expirado. Peça para o cliente gerar outro código.', 'error')
+            else:
+                db.execute(
+                    """
+                    UPDATE qrtotem_coupon_redemptions
+                       SET status = 'used',
+                           used_restaurant_id = ?,
+                           used_at = CURRENT_TIMESTAMP,
+                           validated_by_admin_id = ?,
+                           updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ?
+                       AND status = 'code_generated'
+                    """,
+                    (restaurant_id, session.get('admin_id'), claim_id_int),
+                )
+                db.commit()
+                flash('Cupom QRTotem validado e marcado como usado.', 'success')
+                return redirect(url_for('admin.validate_qrtotem_coupon_code'))
+        else:
+            if not code:
+                flash('Digite o código numérico apresentado pelo cliente.', 'error')
+            else:
+                lookup_result = _qrtotem_coupon_code_lookup(db, code)
+                db.commit()
+
+                if not lookup_result:
+                    flash('Código inválido ou expirado.', 'error')
+                elif lookup_result['status'] != 'code_generated':
+                    flash('Código inválido, expirado ou já utilizado.', 'error')
+                elif lookup_result['code_expires_at'] and datetime.fromisoformat(str(lookup_result['code_expires_at']).replace('Z', '+00:00')).replace(tzinfo=None) <= datetime.utcnow():
+                    db.execute("UPDATE qrtotem_coupon_redemptions SET status = 'expired', updated_at = CURRENT_TIMESTAMP WHERE id = ?", (lookup_result['id'],))
+                    db.commit()
+                    lookup_result = None
+                    flash('Código expirado. Peça para o cliente gerar outro código.', 'error')
+                else:
+                    flash('Cupom válido. Confira valor mínimo e confirme o uso.', 'success')
+
+    _expire_qrtotem_coupon_redemptions(db)
+    recent_uses = _recent_qrtotem_coupon_uses(db, restaurant_id)
+    db.commit()
+
+    return render_template(
+        'admin/qrtotem_coupon_validate.html',
+        profile=profile,
+        code=code,
+        lookup_result=lookup_result,
+        recent_uses=recent_uses,
+        csrf=csrf_token(),
+    )
