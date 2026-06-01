@@ -48,6 +48,7 @@
       {% if can_send_promotions %}
         <a class="btn btn-primary" href="{{ send_promotions_url }}">Enviar promoções</a>
       {% elif not is_client_mirror %}
+        <a class="btn btn-primary" href="{{ url_for('client.qrtotem_coupons') }}">Cupons QRTotem</a>
         <a class="btn btn-secondary" href="{{ profile_url }}">Meu perfil</a>
       {% endif %}
     {% else %}
