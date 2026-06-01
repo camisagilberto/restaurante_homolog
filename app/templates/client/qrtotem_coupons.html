@@ -44,7 +44,6 @@
             <span>Valor mínimo: <strong>{{ campaign['min_purchase_amount']|currency }}</strong></span>
             <span>Uso único por cliente</span>
             <span>Código válido por {{ code_minutes }} minutos</span>
-            {% if total_quantity > 0 %}<span>Disponíveis: {{ remaining if remaining > 0 else 0 }} de {{ total_quantity }}</span>{% endif %}
           </div>
 
           {% if customer_used %}
