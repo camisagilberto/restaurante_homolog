@@ -6,7 +6,7 @@
   <div>
     <p class="eyebrow">Resumo do pedido</p>
     <h2>Mesa {{ table_number }}</h2>
-    <p class="muted">Revise os itens antes de gerar o Pix. O pedido será enviado para a cozinha após a confirmação do pagamento.</p>
+    <p class="muted">Revise os itens e gere o Pix. Não precisa preencher cadastro para pagar.</p>
   </div>
   <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
 </section>
@@ -45,6 +45,10 @@
   </section>
 
   <aside class="panel summary-panel">
+    <div class="checkout-info-card">
+      <strong>Pagamento rápido</strong>
+      <p>Depois de gerar o Pix, o pedido só vai para a cozinha quando o Mercado Pago confirmar o pagamento.</p>
+    </div>
     <h3>Resumo</h3>
     <div class="summary-line"><span>Itens</span><strong id="cart-quantity">{{ cart_quantity }}</strong></div>
     <div class="summary-line"><span>Total</span><strong id="cart-total">{{ cart_total|currency }}</strong></div>
@@ -54,7 +58,7 @@
       <label for="notes">Observações</label>
       <textarea id="notes" name="notes" rows="4" placeholder="Ex.: sem cebola, ponto da carne..."></textarea>
       <button type="submit" class="btn btn-primary btn-block">Gerar Pix</button>
-      <p class="muted form-hint">Não precisa informar nome ou e-mail para pagar. O cadastro do cliente continua apenas na área de cupons.</p>
+      <p class="muted form-hint">Pagamento sem cadastro. O cadastro continua apenas para ver cupons e entrar no radar do restaurante.</p>
     </form>
   </aside>
 </div>
