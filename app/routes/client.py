@@ -422,6 +422,81 @@ def _generate_numeric_coupon_code(db, restaurant_id: int) -> str:
     return str(secrets.randbelow(900000) + 100000)
 
 
+
+def _expire_qrtotem_coupon_redemptions(db) -> None:
+    now = _iso(_utcnow())
+    db.execute(
+        """
+        UPDATE qrtotem_coupon_redemptions
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'code_generated'
+           AND code_expires_at IS NOT NULL
+           AND datetime(code_expires_at) <= datetime(?)
+        """,
+        (now,),
+    )
+
+
+def _generate_qrtotem_coupon_code(db) -> str:
+    now = _iso(_utcnow())
+    for _ in range(50):
+        code = ''.join(str(secrets.randbelow(10)) for _ in range(6))
+        if code.startswith('0'):
+            code = f'{secrets.randbelow(9) + 1}{code[1:]}'
+
+        existing = db.execute(
+            """
+            SELECT id
+              FROM qrtotem_coupon_redemptions
+             WHERE code = ?
+               AND status = 'code_generated'
+               AND code_expires_at IS NOT NULL
+               AND datetime(code_expires_at) > datetime(?)
+             LIMIT 1
+            """,
+            (code, now),
+        ).fetchone()
+        if not existing:
+            return code
+
+    return str(secrets.randbelow(900000) + 100000)
+
+
+def _customer_already_used_qrtotem_campaign(db, campaign_id: int, customer_email: str) -> bool:
+    row = db.execute(
+        """
+        SELECT cl.id
+          FROM qrtotem_coupon_redemptions cl
+          JOIN customer_coupon_users cu ON cu.id = cl.customer_id
+         WHERE cl.campaign_id = ?
+           AND lower(cu.email) = lower(?)
+           AND cl.status = 'used'
+         LIMIT 1
+        """,
+        (campaign_id, customer_email),
+    ).fetchone()
+    return row is not None
+
+
+def _customer_active_qrtotem_claim(db, campaign_id: int, customer_email: str):
+    _expire_qrtotem_coupon_redemptions(get_db())
+    return get_db().execute(
+        """
+        SELECT cl.*
+          FROM qrtotem_coupon_redemptions cl
+          JOIN customer_coupon_users cu ON cu.id = cl.customer_id
+         WHERE cl.campaign_id = ?
+           AND lower(cu.email) = lower(?)
+           AND cl.status = 'code_generated'
+           AND cl.code_expires_at IS NOT NULL
+           AND datetime(cl.code_expires_at) > datetime(?)
+         ORDER BY cl.created_at DESC, cl.id DESC
+         LIMIT 1
+        """,
+        (campaign_id, customer_email, _iso(_utcnow())),
+    ).fetchone()
+
 def _coupon_entry_url() -> str:
     return url_for('client.coupon_entry')
 
@@ -445,6 +520,9 @@ def _after_customer_login_redirect():
 
     if target == 'profile':
         return redirect(url_for('client.customer_profile'))
+
+    if target == 'qrtotem_coupons':
+        return redirect(url_for('client.qrtotem_coupons'))
 
     return redirect(url_for('client.coupon_menu'))
 
@@ -1021,6 +1099,184 @@ def coupon_mirror():
         is_coupon_page=True,
     )
 
+
+
+@client_bp.route('/cupons-qrtotem')
+def qrtotem_coupons():
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id:
+        flash('Restaurante não identificado.', 'error')
+        return redirect(url_for('client.home'))
+
+    if not _has_coupon_access(restaurant_id):
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'qrtotem_coupons'
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+    if profile and not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
+    customer = _current_customer(db, restaurant_id)
+    if not customer:
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'qrtotem_coupons'
+        flash('Faça login para acessar os cupons QRTotem.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    _expire_qrtotem_coupon_redemptions(db)
+
+    campaigns = db.execute(
+        """
+        SELECT c.*,
+               COALESCE(SUM(CASE WHEN cl.status = 'used' THEN 1 ELSE 0 END), 0) AS used_count
+          FROM qrtotem_coupon_campaigns c
+          LEFT JOIN qrtotem_coupon_redemptions cl ON cl.campaign_id = c.id
+         WHERE c.active = 1
+           AND c.coupon_type = 'global'
+         GROUP BY c.id
+         ORDER BY c.value DESC, c.created_at DESC, c.id DESC
+        """
+    ).fetchall()
+
+    used_by_customer = {
+        int(row['campaign_id']): row
+        for row in db.execute(
+            """
+            SELECT cl.campaign_id, cl.used_at, cl.used_restaurant_id, rp.restaurant_name
+              FROM qrtotem_coupon_redemptions cl
+              JOIN customer_coupon_users cu ON cu.id = cl.customer_id
+              LEFT JOIN restaurant_profiles rp ON rp.id = cl.used_restaurant_id
+             WHERE lower(cu.email) = lower(?)
+               AND cl.status = 'used'
+            """,
+            (customer['email'],),
+        ).fetchall()
+    }
+
+    active_claims = {
+        int(row['campaign_id']): row
+        for row in db.execute(
+            """
+            SELECT cl.*
+              FROM qrtotem_coupon_redemptions cl
+              JOIN customer_coupon_users cu ON cu.id = cl.customer_id
+             WHERE lower(cu.email) = lower(?)
+               AND cl.status = 'code_generated'
+               AND cl.code_expires_at IS NOT NULL
+               AND datetime(cl.code_expires_at) > datetime(?)
+            """,
+            (customer['email'], _iso(_utcnow())),
+        ).fetchall()
+    }
+    db.commit()
+
+    return render_template(
+        'client/qrtotem_coupons.html',
+        profile=profile,
+        customer=customer,
+        campaigns=campaigns,
+        used_by_customer=used_by_customer,
+        active_claims=active_claims,
+        code_minutes=COUPON_CODE_MINUTES,
+        menu_url=_public_menu_url(),
+        csrf=csrf_token(),
+    )
+
+
+@client_bp.route('/cupons-qrtotem/<int:campaign_id>/gerar-codigo', methods=['POST'])
+def generate_qrtotem_coupon_code(campaign_id: int):
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id or not _has_coupon_access(restaurant_id):
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'qrtotem_coupons'
+        flash('Faça login para gerar o código do cupom.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+    if profile and not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
+    customer = _current_customer(db, restaurant_id)
+    if not customer:
+        flash('Faça login novamente para usar o cupom.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    _expire_qrtotem_coupon_redemptions(db)
+
+    campaign = db.execute(
+        """
+        SELECT c.*,
+               COALESCE(SUM(CASE WHEN cl.status = 'used' THEN 1 ELSE 0 END), 0) AS used_count
+          FROM qrtotem_coupon_campaigns c
+          LEFT JOIN qrtotem_coupon_redemptions cl ON cl.campaign_id = c.id
+         WHERE c.id = ?
+           AND c.active = 1
+           AND c.coupon_type = 'global'
+         GROUP BY c.id
+         LIMIT 1
+        """,
+        (campaign_id,),
+    ).fetchone()
+
+    if not campaign:
+        flash('Cupom QRTotem não encontrado ou inativo.', 'error')
+        return redirect(url_for('client.qrtotem_coupons'))
+
+    if int(campaign['total_quantity'] or 0) > 0 and int(campaign['used_count'] or 0) >= int(campaign['total_quantity'] or 0):
+        flash('Este cupom já atingiu o limite de usos.', 'warning')
+        return redirect(url_for('client.qrtotem_coupons'))
+
+    if _customer_already_used_qrtotem_campaign(db, campaign_id, customer['email']):
+        flash('Você já usou este cupom.', 'warning')
+        return redirect(url_for('client.qrtotem_coupons'))
+
+    active_claim = _customer_active_qrtotem_claim(db, campaign_id, customer['email'])
+    if active_claim:
+        db.commit()
+        flash('Você já tem um código válido para este cupom.', 'info')
+        return redirect(url_for('client.qrtotem_coupons'))
+
+    now = _utcnow()
+    code_expires_at = now + timedelta(minutes=COUPON_CODE_MINUTES)
+    code = _generate_qrtotem_coupon_code(db)
+    db.execute(
+        """
+        INSERT INTO qrtotem_coupon_redemptions (
+            campaign_id,
+            customer_id,
+            customer_name,
+            customer_email,
+            customer_username,
+            generated_restaurant_id,
+            status,
+            code,
+            code_generated_at,
+            code_expires_at,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, 'code_generated', ?, ?, ?, ?, ?)
+        """,
+        (
+            campaign_id,
+            customer['id'],
+            customer['name'],
+            customer['email'],
+            customer['username'],
+            restaurant_id,
+            code,
+            _iso(now),
+            _iso(code_expires_at),
+            _iso(now),
+            _iso(now),
+        ),
+    )
+    db.commit()
+
+    flash('Código numérico gerado. Mostre ao atendente dentro de 10 minutos.', 'success')
+    return redirect(url_for('client.qrtotem_coupons'))
 
 @client_bp.route('/promocoes/enviar', methods=['GET', 'POST'])
 @login_required
