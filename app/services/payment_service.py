@@ -302,6 +302,41 @@ def save_mercadopago_token_response(db, restaurant_id: int | None, token_respons
     return get_payment_account(db, restaurant_id)
 
 
+
+
+def humanize_payment_error(error_message: Any) -> str:
+    """Converte erros técnicos do Mercado Pago em mensagens úteis para cliente/restaurante."""
+    raw = str(error_message or '').strip()
+    lowered = raw.lower()
+
+    if not raw:
+        return 'Não foi possível concluir a operação de pagamento agora. Tente novamente ou fale com o restaurante.'
+
+    if 'collector user without key enabled for qr render' in lowered:
+        return (
+            'Não foi possível gerar o Pix porque a conta Mercado Pago do restaurante ainda não está pronta para receber Pix. '
+            'O responsável precisa cadastrar e ativar uma chave Pix na conta Mercado Pago conectada.'
+        )
+
+    if 'mercado pago não conectado' in lowered or 'mercado pago nao conectado' in lowered:
+        return 'Este restaurante ainda não conectou a conta Mercado Pago. Avise o responsável antes de finalizar o pedido.'
+
+    if 'token mercado pago ausente' in lowered or 'reconecte a conta' in lowered or 'invalid_token' in lowered or 'unauthorized' in lowered:
+        return 'A conexão Mercado Pago do restaurante precisa ser refeita. Avise o responsável pelo restaurante.'
+
+    if 'não foi possível conectar ao mercado pago' in lowered or 'nao foi possivel conectar ao mercado pago' in lowered:
+        return 'Não foi possível conectar ao Mercado Pago agora. Tente novamente em alguns instantes.'
+
+    if 'valor do pedido inválido' in lowered or 'valor maior que zero' in lowered:
+        return 'Não foi possível gerar o Pix porque o valor do pedido é inválido. Revise o carrinho.'
+
+    if raw.startswith('Falha ao gerar Pix no Mercado Pago:') or raw.startswith('Falha ao consultar pagamento no Mercado Pago:'):
+        return 'O Mercado Pago não conseguiu processar esta solicitação agora. Tente novamente ou fale com o restaurante.'
+
+    # Mantém mensagens já amigáveis criadas pelo próprio QRTotem.
+    return raw
+
+
 def payment_connection_summary(db, restaurant_profile) -> dict[str, Any]:
     restaurant_id = _row_get(restaurant_profile, 'id')
     service_mode = _row_get(restaurant_profile, 'service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT)
@@ -432,9 +467,20 @@ def create_pix_payment_for_order(
 
     if response.status_code >= 400:
         error = str(data.get('error') or data.get('status') or 'erro_desconhecido')
-        description = str(data.get('message') or data.get('error_description') or data.get('cause') or '').strip()
+        cause = data.get('cause')
+        if isinstance(cause, list) and cause:
+            cause_messages = []
+            for item in cause[:3]:
+                if isinstance(item, dict):
+                    cause_messages.append(str(item.get('description') or item.get('message') or item.get('code') or '').strip())
+                else:
+                    cause_messages.append(str(item).strip())
+            cause_text = '; '.join(text for text in cause_messages if text)
+        else:
+            cause_text = str(cause or '').strip()
+        description = str(data.get('message') or data.get('error_description') or cause_text or '').strip()
         detail = f'{error}: {description}' if description else error
-        raise RuntimeError(f'Falha ao gerar Pix no Mercado Pago: {detail}')
+        raise RuntimeError(humanize_payment_error(f'Falha ao gerar Pix no Mercado Pago: {detail}'))
 
     payment_id = str(data.get('id') or '').strip()
     transaction_data = (data.get('point_of_interaction') or {}).get('transaction_data') or {}
@@ -483,9 +529,20 @@ def fetch_mercadopago_payment_status(db, *, restaurant_id: int, payment_external
 
     if response.status_code >= 400:
         error = str(data.get('error') or data.get('status') or 'erro_desconhecido')
-        description = str(data.get('message') or data.get('error_description') or data.get('cause') or '').strip()
+        cause = data.get('cause')
+        if isinstance(cause, list) and cause:
+            cause_messages = []
+            for item in cause[:3]:
+                if isinstance(item, dict):
+                    cause_messages.append(str(item.get('description') or item.get('message') or item.get('code') or '').strip())
+                else:
+                    cause_messages.append(str(item).strip())
+            cause_text = '; '.join(text for text in cause_messages if text)
+        else:
+            cause_text = str(cause or '').strip()
+        description = str(data.get('message') or data.get('error_description') or cause_text or '').strip()
         detail = f'{error}: {description}' if description else error
-        raise RuntimeError(f'Falha ao consultar pagamento no Mercado Pago: {detail}')
+        raise RuntimeError(humanize_payment_error(f'Falha ao consultar pagamento no Mercado Pago: {detail}'))
 
     mp_status = str(data.get('status') or '').strip().lower()
     status_detail = str(data.get('status_detail') or '').strip()
