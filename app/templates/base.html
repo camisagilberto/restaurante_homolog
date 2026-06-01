@@ -78,6 +78,11 @@
             <span>Promoções</span>
           </a>
 
+          <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}">
+            <span class="nav-icon" aria-hidden="true">#</span>
+            <span>Validar cupom</span>
+          </a>
+
           <a href="{{ url_for('client.profile') }}">
             <span class="nav-icon" aria-hidden="true">◌</span>
             <span>Cadastro</span>
@@ -120,6 +125,7 @@
             <a href="{{ url_for('admin.products') }}">Produtos</a>
             {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>{% endif %}
             <a href="{{ url_for('admin.coupons') }}">Promoções</a>
+            <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}">Validar cupom</a>
             <a href="{{ url_for('client.profile') }}">Perfil</a>
             <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
             <a href="{{ url_for('client.logout') }}">Sair</a>
