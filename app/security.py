@@ -38,7 +38,27 @@ def csrf_token() -> str:
 
 
 def inject_globals():
-    return {'csrf_token': csrf_token}
+    restaurant_is_active = session.get('restaurant_is_active')
+
+    if session.get('admin_logged_in') and session.get('admin_id'):
+        try:
+            from .db import get_db
+
+            db = get_db()
+            row = db.execute(
+                'SELECT COALESCE(is_active, 1) AS is_active FROM restaurant_profiles WHERE admin_id = ? LIMIT 1',
+                (session.get('admin_id'),),
+            ).fetchone()
+            if row is not None:
+                restaurant_is_active = int(row['is_active'])
+                session['restaurant_is_active'] = restaurant_is_active
+        except Exception:
+            restaurant_is_active = session.get('restaurant_is_active')
+
+    return {
+        'csrf_token': csrf_token,
+        'qrtotem_restaurant_is_active': int(restaurant_is_active if restaurant_is_active is not None else 1),
+    }
 
 
 def _request_token() -> str:
