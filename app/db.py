@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS restaurant_profiles (
     cell_phone TEXT NOT NULL DEFAULT '',
     order_payment_mode TEXT NOT NULL DEFAULT 'pay_after',
     service_mode TEXT NOT NULL DEFAULT 'full_order_payment',
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
     table_count INTEGER NOT NULL DEFAULT 0,    
     public_token TEXT,
     slug TEXT,
@@ -291,6 +292,7 @@ def _migrate_restaurant_profiles(db: sqlite3.Connection) -> None:
     _ensure_column(db, 'restaurant_profiles', 'slug TEXT')
     _ensure_column(db, 'restaurant_profiles', "order_payment_mode TEXT NOT NULL DEFAULT 'pay_after'")
     _ensure_column(db, 'restaurant_profiles', "service_mode TEXT NOT NULL DEFAULT 'full_order_payment'")
+    _ensure_column(db, 'restaurant_profiles', 'is_active INTEGER NOT NULL DEFAULT 1')
 
     db.execute('''
         UPDATE restaurant_profiles
@@ -306,9 +308,15 @@ def _migrate_restaurant_profiles(db: sqlite3.Connection) -> None:
          WHERE service_mode IS NULL
             OR service_mode = ''
             OR service_mode NOT IN ('digital_menu', 'full_order_payment')
-    ''')    
+    ''')
 
-    
+    db.execute('''
+        UPDATE restaurant_profiles
+           SET is_active = 1
+         WHERE is_active IS NULL
+            OR is_active NOT IN (0, 1)
+    ''')
+
     rows = db.execute(
         'SELECT id, restaurant_name, public_token, slug FROM restaurant_profiles'
     ).fetchall()
@@ -356,10 +364,11 @@ def _ensure_default_profile(db: sqlite3.Connection) -> int:
             cell_phone,
             table_count,
             service_mode,
+            is_active,
             public_token,
             slug
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'full_order_payment', ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'full_order_payment', 1, ?, ?)
         ''',
         (
             admin['id'],
