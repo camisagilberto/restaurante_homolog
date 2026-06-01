@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Créditos dos restaurantes{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Painel interno</p>
+    <h2>Crédito promocional dos restaurantes</h2>
+    <p class="muted">Distribua manualmente um valor de crédito apenas para restaurantes ativos. O sistema registra quem recebeu, quem não recebeu e qual era o status do restaurante no momento da distribuição.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('owner_admin.qrtotem_coupons') }}">Cupons QRTotem</a>
+    <a class="btn btn-secondary" href="{{ url_for('owner_admin.dashboard') }}">Voltar ao painel</a>
+  </div>
+</section>
+
+<section class="panel">
+  <h3>Criar nova distribuição manual</h3>
+  <p class="muted">Somente restaurantes ativos recebem crédito. Restaurantes inativos ficam registrados no histórico como “não receberam”. O saldo vence em {{ validity_days }} dias se o restaurante não criar cupons com ele.</p>
+  <form method="post" class="stacked-form form-grid-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome da distribuição
+      <input name="title" type="text" placeholder="Ex.: Crédito Junho/2026" required>
+    </label>
+    <label>Valor por restaurante ativo
+      <input name="amount_per_restaurant" type="text" inputmode="decimal" placeholder="50,00" required>
+    </label>
+    <label class="form-full">Observação interna
+      <textarea name="notes" rows="3" placeholder="Ex.: Crédito promocional mensal definido manualmente."></textarea>
+    </label>
+    <div class="form-full alert-box warning">
+      <strong>Regra automática:</strong> restaurantes inativos no momento da distribuição não recebem crédito. A validade do saldo é de {{ validity_days }} dias. Os cupons criados futuramente a partir desse saldo também terão validade de {{ validity_days }} dias após a criação.
+    </div>
+    <div class="form-full">
+      <button class="btn btn-primary" type="submit">Distribuir crédito para ativos</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Resumo geral</h3>
+    <span class="muted">Valores ainda disponíveis e vencidos</span>
+  </div>
+  <div class="stats-grid compact-stats">
+    <article class="stat-card">
+      <span>Saldo disponível</span>
+      <strong>{{ totals['available_balance']|currency }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>Saldo já reservado em cupons</span>
+      <strong>{{ totals['allocated_amount']|currency }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>Saldo vencido/zerado</span>
+      <strong>{{ totals['expired_balance']|currency }}</strong>
+    </article>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Distribuições criadas</h3>
+    <span class="muted">Cada linha guarda o retrato do momento em que o crédito foi distribuído</span>
+  </div>
+  {% if distributions %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Distribuição</th>
+            <th>Valor por ativo</th>
+            <th>Ativos receberam</th>
+            <th>Inativos não receberam</th>
+            <th>Total liberado</th>
+            <th>Saldo disponível</th>
+            <th>Validade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dist in distributions %}
+            <tr>
+              <td><strong>{{ dist['title'] }}</strong><br><small>{{ dist['created_at'] }}{% if dist['notes'] %} · {{ dist['notes'] }}{% endif %}</small></td>
+              <td>{{ dist['amount_per_restaurant']|currency }}</td>
+              <td>{{ dist['received_count'] }}</td>
+              <td>{{ dist['not_received_count'] }}</td>
+              <td>{{ dist['total_credit_amount']|currency }}</td>
+              <td>{{ dist['available_balance']|currency }}</td>
+              <td>{{ dist['expires_at'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhuma distribuição de crédito criada ainda.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Histórico por restaurante</h3>
+    <span class="muted">Quem recebeu, quem não recebeu e o status no momento</span>
+  </div>
+  {% if allocations %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Distribuição</th>
+            <th>Restaurante</th>
+            <th>Status no momento</th>
+            <th>Crédito recebido</th>
+            <th>Saldo usado em cupons</th>
+            <th>Situação</th>
+            <th>Validade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in allocations %}
+            <tr>
+              <td><strong>{{ item['distribution_title'] }}</strong><br><small>{{ item['distribution_created_at'] }}</small></td>
+              <td><strong>{{ item['restaurant_name_snapshot'] }}</strong><br><small>{{ item['owner_name_snapshot'] }} · {{ item['email_snapshot'] }}</small></td>
+              <td>
+                {% if item['restaurant_was_active'] %}
+                  <span class="status-pill status-success">Ativo</span>
+                {% else %}
+                  <span class="status-pill status-danger">Inativo</span>
+                {% endif %}
+              </td>
+              <td>{{ item['initial_amount']|currency }}</td>
+              <td>{{ item['allocated_amount']|currency }}</td>
+              <td>
+                {% if item['status'] == 'available' %}
+                  <span class="status-pill status-success">Disponível</span>
+                {% elif item['status'] == 'expired' %}
+                  <span class="status-pill status-muted">Vencido/zerado</span>
+                {% elif item['status'] == 'consumed' %}
+                  <span class="status-pill status-muted">Consumido</span>
+                {% else %}
+                  <span class="status-pill status-warning">Não recebeu</span>
+                  {% if item['not_received_reason'] %}<br><small>{{ item['not_received_reason'] }}</small>{% endif %}
+                {% endif %}
+              </td>
+              <td>{{ item['expires_at'] or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhum histórico por restaurante ainda.</p>
+  {% endif %}
+</section>
+{% endblock %}
