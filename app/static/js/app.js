@@ -392,3 +392,16 @@
     initCouponCodeConfirm();
   });
 })();
+
+// Confirmação para gerar código de cupom rastreável QRTotem.
+document.addEventListener('submit', function (event) {
+  const form = event.target;
+  if (!form || !form.matches('[data-confirm-coupon-code]')) {
+    return;
+  }
+
+  const message = form.getAttribute('data-confirm-coupon-code') || 'Tem certeza que deseja gerar o código agora?';
+  if (!window.confirm(message)) {
+    event.preventDefault();
+  }
+});
