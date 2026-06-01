@@ -80,6 +80,20 @@ def _is_full_order_mode(profile) -> bool:
     return _service_mode_from_profile(profile) == SERVICE_MODE_FULL_ORDER_PAYMENT
 
 
+def _is_restaurant_active(profile) -> bool:
+    return bool(int(_row_get(profile, 'is_active', 1) or 0))
+
+
+def _restaurant_inactive_response(profile=None, *, status_code: int = 403):
+    message = 'Este restaurante está temporariamente indisponível no QRTotem. Fale com a equipe do restaurante.'
+    clear_cart(session)
+
+    if _wants_json():
+        return jsonify(success=False, message=message), status_code
+
+    return render_template('client/inactive.html', profile=profile, message=message), status_code
+
+
 def _current_restaurant_profile(db, restaurant_id: int | None = None):
     restaurant_id = restaurant_id or _client_restaurant_id()
 
@@ -132,6 +146,7 @@ def _restaurant_context() -> dict:
         'cell_phone': session.get('restaurant_cell_phone', ''),
         'order_payment_mode': session.get('restaurant_order_payment_mode', 'pay_after'),
         'service_mode': session.get('restaurant_service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT),
+        'is_active': session.get('restaurant_is_active', 1),
         'username': session.get('admin_username', ''),
         'table_count': session.get('restaurant_table_count', 0),
         'public_token': session.get('restaurant_public_token', ''),
@@ -157,6 +172,7 @@ def _restaurant_context() -> dict:
                     'cell_phone': profile['cell_phone'],
                     'order_payment_mode': profile['order_payment_mode'] if 'order_payment_mode' in profile.keys() else 'pay_after',
                     'service_mode': _service_mode_from_profile(profile),
+                    'is_active': int(_row_get(profile, 'is_active', 1) or 0),
                     'username': profile['username'],
                     'table_count': profile['table_count'] if 'table_count' in profile.keys() else 0,
                     'public_token': profile['public_token'] if 'public_token' in profile.keys() else '',
@@ -181,6 +197,7 @@ def _store_admin_profile_session(account: dict) -> None:
     session['restaurant_cell_phone'] = account['cell_phone']
     session['restaurant_order_payment_mode'] = account.get('order_payment_mode', 'pay_after')
     session['restaurant_service_mode'] = account.get('service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT)
+    session['restaurant_is_active'] = int(account.get('is_active', 1) or 0)
     session['restaurant_table_count'] = account.get('table_count', 0)
     session['restaurant_public_token'] = account.get('public_token', '')
     session['restaurant_slug'] = account.get('slug', '')
@@ -216,6 +233,7 @@ def _set_client_restaurant(profile) -> None:
     session[CLIENT_RESTAURANT_SESSION_KEY] = profile['id']
     session[CLIENT_RESTAURANT_TOKEN_SESSION_KEY] = profile['public_token']
     session['client_restaurant_service_mode'] = _service_mode_from_profile(profile)
+    session['client_restaurant_is_active'] = int(_row_get(profile, 'is_active', 1) or 0)
 
     if not _is_full_order_mode(profile):
         clear_cart(session)
@@ -309,7 +327,8 @@ def _render_client_menu(
     for product in products:
         grouped.setdefault(product['category'] or 'Cardápio', []).append(product)
 
-    can_order = _is_full_order_mode(profile)
+    restaurant_active = _is_restaurant_active(profile)
+    can_order = restaurant_active and _is_full_order_mode(profile)
 
     if not can_order:
         clear_cart(session)
@@ -352,6 +371,7 @@ def _render_client_menu(
         show_radar_flag=show_radar_flag,
         can_order=can_order,
         service_mode=_service_mode_from_profile(profile),
+        restaurant_is_active=restaurant_active,
         can_send_promotions=bool(session.get('admin_logged_in') and not _is_public_client_mode() and is_coupon_page and is_client_mirror),
         send_promotions_url=url_for('client.send_promotions'),
     )
@@ -396,6 +416,7 @@ def login():
                     'cell_phone': profile['cell_phone'],
                     'order_payment_mode': profile['order_payment_mode'] if 'order_payment_mode' in profile.keys() else 'pay_after',
                     'service_mode': _service_mode_from_profile(profile),
+                    'is_active': int(_row_get(profile, 'is_active', 1) or 0),
                     'table_count': profile['table_count'] if 'table_count' in profile.keys() else 0,
                     'public_token': profile['public_token'] if 'public_token' in profile.keys() else '',
                     'slug': profile['slug'] if 'slug' in profile.keys() else '',
@@ -469,6 +490,7 @@ def profile():
             session['restaurant_address'] = updated['restaurant_address']
             session['restaurant_cell_phone'] = updated['cell_phone']
             session['restaurant_service_mode'] = updated.get('service_mode', SERVICE_MODE_FULL_ORDER_PAYMENT)
+            session['restaurant_is_active'] = int(updated.get('is_active', session.get('restaurant_is_active', 1)) or 0)
             session['restaurant_order_payment_mode'] = updated.get('order_payment_mode', 'pay_after')
 
             if updated.get('service_mode') == SERVICE_MODE_DIGITAL_MENU:
@@ -904,6 +926,9 @@ def restaurant_table_menu(public_token, table_number):
 
     session[PUBLIC_CLIENT_MODE_SESSION_KEY] = True
 
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
     return _render_client_menu(
         profile,
         table_number,
@@ -923,6 +948,11 @@ def coupon_entry():
 
     if session.get('admin_logged_in') and not _is_public_client_mode():
         return redirect(url_for('client.coupon_mirror'))
+
+    db = get_db()
+    profile = _current_restaurant_profile(db, restaurant_id)
+    if profile and not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
 
     if _has_coupon_access(restaurant_id):
         return redirect(url_for('client.coupon_menu'))
@@ -1399,6 +1429,9 @@ def cart():
         flash('Restaurante não encontrado.', 'error')
         return redirect(url_for('client.home'))
 
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
 
@@ -1438,6 +1471,9 @@ def add_to_cart():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
         return redirect(url_for('client.home'))
+
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
 
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
@@ -1504,6 +1540,9 @@ def update_cart():
         flash(message, 'error')
         return redirect(url_for('client.home'))
 
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
 
@@ -1556,6 +1595,9 @@ def remove_from_cart():
         flash(message, 'error')
         return redirect(url_for('client.home'))
 
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
 
@@ -1601,6 +1643,9 @@ def finalize_order():
             return jsonify(success=False, message=message), 404
         flash(message, 'error')
         return redirect(url_for('client.home'))
+
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
 
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
@@ -1696,6 +1741,9 @@ def payment_order(order_id: int):
         flash('Restaurante não encontrado.', 'error')
         return redirect(url_for('client.home'))
 
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
+
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
 
@@ -1739,6 +1787,9 @@ def payment_order_status(order_id: int):
 
     if not profile:
         return jsonify(success=False, message='Restaurante não encontrado.'), 404
+
+    if not _is_restaurant_active(profile):
+        return jsonify(success=False, message='Este restaurante está temporariamente indisponível no QRTotem.'), 403
 
     if not _is_full_order_mode(profile):
         return jsonify(
@@ -1807,6 +1858,9 @@ def verify_payment_order(order_id: int):
             return jsonify(success=False, message=message), 404
         flash(message, 'error')
         return redirect(url_for('client.home'))
+
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
 
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
@@ -1909,6 +1963,9 @@ def order_history():
     if not profile:
         flash('Restaurante não encontrado.', 'error')
         return redirect(url_for('client.home'))
+
+    if not _is_restaurant_active(profile):
+        return _restaurant_inactive_response(profile)
 
     if not _is_full_order_mode(profile):
         return _orders_unavailable_response(profile)
