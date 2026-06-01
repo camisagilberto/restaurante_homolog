@@ -6,7 +6,7 @@
   <div>
     <p class="eyebrow">Pagamento Pix</p>
     <h2>Pedido #{{ order['id'] }}</h2>
-    <p class="muted">Pague o Pix abaixo. O pedido será enviado para a cozinha depois da confirmação do pagamento.</p>
+    <p class="muted">Pague o Pix abaixo. A tela atualiza sozinha e o pedido vai para a cozinha quando o Mercado Pago confirmar.</p>
   </div>
   <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
 </section>
@@ -39,11 +39,11 @@
       </span>
       <h3>Total: {{ order['total_amount']|currency }}</h3>
       <p class="muted">Mesa {{ table_number }} · {{ order['customer_name'] }}</p>
-      <p id="payment-auto-status" class="muted payment-auto-status">
+      <p id="payment-auto-status" class="muted payment-auto-status" aria-live="polite">
         {% if order['payment_status'] == 'approved' %}
           Pagamento confirmado. Seu pedido já foi enviado para a cozinha.
         {% else %}
-          A tela atualiza automaticamente. Você pode bloquear o celular; o pedido será liberado pelo servidor quando o Mercado Pago confirmar.
+          Você pode bloquear o celular depois de pagar. O servidor libera o pedido para a cozinha assim que o Mercado Pago confirmar.
         {% endif %}
       </p>
     </div>
@@ -58,7 +58,7 @@
       <div data-pix-visible-while-pending>
         <label for="pix-code" class="pix-label">Pix copia e cola</label>
         <textarea id="pix-code" class="pix-code" rows="7" readonly>{{ order['payment_qr_code'] }}</textarea>
-        <button type="button" class="btn btn-primary btn-block" data-copy-pix="#pix-code">Copiar código Pix</button>
+        <button type="button" class="btn btn-primary btn-block" data-copy-pix="#pix-code">Copiar Pix copia e cola</button>
       </div>
     {% endif %}
 
@@ -75,7 +75,7 @@
       </form>
       <div id="payment-check-message" class="notice-card">
         <strong>Aguardando confirmação automática</strong>
-        <p>Depois de pagar, aguarde alguns segundos. A tela vai atualizar sozinha quando o Mercado Pago confirmar. Se demorar, use o botão <strong>Verificar pagamento</strong>.</p>
+        <p>Depois de pagar, aguarde alguns segundos. A tela vai atualizar sozinha. O botão <strong>Verificar pagamento</strong> fica como plano B caso a confirmação demore.</p>
       </div>
     {% elif order['payment_status'] == 'approved' %}
       <div id="payment-check-message" class="notice-card success">
@@ -84,19 +84,19 @@
       </div>
     {% else %}
       <div id="payment-check-message" class="notice-card danger">
-        <strong>Status do pagamento:</strong>
-        <p>{{ order['payment_status'] }}</p>
+        <strong>Pagamento não aprovado</strong>
+        <p>Gere um novo pedido ou fale com a equipe do restaurante.</p>
       </div>
     {% endif %}
 
     {% if order['payment_error'] %}
       <div id="payment-error-box" class="notice-card danger">
-        <strong>Erro registrado:</strong>
+        <strong>Atenção</strong>
         <p>{{ order['payment_error'] }}</p>
       </div>
     {% else %}
       <div id="payment-error-box" class="notice-card danger" hidden>
-        <strong>Erro registrado:</strong>
+        <strong>Atenção</strong>
         <p></p>
       </div>
     {% endif %}
@@ -107,7 +107,9 @@
     <div class="summary-line"><span>Número</span><strong>#{{ order['id'] }}</strong></div>
     <div class="summary-line"><span>Mesa</span><strong>{{ table_number }}</strong></div>
     <div class="summary-line"><span>Total</span><strong>{{ order['total_amount']|currency }}</strong></div>
-    <div class="summary-line"><span>Status Pix</span><strong id="payment-summary-status">{{ order['payment_status'] }}</strong></div>
+    <div class="summary-line"><span>Status Pix</span><strong id="payment-summary-status">
+      {% if order['payment_status'] == 'pending' %}Aguardando{% elif order['payment_status'] == 'approved' %}Aprovado{% elif order['payment_status'] == 'rejected' %}Recusado{% elif order['payment_status'] == 'cancelled' %}Cancelado{% elif order['payment_status'] == 'expired' %}Expirado{% elif order['payment_status'] == 'error' %}Erro{% else %}{{ order['payment_status'] }}{% endif %}
+    </strong></div>
 
     <a class="btn btn-secondary btn-block" href="{{ orders_url }}">Ver pedidos da mesa</a>
   </aside>
@@ -172,7 +174,12 @@
       if (!messageBox) return;
       messageBox.classList.remove('success', 'danger');
       if (kind) messageBox.classList.add(kind);
-      messageBox.innerHTML = '<strong>' + title + '</strong><p>' + message + '</p>';
+      messageBox.replaceChildren();
+      const strong = document.createElement('strong');
+      strong.textContent = title;
+      const p = document.createElement('p');
+      p.textContent = message;
+      messageBox.append(strong, p);
     }
 
     function hidePixActionsIfApproved(status) {
@@ -195,13 +202,13 @@
       setStatusClasses(status);
 
       if (statusPill) statusPill.textContent = label;
-      if (summaryStatus) summaryStatus.textContent = status;
+      if (summaryStatus) summaryStatus.textContent = label;
 
       if (autoStatus) {
         if (status === 'approved') {
           autoStatus.textContent = 'Pagamento confirmado. Seu pedido foi enviado para a cozinha.';
         } else if (status === 'pending') {
-          autoStatus.textContent = 'Aguardando confirmação automática do Mercado Pago...';
+          autoStatus.textContent = 'Aguardando confirmação automática do Mercado Pago... Você pode manter a tela aberta ou bloquear o celular.';
         } else {
           autoStatus.textContent = message || 'Status atualizado pelo Mercado Pago.';
         }
