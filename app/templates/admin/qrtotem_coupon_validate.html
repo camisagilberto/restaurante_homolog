@@ -41,7 +41,8 @@
   <form method="post" class="stacked-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="confirm">
-    <input type="hidden" name="claim_id" value="{{ lookup_result['id'] }}">
+    <input type="hidden" name="redemption_id" value="{{ lookup_result['id'] }}">
+    <input type="hidden" name="code" value="{{ lookup_result['code'] }}">
     <button type="submit" class="btn btn-primary">Confirmar uso do cupom</button>
   </form>
 </section>
