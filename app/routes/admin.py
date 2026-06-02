@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 
@@ -13,6 +13,60 @@ from ..services.onboarding_service import get_restaurant_profile_for_admin
 from ..utils import normalize_text
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+
+def _parse_money(value: str) -> float:
+    normalized = str(value or '').strip().replace('.', '').replace(',', '.')
+    try:
+        parsed = float(normalized)
+    except (TypeError, ValueError):
+        return 0.0
+    return round(parsed, 2)
+
+
+def _parse_int(value: str) -> int:
+    try:
+        return max(0, int(str(value or '').strip()))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _iso(dt: datetime) -> str:
+    return dt.replace(microsecond=0).isoformat(timespec='seconds')
+
+
+def _expire_restaurant_credit_allocations(db) -> None:
+    db.execute(
+        """
+        UPDATE qrtotem_restaurant_credit_allocations
+           SET status = 'expired',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status = 'available'
+           AND expires_at IS NOT NULL
+           AND datetime(expires_at) <= datetime('now')
+        """
+    )
+
+
+def _available_restaurant_credit_allocations(db, restaurant_id: int):
+    _expire_restaurant_credit_allocations(db)
+    return db.execute(
+        """
+        SELECT a.*,
+               d.title AS distribution_title,
+               (a.initial_amount - a.allocated_amount) AS remaining_amount
+          FROM qrtotem_restaurant_credit_allocations a
+          JOIN qrtotem_restaurant_credit_distributions d ON d.id = a.distribution_id
+         WHERE a.restaurant_id = ?
+           AND a.status = 'available'
+           AND a.restaurant_was_active = 1
+           AND (a.expires_at IS NULL OR datetime(a.expires_at) > datetime('now'))
+           AND (a.initial_amount - a.allocated_amount) > 0
+         ORDER BY datetime(a.expires_at) ASC, a.id ASC
+        """,
+        (restaurant_id,),
+    ).fetchall()
 
 
 def _profile_context(db):
@@ -539,6 +593,135 @@ def delete_coupon_route(product_id):
     message = message.replace('Produto', 'Cupom').replace('produto', 'cupom')
     flash(message, 'success' if removed else 'warning')
     return redirect(url_for('admin.coupons'))
+
+
+@admin_bp.route('/cupons-qrtotem/restaurante', methods=['GET', 'POST'])
+@login_required
+def restaurant_qrtotem_coupons():
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        flash('Perfil do restaurante não encontrado.', 'error')
+        return redirect(url_for('client.signup'))
+
+    profile = _profile_context(db)
+    if int(profile.get('is_active', 1) or 0) != 1:
+        flash('Seu restaurante está inativo. Ative o restaurante para criar cupons com crédito QRTotem.', 'warning')
+
+    _expire_restaurant_credit_allocations(db)
+
+    if request.method == 'POST':
+        title = str(request.form.get('title') or '').strip()
+        description = str(request.form.get('description') or '').strip()
+        discount_amount = _parse_money(request.form.get('discount_amount'))
+        quantity = _parse_int(request.form.get('quantity'))
+        total_cost = round(discount_amount * quantity, 2)
+
+        allocations = _available_restaurant_credit_allocations(db, restaurant_id)
+        available_total = round(sum(float(row['remaining_amount'] or 0) for row in allocations), 2)
+        selected_allocation = None
+        for row in allocations:
+            if float(row['remaining_amount'] or 0) + 0.0001 >= total_cost:
+                selected_allocation = row
+                break
+
+        if int(profile.get('is_active', 1) or 0) != 1:
+            flash('Restaurante inativo não pode criar cupons com crédito promocional.', 'error')
+        elif not title:
+            flash('Informe o nome do cupom.', 'error')
+        elif discount_amount <= 0:
+            flash('Informe um valor de cupom maior que zero.', 'error')
+        elif quantity <= 0:
+            flash('Informe a quantidade de cupons.', 'error')
+        elif total_cost > available_total + 0.0001:
+            flash('Saldo insuficiente para criar esses cupons.', 'error')
+        elif not selected_allocation:
+            flash('Seu saldo está dividido em créditos menores. Crie uma quantidade menor ou use outro valor de cupom.', 'warning')
+        else:
+            now = datetime.utcnow()
+            expires_at = now + timedelta(days=30)
+            min_purchase_amount = round(discount_amount + 5, 2)
+            cursor = db.execute(
+                """
+                INSERT INTO qrtotem_coupon_campaigns (
+                    title,
+                    description,
+                    coupon_type,
+                    value,
+                    min_purchase_amount,
+                    total_quantity,
+                    active,
+                    restaurant_id,
+                    credit_allocation_id,
+                    starts_at,
+                    ends_at,
+                    expires_at,
+                    created_by,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, 'restaurant_credit', ?, ?, ?, 1, ?, ?, ?, ?, ?, 'restaurant', ?, ?)
+                """,
+                (
+                    title,
+                    description,
+                    discount_amount,
+                    min_purchase_amount,
+                    quantity,
+                    restaurant_id,
+                    selected_allocation['id'],
+                    _iso(now),
+                    _iso(expires_at),
+                    _iso(expires_at),
+                    _iso(now),
+                    _iso(now),
+                ),
+            )
+            new_allocated = round(float(selected_allocation['allocated_amount'] or 0) + total_cost, 2)
+            new_status = 'consumed' if new_allocated + 0.0001 >= float(selected_allocation['initial_amount'] or 0) else 'available'
+            db.execute(
+                """
+                UPDATE qrtotem_restaurant_credit_allocations
+                   SET allocated_amount = ?,
+                       status = ?,
+                       updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ?
+                """,
+                (new_allocated, new_status, selected_allocation['id']),
+            )
+            db.commit()
+            flash('Cupons criados com sucesso usando o crédito QRTotem. Eles vencem em 30 dias.', 'success')
+            return redirect(url_for('admin.restaurant_qrtotem_coupons'))
+
+    db.commit()
+    allocations = _available_restaurant_credit_allocations(db, restaurant_id)
+    available_total = round(sum(float(row['remaining_amount'] or 0) for row in allocations), 2)
+
+    campaigns = db.execute(
+        """
+        SELECT c.*,
+               COALESCE(SUM(CASE WHEN r.status = 'used' THEN 1 ELSE 0 END), 0) AS used_count,
+               COALESCE(SUM(CASE WHEN r.status = 'code_generated' THEN 1 ELSE 0 END), 0) AS pending_count
+          FROM qrtotem_coupon_campaigns c
+          LEFT JOIN qrtotem_coupon_redemptions r ON r.campaign_id = c.id
+         WHERE c.coupon_type = 'restaurant_credit'
+           AND c.restaurant_id = ?
+         GROUP BY c.id
+         ORDER BY c.created_at DESC, c.id DESC
+        """,
+        (restaurant_id,),
+    ).fetchall()
+
+    return render_template(
+        'admin/restaurant_qrtotem_coupons.html',
+        profile=profile,
+        allocations=allocations,
+        available_total=available_total,
+        campaigns=campaigns,
+        validity_days=30,
+        csrf=csrf_token(),
+    )
 
 
 @admin_bp.route('/cupons-qrtotem/validar', methods=['GET', 'POST'])
