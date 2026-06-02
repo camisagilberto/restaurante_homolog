@@ -320,32 +320,6 @@
     });
   }
 
-  function initKitchenAccess() {
-    const kitchenLinks = document.querySelectorAll('[data-kitchen-access]');
-    if (!kitchenLinks.length) return;
-
-    kitchenLinks.forEach((kitchenLink) => {
-      kitchenLink.addEventListener('click', async (event) => {
-        event.preventDefault();
-
-        const senha = await askPasswordModal('Digite a senha da cozinha para acessar. A senha do usuário também será aceita.');
-        if (!senha) return;
-
-        try {
-          const { response, data } = await requestJSON('/cozinha/validar', { password: senha });
-
-          if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Senha inválida.');
-          }
-
-          window.location.href = data.redirect_url || kitchenLink.href;
-        } catch (error) {
-          alert(error.message || 'Erro ao acessar cozinha.');
-        }
-      });
-    });
-  }
-
   function initNavigationAccordion() {
     document.querySelectorAll('[data-nav-accordion]').forEach((nav) => {
       const groups = Array.from(nav.querySelectorAll('details'));
@@ -384,35 +358,6 @@
     });
   }
 
-  function initKitchenExitGuard() {
-    const kitchenPage = document.querySelector('[data-kitchen-page]');
-    if (!kitchenPage) return;
-
-    document.querySelectorAll('a[href]').forEach((link) => {
-      const href = link.getAttribute('href') || '';
-      if (!href || href.startsWith('#') || href.includes('/cozinha')) return;
-
-      link.addEventListener('click', async (event) => {
-        event.preventDefault();
-
-        const password = prompt('Digite a senha da cozinha para sair desta área. A senha do usuário também será aceita.');
-        if (!password) return;
-
-        try {
-          const { response, data } = await requestJSON('/cozinha/sair', { password });
-
-          if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Senha inválida.');
-          }
-
-          window.location.href = link.href;
-        } catch (error) {
-          alert(error.message || 'Erro ao sair da cozinha.');
-        }
-      });
-    });
-  }
-
   function initKitchenDelete() {
     const deleteButton = document.querySelector('[data-delete-orders]');
     if (!deleteButton) return;
@@ -442,10 +387,8 @@
     initMenu();
     initCart();
     initTableEditor();
-    initKitchenAccess();
     initNavigationAccordion();
     initPasswordConfirmForms();
-    initKitchenExitGuard();
     initKitchenDelete();
     initCouponCodeConfirm();
   });
