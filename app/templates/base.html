@@ -55,58 +55,46 @@
           <img src="{{ url_for('static', filename='img/logo-horizontal-dark.png') }}" alt="QRTotem">
         </a>
 
-        <nav class="sidebar-nav" aria-label="Menu principal do restaurante">
-          <a href="{{ client_order_url }}">
-            <span class="nav-icon" aria-hidden="true">⌂</span>
-            <span>Cliente</span>
-          </a>
+        <nav class="sidebar-nav sidebar-nav--grouped" aria-label="Menu principal do restaurante">
+          <details class="sidebar-group" open>
+            <summary><span class="nav-icon" aria-hidden="true">🏠</span><span>Início</span></summary>
+            <div class="sidebar-group-links">
+              <a href="{{ client_order_url }}"><span class="nav-icon" aria-hidden="true">📱</span><span>Tela do cliente</span></a>
+              {% if show_kitchen_navigation %}
+                <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access><span class="nav-icon" aria-hidden="true">👨‍🍳</span><span>Cozinha</span></a>
+              {% endif %}
+            </div>
+          </details>
 
-          <a href="{{ url_for('admin.products') }}">
-            <span class="nav-icon" aria-hidden="true">▦</span>
-            <span>Produtos</span>
-          </a>
+          <details class="sidebar-group" open>
+            <summary><span class="nav-icon" aria-hidden="true">🍽️</span><span>Cardápio</span></summary>
+            <div class="sidebar-group-links">
+              <a href="{{ url_for('admin.products') }}"><span class="nav-icon" aria-hidden="true">▦</span><span>Produtos</span></a>
+              <a href="{{ url_for('client.tables_setup') }}"><span class="nav-icon" aria-hidden="true">▣</span><span>Mesas / QR Codes</span></a>
+            </div>
+          </details>
 
-          {% if show_kitchen_navigation %}
-            <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>
-              <span class="nav-icon" aria-hidden="true">◷</span>
-              <span>Cozinha</span>
-            </a>
-          {% endif %}
+          <details class="sidebar-group" open>
+            <summary><span class="nav-icon" aria-hidden="true">🎟️</span><span>Cupons</span></summary>
+            <div class="sidebar-group-links">
+              <a href="{{ url_for('admin.coupons') }}"><span class="nav-icon" aria-hidden="true">🎁</span><span>Promoções</span></a>
+              <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}"><span class="nav-icon" aria-hidden="true">%</span><span>Cupons QRTotem</span></a>
+              <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}"><span class="nav-icon" aria-hidden="true">#</span><span>Validar cupom</span></a>
+            </div>
+          </details>
 
-          <a href="{{ url_for('admin.coupons') }}">
-            <span class="nav-icon" aria-hidden="true">%</span>
-            <span>Promoções</span>
-          </a>
-
-          <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}">
-            <span class="nav-icon" aria-hidden="true">◉</span>
-            <span>Cupons QRTotem</span>
-          </a>
-
-          <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}">
-            <span class="nav-icon" aria-hidden="true">#</span>
-            <span>Validar cupom</span>
-          </a>
-
-          <a href="{{ url_for('client.profile') }}">
-            <span class="nav-icon" aria-hidden="true">◌</span>
-            <span>Cadastro</span>
-          </a>
-
-          <a href="{{ url_for('client.tables_setup') }}">
-            <span class="nav-icon" aria-hidden="true">□</span>
-            <span>Mesas</span>
-          </a>
+          <details class="sidebar-group">
+            <summary><span class="nav-icon" aria-hidden="true">⚙️</span><span>Conta</span></summary>
+            <div class="sidebar-group-links">
+              <a href="{{ url_for('client.profile') }}"><span class="nav-icon" aria-hidden="true">👤</span><span>Perfil / Cadastro</span></a>
+              <a href="{{ url_for('client.logout') }}"><span class="nav-icon" aria-hidden="true">↩</span><span>Sair</span></a>
+            </div>
+          </details>
         </nav>
 
         <div class="sidebar-footer">
           <span class="sidebar-caption">Sistema de pedidos</span>
-          <strong>QR Code para restaurantes</strong>
-
-          <a class="sidebar-logout" href="{{ url_for('client.logout') }}">
-            <span class="nav-icon" aria-hidden="true">↩</span>
-            <span>Sair</span>
-          </a>
+          <strong>QR Code, cardápio e promoções em um só lugar</strong>
         </div>
       </aside>
     {% endif %}
@@ -125,16 +113,39 @@
         </a>
 
         {% if show_navigation %}
-          <nav class="app-nav" aria-label="Menu principal do restaurante">
-            <a href="{{ client_order_url }}">Cliente</a>
-            <a href="{{ url_for('admin.products') }}">Produtos</a>
-            {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>{% endif %}
-            <a href="{{ url_for('admin.coupons') }}">Promoções</a>
-            <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}">Cupons QRTotem</a>
-            <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}">Validar cupom</a>
-            <a href="{{ url_for('client.profile') }}">Perfil</a>
-            <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
-            <a href="{{ url_for('client.logout') }}">Sair</a>
+          <nav class="app-nav app-nav--grouped" aria-label="Menu principal do restaurante">
+            <details class="top-nav-group" open>
+              <summary>Atendimento</summary>
+              <div>
+                <a href="{{ client_order_url }}">Cliente</a>
+                {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>{% endif %}
+              </div>
+            </details>
+
+            <details class="top-nav-group">
+              <summary>Cardápio</summary>
+              <div>
+                <a href="{{ url_for('admin.products') }}">Produtos</a>
+                <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
+              </div>
+            </details>
+
+            <details class="top-nav-group">
+              <summary>Cupons</summary>
+              <div>
+                <a href="{{ url_for('admin.coupons') }}">Promoções</a>
+                <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}">Cupons QRTotem</a>
+                <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}">Validar cupom</a>
+              </div>
+            </details>
+
+            <details class="top-nav-group">
+              <summary>Conta</summary>
+              <div>
+                <a href="{{ url_for('client.profile') }}">Perfil</a>
+                <a href="{{ url_for('client.logout') }}">Sair</a>
+              </div>
+            </details>
           </nav>
         {% endif %}
       </header>
