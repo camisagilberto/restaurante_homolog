@@ -280,27 +280,84 @@
     });
   }
 
+  function askPasswordModal(message) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'password-modal-overlay';
+      overlay.innerHTML = `
+        <div class="password-modal" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+          <h3 id="password-modal-title">Senha necessária</h3>
+          <p>${message}</p>
+          <input type="password" autocomplete="current-password" placeholder="Digite a senha" />
+          <div class="password-modal-actions">
+            <button type="button" class="btn btn-secondary" data-cancel>Cancelar</button>
+            <button type="button" class="btn btn-primary" data-confirm>Continuar</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      const input = overlay.querySelector('input');
+      const cancel = overlay.querySelector('[data-cancel]');
+      const confirm = overlay.querySelector('[data-confirm]');
+
+      const close = (value) => {
+        overlay.remove();
+        resolve(value);
+      };
+
+      cancel?.addEventListener('click', () => close(''));
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) close('');
+      });
+      confirm?.addEventListener('click', () => close((input?.value || '').trim()));
+      input?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') close((input.value || '').trim());
+        if (event.key === 'Escape') close('');
+      });
+
+      window.setTimeout(() => input?.focus(), 50);
+    });
+  }
+
   function initKitchenAccess() {
-    const kitchenLink = document.querySelector('[data-kitchen-access]');
-    if (!kitchenLink) return;
+    const kitchenLinks = document.querySelectorAll('[data-kitchen-access]');
+    if (!kitchenLinks.length) return;
 
-    kitchenLink.addEventListener('click', async (event) => {
-      event.preventDefault();
+    kitchenLinks.forEach((kitchenLink) => {
+      kitchenLink.addEventListener('click', async (event) => {
+        event.preventDefault();
 
-      const senha = prompt('Digite a senha da cozinha para acessar. A senha do usuário também será aceita.');
-      if (!senha) return;
+        const senha = await askPasswordModal('Digite a senha da cozinha para acessar. A senha do usuário também será aceita.');
+        if (!senha) return;
 
-      try {
-        const { response, data } = await requestJSON('/cozinha/validar', { password: senha });
+        try {
+          const { response, data } = await requestJSON('/cozinha/validar', { password: senha });
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.message || 'Senha inválida.');
+          if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Senha inválida.');
+          }
+
+          window.location.href = data.redirect_url || kitchenLink.href;
+        } catch (error) {
+          alert(error.message || 'Erro ao acessar cozinha.');
         }
+      });
+    });
+  }
 
-        window.location.href = data.redirect_url || kitchenLink.href;
-      } catch (error) {
-        alert(error.message || 'Erro ao acessar cozinha.');
-      }
+  function initNavigationAccordion() {
+    document.querySelectorAll('[data-nav-accordion]').forEach((nav) => {
+      const groups = Array.from(nav.querySelectorAll('details'));
+      groups.forEach((group) => {
+        group.removeAttribute('open');
+        group.addEventListener('toggle', () => {
+          if (!group.open) return;
+          groups.forEach((other) => {
+            if (other !== group) other.removeAttribute('open');
+          });
+        });
+      });
     });
   }
 
@@ -386,6 +443,7 @@
     initCart();
     initTableEditor();
     initKitchenAccess();
+    initNavigationAccordion();
     initPasswordConfirmForms();
     initKitchenExitGuard();
     initKitchenDelete();
