@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Cupons QRTotem do restaurante{% endblock %}
+
+{% block content %}
+{% set restaurant_active = profile.is_active if profile.is_active is defined else 1 %}
+<section class="hero-card">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Cupons QRTotem</p>
+    <h2>Cupons rastreáveis com crédito promocional</h2>
+    <p class="muted">Use o crédito recebido do QRTotem para criar cupons rastreáveis do seu restaurante. Cada cupom gerado vence em {{ validity_days }} dias e só pode ser usado uma vez por cliente.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('admin.validate_qrtotem_coupon_code') }}">Validar cupom</a>
+    <a class="btn btn-secondary" href="{{ url_for('admin.coupons') }}">Promoções livres</a>
+  </div>
+</section>
+
+<section class="summary-strip">
+  <div class="summary-card">
+    <span class="summary-label">Saldo disponível</span>
+    <strong>{{ available_total|currency }}</strong>
+  </div>
+  <div class="summary-card">
+    <span class="summary-label">Validade dos cupons criados</span>
+    <strong>{{ validity_days }} dias</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <h3>Criar cupons usando saldo QRTotem</h3>
+  <p class="muted">O sistema calcula automaticamente o custo: valor do cupom × quantidade. O valor mínimo para uso será sempre o valor do cupom + R$5.</p>
+
+  {% if available_total > 0 and restaurant_active %}
+    <form method="post" class="stacked-form form-grid-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Nome do cupom
+        <input name="title" type="text" placeholder="Ex.: R$10 para voltar essa semana" required>
+      </label>
+      <label>Valor de cada cupom
+        <input name="discount_amount" type="text" inputmode="decimal" placeholder="10,00" required>
+      </label>
+      <label>Quantidade
+        <input name="quantity" type="number" min="1" step="1" placeholder="5" required>
+      </label>
+      <label class="form-full">Descrição para o cliente
+        <textarea name="description" rows="3" placeholder="Ex.: Use este cupom em compras acima do valor mínimo informado."></textarea>
+      </label>
+      <div class="form-full alert-box warning">
+        <strong>Atenção:</strong> os cupons criados terão validade de {{ validity_days }} dias. O cliente verá o cupom, gerará um código numérico de 6 dígitos e o atendente precisará validar antes de aplicar o desconto.
+      </div>
+      <div class="form-full">
+        <button class="btn btn-primary" type="submit">Criar cupons rastreáveis</button>
+      </div>
+    </form>
+  {% elif not restaurant_active %}
+    <div class="status-callout warning">
+      <strong>Restaurante inativo</strong>
+      <span>Restaurantes inativos não podem criar cupons com crédito QRTotem.</span>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h3>Sem saldo disponível</h3>
+      <p class="muted">Quando o QRTotem distribuir crédito para restaurantes ativos, seu saldo aparecerá aqui.</p>
+    </div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Créditos disponíveis</h3>
+    <span class="muted">Saldos recebidos em distribuições manuais do QRTotem</span>
+  </div>
+  {% if allocations %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Distribuição</th>
+            <th>Crédito recebido</th>
+            <th>Usado em cupons</th>
+            <th>Saldo restante</th>
+            <th>Validade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in allocations %}
+            <tr>
+              <td><strong>{{ item['distribution_title'] }}</strong></td>
+              <td>{{ item['initial_amount']|currency }}</td>
+              <td>{{ item['allocated_amount']|currency }}</td>
+              <td>{{ item['remaining_amount']|currency }}</td>
+              <td>{{ item['expires_at'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhum crédito disponível no momento.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Cupons criados com crédito</h3>
+    <span class="muted">Histórico dos cupons rastreáveis criados pelo restaurante</span>
+  </div>
+  {% if campaigns %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Cupom</th>
+            <th>Valor</th>
+            <th>Uso mínimo</th>
+            <th>Quantidade</th>
+            <th>Usados</th>
+            <th>Status</th>
+            <th>Validade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in campaigns %}
+            <tr>
+              <td><strong>{{ item['title'] }}</strong>{% if item['description'] %}<br><small>{{ item['description'] }}</small>{% endif %}</td>
+              <td>{{ item['value']|currency }}</td>
+              <td>{{ item['min_purchase_amount']|currency }}</td>
+              <td>{{ item['total_quantity'] }}</td>
+              <td>{{ item['used_count'] }}</td>
+              <td>
+                {% if item['active'] and (not item['expires_at'] or item['expires_at'] > '') %}
+                  <span class="status-pill status-success">Ativo</span>
+                {% else %}
+                  <span class="status-pill status-muted">Inativo</span>
+                {% endif %}
+              </td>
+              <td>{{ item['expires_at'] or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhum cupom criado com crédito ainda.</p>
+  {% endif %}
+</section>
+{% endblock %}
