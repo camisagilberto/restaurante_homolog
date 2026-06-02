@@ -1000,15 +1000,6 @@ def _create_indexes(db: sqlite3.Connection) -> None:
                 'CREATE INDEX IF NOT EXISTS idx_coupon_redemptions_restaurant_created ON coupon_redemptions(restaurant_id, created_at)'
             )
 
-    if _table_exists(db, 'qrtotem_restaurant_credit_distributions'):
-        columns = _table_info(db, 'qrtotem_restaurant_credit_distributions')
-        if 'updated_at' in columns:
-            db.execute('UPDATE qrtotem_restaurant_credit_distributions SET updated_at = COALESCE(updated_at, ?)', (now,))
-
-    if _table_exists(db, 'qrtotem_restaurant_credit_allocations'):
-        columns = _table_info(db, 'qrtotem_restaurant_credit_allocations')
-        if 'updated_at' in columns:
-            db.execute('UPDATE qrtotem_restaurant_credit_allocations SET updated_at = COALESCE(updated_at, ?)', (now,))
 
     if _table_exists(db, 'orders'):
         columns = _table_info(db, 'orders')
