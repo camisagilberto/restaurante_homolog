@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Atendente{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div>
+    <p class="eyebrow">Pedidos pagos fora do sistema</p>
+    <h2>Atendente</h2>
+    <p class="muted">Confirme os pedidos que o cliente escolheu pagar no caixa/garçom antes de enviar para a cozinha.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('kitchen.orders') }}">Ver cozinha</a>
+</section>
+
+<div class="orders-grid" data-attendant-page data-signature-url="{{ url_for('admin.attendant_signature') }}">
+  {% for entry in orders %}
+    <article class="order-card status-novo">
+      <div class="order-head">
+        <div>
+          <p class="order-id">Pedido #{{ entry.order['id'] }}</p>
+          <h3>Mesa {{ entry.order['table_number'] }} — {{ entry.order['customer_name'] or 'Cliente' }}</h3>
+        </div>
+        <span class="status-pill status-pending">Aguardando atendente</span>
+      </div>
+
+      <div class="order-meta">
+        <span>{{ entry.created_at_display }}</span>
+        <strong>{{ entry.order['total_amount']|currency }}</strong>
+      </div>
+
+      {% if entry.order['notes'] %}
+        <p class="order-notes"><strong>Observações:</strong> {{ entry.order['notes'] }}</p>
+      {% endif %}
+
+      <ul class="order-items">
+        {% for item in entry['items'] %}
+          <li>
+            <strong>{{ item['quantity'] }}x</strong>
+            {{ item['name'] }}
+            <span>{{ item['unit_price']|currency }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <div class="status-actions">
+        <form method="post" action="{{ url_for('admin.attendant_send_order', order_id=entry.order['id']) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <button type="submit" class="btn btn-primary">Enviar para cozinha</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.attendant_reject_order', order_id=entry.order['id']) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}">
+          <button type="submit" class="btn btn-danger">Não enviar</button>
+        </form>
+      </div>
+    </article>
+  {% else %}
+    <div class="empty-state panel">
+      <h3>Nenhum pedido aguardando</h3>
+      <p class="muted">Quando um cliente escolher pagar no caixa/garçom, o pedido aparecerá aqui.</p>
+    </div>
+  {% endfor %}
+</div>
+
+<script>
+  (function () {
+    const page = document.querySelector('[data-attendant-page]');
+    if (!page) return;
+    const signatureUrl = page.dataset.signatureUrl;
+    let currentSignature = '{{ initial_signature }}';
+    window.setInterval(async function () {
+      if (document.hidden || !signatureUrl) return;
+      try {
+        const response = await fetch(signatureUrl, { cache: 'no-store' });
+        const data = await response.json();
+        if (data.success && data.signature !== currentSignature) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.warn('Não foi possível atualizar a tela do atendente.');
+      }
+    }, 3000);
+  })();
+</script>
+{% endblock %}
