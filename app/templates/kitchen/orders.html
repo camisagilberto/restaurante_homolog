@@ -14,9 +14,27 @@
     </p>
   </div>
 
-  <button type="button" class="btn btn-danger" data-delete-orders>
-    Apagar pedidos
-  </button>
+  <div class="kitchen-toolbar" aria-label="Ações da cozinha">
+    <button type="button" class="btn btn-primary kitchen-mode-button" id="activate-kitchen-mode">
+      🔊 Ativar modo cozinha
+    </button>
+
+    <button type="button" class="btn btn-danger" data-delete-orders>
+      Apagar pedidos
+    </button>
+  </div>
+</section>
+
+<section class="panel kitchen-mode-panel" id="kitchen-mode-panel" aria-live="polite">
+  <div>
+    <h3>Modo cozinha</h3>
+    <p class="muted">Ative para liberar som de novos pedidos e tentar manter a tela acordada enquanto esta página estiver aberta.</p>
+  </div>
+
+  <div class="kitchen-mode-status-grid">
+    <span class="kitchen-mode-chip" id="kitchen-sound-status" data-state="off">Som: desativado</span>
+    <span class="kitchen-mode-chip" id="kitchen-wake-status" data-state="off">Tela ativa: desativada</span>
+  </div>
 </section>
 
 <div id="kitchen-orders-wrapper">
@@ -27,6 +45,9 @@
   (function () {
     const wrapper = document.getElementById('kitchen-orders-wrapper');
     const liveStatus = document.getElementById('kitchen-live-status');
+    const kitchenModeButton = document.getElementById('activate-kitchen-mode');
+    const soundStatus = document.getElementById('kitchen-sound-status');
+    const wakeStatus = document.getElementById('kitchen-wake-status');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const SIGNATURE_URL = '{{ url_for("kitchen.orders_signature") }}';
@@ -37,11 +58,136 @@
     let isChecking = false;
     let isRefreshing = false;
     let lastUpdateAt = new Date();
+    let kitchenModeActive = false;
+    let audioContext = null;
+    let wakeLock = null;
+    let previousOrderIds = getCurrentOrderIds();
 
     function setLiveStatus(message) {
       if (liveStatus) {
         liveStatus.textContent = message;
       }
+    }
+
+    function setModeStatus(node, message, state) {
+      if (!node) return;
+      node.textContent = message;
+      node.dataset.state = state || 'off';
+    }
+
+    function getCurrentOrderIds() {
+      if (!wrapper) return [];
+
+      return Array.from(wrapper.querySelectorAll('[data-order-card]'))
+        .map((card) => Number(card.getAttribute('data-order-card')))
+        .filter((id) => Number.isFinite(id));
+    }
+
+    function getNewOrderIds(beforeIds, afterIds) {
+      const before = new Set(beforeIds || []);
+      return (afterIds || []).filter((id) => !before.has(id));
+    }
+
+    function highlightNewOrders(orderIds) {
+      if (!wrapper || !orderIds.length) return;
+
+      orderIds.forEach((orderId) => {
+        const card = wrapper.querySelector(`[data-order-card="${orderId}"]`);
+        if (!card) return;
+
+        card.classList.add('new-order-highlight');
+        window.setTimeout(() => card.classList.remove('new-order-highlight'), 7000);
+      });
+    }
+
+    function ensureAudioContext() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+
+      if (!audioContext) {
+        audioContext = new AudioContextClass();
+      }
+
+      if (audioContext.state === 'suspended') {
+        audioContext.resume().catch(() => {});
+      }
+
+      return audioContext;
+    }
+
+    function playKitchenBell() {
+      if (!kitchenModeActive) return;
+
+      const context = ensureAudioContext();
+      if (!context) return;
+
+      const now = context.currentTime;
+      const notes = [880, 1175, 880];
+
+      notes.forEach((frequency, index) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const start = now + index * 0.18;
+        const end = start + 0.14;
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.35, start + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, end);
+
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(start);
+        oscillator.stop(end + 0.03);
+      });
+    }
+
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) {
+        setModeStatus(wakeStatus, 'Tela ativa: não suportada neste navegador', 'warning');
+        return;
+      }
+
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        setModeStatus(wakeStatus, 'Tela ativa: ativada', 'on');
+
+        wakeLock.addEventListener('release', () => {
+          wakeLock = null;
+          if (kitchenModeActive && document.visibilityState === 'visible') {
+            setModeStatus(wakeStatus, 'Tela ativa: tentando reativar...', 'warning');
+          } else if (kitchenModeActive) {
+            setModeStatus(wakeStatus, 'Tela ativa: pausada', 'warning');
+          } else {
+            setModeStatus(wakeStatus, 'Tela ativa: desativada', 'off');
+          }
+        });
+      } catch (error) {
+        setModeStatus(wakeStatus, 'Tela ativa: bloqueada pelo navegador', 'warning');
+      }
+    }
+
+    async function activateKitchenMode() {
+      kitchenModeActive = true;
+
+      const context = ensureAudioContext();
+      if (context) {
+        setModeStatus(soundStatus, 'Som: ativado', 'on');
+        playKitchenBell();
+      } else {
+        setModeStatus(soundStatus, 'Som: não suportado neste navegador', 'warning');
+      }
+
+      if (kitchenModeButton) {
+        kitchenModeButton.textContent = '✅ Modo cozinha ativo';
+        kitchenModeButton.classList.remove('btn-primary');
+        kitchenModeButton.classList.add('btn-secondary');
+        kitchenModeButton.disabled = true;
+      }
+
+      await requestWakeLock();
+      checkForKitchenUpdates(true);
     }
 
     function updateLiveStatusOk() {
@@ -57,6 +203,7 @@
     async function refreshKitchenOrders(newSignature) {
       if (!wrapper || isRefreshing) return;
 
+      const beforeIds = previousOrderIds.length ? previousOrderIds : getCurrentOrderIds();
       isRefreshing = true;
 
       try {
@@ -76,12 +223,25 @@
 
         wrapper.innerHTML = html;
 
+        const afterIds = getCurrentOrderIds();
+        const newOrderIds = getNewOrderIds(beforeIds, afterIds);
+
+        previousOrderIds = afterIds;
+
+        if (newOrderIds.length) {
+          highlightNewOrders(newOrderIds);
+          playKitchenBell();
+          setLiveStatus(`${newOrderIds.length} novo(s) pedido(s) recebido(s).`);
+        }
+
         if (newSignature) {
           currentSignature = newSignature;
         }
 
         lastUpdateAt = new Date();
-        updateLiveStatusOk();
+        if (!newOrderIds.length) {
+          updateLiveStatusOk();
+        }
       } catch (error) {
         setLiveStatus('Falha ao atualizar os pedidos. Tentando novamente...');
       } finally {
@@ -116,6 +276,7 @@
         if (forceRefresh || data.signature !== currentSignature) {
           await refreshKitchenOrders(data.signature);
         } else {
+          previousOrderIds = getCurrentOrderIds();
           lastUpdateAt = new Date();
           updateLiveStatusOk();
         }
@@ -170,6 +331,8 @@
       }
     }
 
+    kitchenModeButton?.addEventListener('click', activateKitchenMode);
+
     document.addEventListener('click', function (event) {
       const clickedButton = event.target.closest('form.status-actions button[type="submit"]');
 
@@ -194,10 +357,21 @@
 
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) {
+        if (kitchenModeActive && !wakeLock) {
+          requestWakeLock();
+        }
         checkForKitchenUpdates(true);
       }
     });
 
+    window.addEventListener('beforeunload', function () {
+      if (wakeLock) {
+        wakeLock.release().catch(() => {});
+      }
+    });
+
+    setModeStatus(soundStatus, 'Som: desativado', 'off');
+    setModeStatus(wakeStatus, 'Tela ativa: desativada', 'off');
     updateLiveStatusOk();
     window.setInterval(function () {
       checkForKitchenUpdates(false);
