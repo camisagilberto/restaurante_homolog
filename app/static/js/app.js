@@ -405,3 +405,48 @@ document.addEventListener('submit', function (event) {
     event.preventDefault();
   }
 });
+
+// Validação do campo "Indicado por" no primeiro cadastro do restaurante.
+document.addEventListener('DOMContentLoaded', function () {
+  const input = document.querySelector('[data-referrer-lookup-url]');
+  const status = document.getElementById('indicated_by_status');
+  if (!input || !status) return;
+
+  let timer = null;
+  const setStatus = (message, type) => {
+    status.textContent = message || '';
+    status.classList.remove('success', 'error', 'info');
+    status.classList.add(type || 'info');
+  };
+
+  const validate = async () => {
+    const value = (input.value || '').trim();
+    if (!value) {
+      setStatus('', 'info');
+      return;
+    }
+
+    setStatus('Verificando cliente...', 'info');
+
+    try {
+      const url = new URL(input.getAttribute('data-referrer-lookup-url'), window.location.origin);
+      url.searchParams.set('identifier', value);
+      const response = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+      const data = await response.json();
+      if (data.found) {
+        setStatus(data.message || 'Cliente encontrado.', 'success');
+      } else {
+        setStatus(data.message || 'Cliente ainda não criado.', 'error');
+      }
+    } catch (error) {
+      setStatus('Não foi possível verificar agora. O cadastro validará ao avançar.', 'info');
+    }
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(validate, 500);
+  });
+
+  input.addEventListener('blur', validate);
+});
