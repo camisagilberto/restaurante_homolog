@@ -24,7 +24,11 @@
 
       {% if entry.order['payment_required'] %}
         <div class="order-payment-badge">
-          <span class="status-pill status-approved">Pix aprovado</span>
+          {% if entry.order['payment_provider'] == 'offline' %}
+            <span class="status-pill status-approved">Pagamento confirmado pelo atendente</span>
+          {% else %}
+            <span class="status-pill status-approved">Pix aprovado</span>
+          {% endif %}
         </div>
       {% endif %}
 
