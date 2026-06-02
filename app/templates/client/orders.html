@@ -26,9 +26,15 @@
             <h3>{{ entry.order['customer_name'] }}</h3>
           </div>
 
-          <span class="status-pill status-{{ entry.order['status'] }}">
-            {{ entry.status_label }}
-          </span>
+          {% if entry.order['payment_provider'] == 'offline' and entry.order['payment_status'] == 'pending' %}
+            <span class="status-pill status-pending">Aguardando confirmação do atendente</span>
+          {% elif entry.order['payment_required'] and entry.order['payment_status'] == 'pending' %}
+            <span class="status-pill status-pending">Aguardando pagamento</span>
+          {% else %}
+            <span class="status-pill status-{{ entry.order['status'] }}">
+              {{ entry.status_label }}
+            </span>
+          {% endif %}
         </div>
 
         <div class="order-meta">
@@ -39,6 +45,12 @@
         <p class="order-notes">
           <strong>Mesa:</strong> {{ entry.order['table_number'] }}
         </p>
+
+        {% if entry.order['payment_provider'] == 'offline' and entry.order['payment_status'] == 'pending' %}
+          <p class="order-notes order-waiting-note">
+            Seu pedido foi recebido e está aguardando o atendente confirmar para enviar à cozinha.
+          </p>
+        {% endif %}
 
         {% if entry.order['notes'] %}
           <p class="order-notes">
