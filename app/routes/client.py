@@ -21,6 +21,7 @@ from ..services.catalog_service import list_products, validate_product_payload
 from ..services.menu_import_service import import_menu_uploads
 from ..services.onboarding_service import (
     create_restaurant_account,
+    find_referrer_customer,
     get_restaurant_profile_by_token,
     get_restaurant_profile_for_admin,
     update_restaurant_profile,
@@ -673,6 +674,29 @@ def logout():
     session.clear()
     flash('Você saiu da conta.', 'success')
     return redirect(url_for('client.home'))
+
+
+
+@client_bp.route('/cadastro/validar-indicado')
+def validate_referrer_customer():
+    identifier = normalize_text(request.args.get('identifier'))
+
+    if not identifier:
+        return jsonify({'found': False, 'message': ''})
+
+    customer, error = find_referrer_customer(get_db(), identifier)
+    if error:
+        return jsonify({'found': False, 'ambiguous': True, 'message': error})
+    if not customer:
+        return jsonify({'found': False, 'message': 'Cliente ainda não criado.'})
+
+    return jsonify({
+        'found': True,
+        'message': f'Cliente encontrado: {customer["name"]} ({customer["email"]}).',
+        'customer_name': customer['name'],
+        'customer_email': customer['email'],
+        'customer_username': customer['username'],
+    })
 
 
 @client_bp.route('/cadastro', methods=['GET', 'POST'])
