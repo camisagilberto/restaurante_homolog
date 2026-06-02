@@ -21,7 +21,11 @@ PAYMENT_STATUS_LABELS = {
     'cancelled': 'Pagamento cancelado',
     'expired': 'Pagamento expirado',
     'error': 'Erro no pagamento',
+    'offline_pending': 'Aguardando confirmação do atendente',
 }
+
+OFFLINE_PAYMENT_PROVIDER = 'offline'
+
 
 ACTIVE_ORDER_STATUSES = ('novo', 'preparando', 'pronto', 'entregue')
 OPEN_ORDER_STATUSES = ('novo', 'preparando', 'pronto')
@@ -240,7 +244,6 @@ def list_orders_for_table(db, restaurant_id: int, table_number: str):
          WHERE restaurant_id = ?
            AND table_number = ?
            AND status IN ({placeholders})
-           {PAYMENT_RELEASE_FILTER}
          ORDER BY id DESC
         ''',
         (restaurant_id, str(table_number), *ACTIVE_ORDER_STATUSES),
@@ -278,7 +281,6 @@ def count_open_orders_for_table(db, restaurant_id: int, table_number: str) -> in
              WHERE restaurant_id = ?
                AND table_number = ?
                AND status IN ({placeholders})
-               {PAYMENT_RELEASE_FILTER}
             ''',
             (restaurant_id, str(table_number), *OPEN_ORDER_STATUSES),
         ).fetchone()[0]
@@ -329,6 +331,91 @@ def get_kitchen_orders_signature(db, restaurant_id: int) -> str:
         f"{status_signature}"
     )
 
+
+
+def list_orders_for_attendant(db, restaurant_id: int):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    orders = db.execute(
+        '''
+        SELECT *
+          FROM orders
+         WHERE restaurant_id = ?
+           AND COALESCE(payment_provider, '') = ?
+           AND COALESCE(payment_required, 0) = 1
+           AND COALESCE(payment_status, 'pending') = 'pending'
+           AND status = 'novo'
+         ORDER BY id ASC
+        ''',
+        (restaurant_id, OFFLINE_PAYMENT_PROVIDER),
+    ).fetchall()
+
+    return [_decorate_order(db, order) for order in orders]
+
+
+def get_attendant_orders_signature(db, restaurant_id: int) -> str:
+    restaurant_id = _require_restaurant_id(restaurant_id)
+
+    rows = db.execute(
+        '''
+        SELECT id, status, payment_status, updated_at
+          FROM orders
+         WHERE restaurant_id = ?
+           AND COALESCE(payment_provider, '') = ?
+           AND COALESCE(payment_required, 0) = 1
+           AND COALESCE(payment_status, 'pending') = 'pending'
+           AND status = 'novo'
+         ORDER BY id ASC
+        ''',
+        (restaurant_id, OFFLINE_PAYMENT_PROVIDER),
+    ).fetchall()
+
+    return '|'.join(f"{row['id']}:{row['status']}:{row['payment_status']}:{row['updated_at']}" for row in rows)
+
+
+def approve_attendant_order(db, order_id: int, restaurant_id: int):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    now = _now_iso()
+    cursor = db.execute(
+        '''
+        UPDATE orders
+           SET payment_status = 'approved',
+               payment_approved_at = COALESCE(payment_approved_at, ?),
+               updated_at = ?
+         WHERE id = ?
+           AND restaurant_id = ?
+           AND COALESCE(payment_provider, '') = ?
+           AND COALESCE(payment_required, 0) = 1
+           AND COALESCE(payment_status, 'pending') = 'pending'
+           AND status = 'novo'
+        ''',
+        (now, now, order_id, restaurant_id, OFFLINE_PAYMENT_PROVIDER),
+    )
+    if cursor.rowcount == 0:
+        raise ValidationError('Pedido não encontrado ou já confirmado.')
+    db.commit()
+
+
+def reject_attendant_order(db, order_id: int, restaurant_id: int):
+    restaurant_id = _require_restaurant_id(restaurant_id)
+    now = _now_iso()
+    cursor = db.execute(
+        '''
+        UPDATE orders
+           SET status = 'cancelado',
+               payment_status = 'cancelled',
+               updated_at = ?
+         WHERE id = ?
+           AND restaurant_id = ?
+           AND COALESCE(payment_provider, '') = ?
+           AND COALESCE(payment_required, 0) = 1
+           AND COALESCE(payment_status, 'pending') = 'pending'
+        ''',
+        (now, order_id, restaurant_id, OFFLINE_PAYMENT_PROVIDER),
+    )
+    if cursor.rowcount == 0:
+        raise ValidationError('Pedido não encontrado ou já confirmado.')
+    db.commit()
 
 def get_order_for_payment(db, restaurant_id: int, order_id: int, table_number: str | None = None):
     restaurant_id = _require_restaurant_id(restaurant_id)
