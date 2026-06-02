@@ -9,6 +9,12 @@ from ..errors import ValidationError
 from ..security import csrf_token, login_required
 from ..services.auth_service import authenticate_admin, verify_manager_password
 from ..services.catalog_service import create_product, delete_product, get_product, list_products, toggle_product, update_product
+from ..services.order_service import (
+    approve_attendant_order,
+    get_attendant_orders_signature,
+    list_orders_for_attendant,
+    reject_attendant_order,
+)
 from ..services.onboarding_service import get_restaurant_profile_for_admin
 from ..utils import normalize_text
 
@@ -816,3 +822,66 @@ def validate_qrtotem_coupon_code():
         recent_uses=recent_uses,
         csrf=csrf_token(),
     )
+
+
+@admin_bp.route('/atendente')
+@login_required
+def attendant_orders():
+    db = get_db()
+    profile = _profile_context(db)
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        flash('Perfil do restaurante não encontrado.', 'error')
+        return redirect(url_for('admin.login'))
+
+    orders = list_orders_for_attendant(db, restaurant_id)
+    return render_template(
+        'admin/attendant_orders.html',
+        profile=profile,
+        orders=orders,
+        csrf=csrf_token(),
+        initial_signature=get_attendant_orders_signature(db, restaurant_id),
+    )
+
+
+@admin_bp.route('/atendente/<int:order_id>/enviar', methods=['POST'])
+@login_required
+def attendant_send_order(order_id):
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    try:
+        approve_attendant_order(db, order_id, restaurant_id)
+        flash('Pedido enviado para a cozinha.', 'success')
+    except ValidationError as exc:
+        flash(str(exc), 'error')
+
+    return redirect(url_for('admin.attendant_orders'))
+
+
+@admin_bp.route('/atendente/<int:order_id>/nao-enviar', methods=['POST'])
+@login_required
+def attendant_reject_order(order_id):
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    try:
+        reject_attendant_order(db, order_id, restaurant_id)
+        flash('Pedido não enviado para a cozinha.', 'success')
+    except ValidationError as exc:
+        flash(str(exc), 'error')
+
+    return redirect(url_for('admin.attendant_orders'))
+
+
+@admin_bp.route('/atendente/assinatura')
+@login_required
+def attendant_signature():
+    db = get_db()
+    restaurant_id = _restaurant_id(db)
+
+    if not restaurant_id:
+        return jsonify(success=False, message='Perfil do restaurante não encontrado.'), 400
+
+    return jsonify(success=True, signature=get_attendant_orders_signature(db, restaurant_id))
