@@ -160,8 +160,6 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     username = normalize_text(payload.get('username'))
     password = str(payload.get('password') or '').strip()
     password_confirm = str(payload.get('password_confirm') or '').strip()
-    kitchen_password = str(payload.get('kitchen_password') or '').strip()
-    kitchen_password_confirm = str(payload.get('kitchen_password_confirm') or '').strip()
     indicated_by = normalize_text(payload.get('indicated_by'))
 
     email = normalize_text(payload.get('email')).lower()
@@ -185,12 +183,6 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValidationError('A senha deve ter pelo menos 8 caracteres.')
     if password != password_confirm:
         raise ValidationError('A confirmação de senha não confere.')
-    if not kitchen_password:
-        raise ValidationError('Informe a senha da cozinha.')
-    if len(kitchen_password) < 8:
-        raise ValidationError('A senha da cozinha deve ter pelo menos 8 caracteres.')
-    if kitchen_password != kitchen_password_confirm:
-        raise ValidationError('A confirmação da senha da cozinha não confere.')
     if not email:
         raise ValidationError('Informe o e-mail.')
 
@@ -211,7 +203,6 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
         'order_payment_mode': order_payment_mode,
         'username': username,
         'password': password,
-        'kitchen_password': kitchen_password,
         'indicated_by': indicated_by,
     }
 
@@ -219,7 +210,7 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
 def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
     data = validate_onboarding_payload(payload)
     password_hash = generate_password_hash(data['password'])
-    kitchen_password_hash = generate_password_hash(data['kitchen_password'])
+    kitchen_password_hash = password_hash
 
     referrer = None
     if data.get('indicated_by'):
