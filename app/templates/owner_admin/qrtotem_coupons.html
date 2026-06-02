@@ -6,7 +6,7 @@
   <div class="hero-card-copy">
     <p class="eyebrow">Painel interno</p>
     <h2>Cupons rastreáveis QRTotem</h2>
-    <p class="muted">Crie cupons globais e acompanhe quem usou, em qual restaurante, dia e horário. Todos os cupons têm valor mínimo automático de R$5 acima do valor do cupom.</p>
+    <p class="muted">Crie cupons globais e acompanhe quem usou, em qual restaurante, dia e horário. Cupons de indicação são criados pela tela Indicações. Todos os cupons têm valor mínimo automático de R$5 acima do valor do cupom.</p>
   </div>
   <div class="hero-actions">
     <a class="btn btn-secondary" href="{{ url_for('owner_admin.restaurant_credits') }}">Créditos dos restaurantes</a>
@@ -24,8 +24,6 @@
     <label>Tipo
       <select name="coupon_type">
         <option value="global">Global QRTotem</option>
-        <option value="referral">Indicação</option>
-        <option value="restaurant_credit">Crédito do restaurante</option>
       </select>
     </label>
     <label>Valor do cupom
