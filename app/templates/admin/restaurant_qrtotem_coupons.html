@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}Cupons QRTotem do restaurante{% endblock %}
+{% block title %}Benefícios QRTotem do restaurante{% endblock %}
 
 {% block content %}
 {% set restaurant_active = profile.is_active if profile.is_active is defined else 1 %}
 <section class="hero-card">
   <div class="hero-card-copy">
-    <p class="eyebrow">Cupons QRTotem</p>
+    <p class="eyebrow">Benefícios QRTotem</p>
     <h2>Cupons rastreáveis com crédito promocional</h2>
     <p class="muted">Use o crédito recebido do QRTotem para criar cupons rastreáveis do seu restaurante. Cada cupom gerado vence em {{ validity_days }} dias e só pode ser usado uma vez por cliente.</p>
   </div>
