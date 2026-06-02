@@ -606,7 +606,8 @@ def restaurant_qrtotem_coupons():
         return redirect(url_for('client.signup'))
 
     profile = _profile_context(db)
-    if int(profile.get('is_active', 1) or 0) != 1:
+    is_restaurant_active = int(profile['is_active'] if profile and 'is_active' in profile.keys() else 1) == 1
+    if not is_restaurant_active:
         flash('Seu restaurante está inativo. Ative o restaurante para criar cupons com crédito QRTotem.', 'warning')
 
     _expire_restaurant_credit_allocations(db)
@@ -626,7 +627,7 @@ def restaurant_qrtotem_coupons():
                 selected_allocation = row
                 break
 
-        if int(profile.get('is_active', 1) or 0) != 1:
+        if not is_restaurant_active:
             flash('Restaurante inativo não pode criar cupons com crédito promocional.', 'error')
         elif not title:
             flash('Informe o nome do cupom.', 'error')
