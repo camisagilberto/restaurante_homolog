@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Indicações{% endblock %}
+
+{% block content %}
+<section class="hero-card">
+  <div class="hero-card-copy">
+    <p class="eyebrow">Painel interno</p>
+    <h2>Indicações de restaurantes</h2>
+    <p class="muted">Aprove manualmente as indicações quando o restaurante indicado virar cliente ativo. Ao aprovar, o usuário recebe 3 cupons de R$40, liberados um por mês.</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-secondary" href="{{ url_for('owner_admin.qrtotem_coupons') }}">Cupons QRTotem</a>
+    <a class="btn btn-secondary" href="{{ url_for('owner_admin.dashboard') }}">Voltar ao painel</a>
+  </div>
+</section>
+
+<section class="coupon-trackable-grid">
+  <article class="panel">
+    <p class="eyebrow">Pendentes</p>
+    <h3>{{ stats['pending_count'] if stats else 0 }}</h3>
+  </article>
+  <article class="panel">
+    <p class="eyebrow">Aprovadas</p>
+    <h3>{{ stats['approved_count'] if stats else 0 }}</h3>
+  </article>
+  <article class="panel">
+    <p class="eyebrow">Rejeitadas</p>
+    <h3>{{ stats['rejected_count'] if stats else 0 }}</h3>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Regra do benefício</h3>
+    <span class="muted">Controle manual</span>
+  </div>
+  <p class="muted">Quando uma indicação for aprovada, o sistema cria {{ months_total }} cupons de {{ monthly_amount|currency }} para o usuário que indicou. Cada cupom tem uso mínimo de {{ (monthly_amount + 5)|currency }}, uso único, código numérico e validação pelo atendente.</p>
+</section>
+
+<section class="panel">
+  <div class="section-heading">
+    <h3>Indicações recebidas</h3>
+    <span class="muted">Aprovar apenas quando o restaurante estiver ativo</span>
+  </div>
+
+  {% if referrals %}
+    <div class="simple-table-wrap">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Usuário</th>
+            <th>Restaurante indicado</th>
+            <th>Contato</th>
+            <th>Data</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in referrals %}
+            <tr>
+              <td>
+                {% if item['status'] == 'pending' %}<span class="status-pill status-warning">Pendente</span>{% endif %}
+                {% if item['status'] == 'approved' %}<span class="status-pill status-success">Aprovada</span>{% endif %}
+                {% if item['status'] == 'rejected' %}<span class="status-pill status-muted">Rejeitada</span>{% endif %}
+              </td>
+              <td><strong>{{ item['customer_name'] }}</strong><br><small>{{ item['customer_email'] }}</small></td>
+              <td><strong>{{ item['indicated_restaurant_name'] }}</strong>{% if item['notes'] %}<br><small>{{ item['notes'] }}</small>{% endif %}</td>
+              <td>{{ item['indicated_contact_name'] or '-' }}<br><small>{{ item['indicated_contact_phone'] or '-' }}</small></td>
+              <td>{{ item['created_at'] }}</td>
+              <td>
+                {% if item['status'] == 'pending' %}
+                  <form method="post" action="{{ url_for('owner_admin.approve_referral', referral_id=item['id']) }}" class="stacked-form compact-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <label>Restaurante que entrou
+                      <select name="approved_restaurant_id" required>
+                        <option value="">Selecione</option>
+                        {% for restaurant in active_restaurants %}
+                          <option value="{{ restaurant['id'] }}">{{ restaurant['restaurant_name'] }} — {{ restaurant['owner_name'] }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                    <button class="btn btn-primary btn-sm" type="submit">Aprovar e gerar 3 cupons</button>
+                  </form>
+                  <form method="post" action="{{ url_for('owner_admin.reject_referral', referral_id=item['id']) }}" class="stacked-form compact-form mt-small">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input name="rejection_reason" type="text" placeholder="Motivo opcional">
+                    <button class="btn btn-secondary btn-sm" type="submit">Rejeitar</button>
+                  </form>
+                {% elif item['status'] == 'approved' %}
+                  <small>Aprovada em {{ item['approved_at'] }}<br>Restaurante: {{ item['approved_restaurant_name'] or 'não informado' }}<br>Cupons criados: {{ item['campaigns_created'] }}</small>
+                {% else %}
+                  <small>Rejeitada em {{ item['rejected_at'] }}{% if item['rejection_reason'] %}<br>{{ item['rejection_reason'] }}{% endif %}</small>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nenhuma indicação recebida ainda.</p>
+  {% endif %}
+</section>
+{% endblock %}
