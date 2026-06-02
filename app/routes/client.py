@@ -1133,10 +1133,18 @@ def qrtotem_coupons():
           FROM qrtotem_coupon_campaigns c
           LEFT JOIN qrtotem_coupon_redemptions cl ON cl.campaign_id = c.id
          WHERE c.active = 1
-           AND c.coupon_type = 'global'
+           AND (
+                c.coupon_type = 'global'
+                OR (c.coupon_type = 'restaurant_credit' AND c.restaurant_id = ?)
+           )
+           AND (c.expires_at IS NULL OR datetime(c.expires_at) > datetime(?))
          GROUP BY c.id
-         ORDER BY c.value DESC, c.created_at DESC, c.id DESC
-        """
+         ORDER BY CASE c.coupon_type WHEN 'global' THEN 0 ELSE 1 END,
+                  c.value DESC,
+                  c.created_at DESC,
+                  c.id DESC
+        """,
+        (restaurant_id, _iso(_utcnow())),
     ).fetchall()
 
     used_by_customer = {
@@ -1213,11 +1221,15 @@ def generate_qrtotem_coupon_code(campaign_id: int):
           LEFT JOIN qrtotem_coupon_redemptions cl ON cl.campaign_id = c.id
          WHERE c.id = ?
            AND c.active = 1
-           AND c.coupon_type = 'global'
+           AND (
+                c.coupon_type = 'global'
+                OR (c.coupon_type = 'restaurant_credit' AND c.restaurant_id = ?)
+           )
+           AND (c.expires_at IS NULL OR datetime(c.expires_at) > datetime(?))
          GROUP BY c.id
          LIMIT 1
         """,
-        (campaign_id,),
+        (campaign_id, restaurant_id, _iso(_utcnow())),
     ).fetchone()
 
     if not campaign:
