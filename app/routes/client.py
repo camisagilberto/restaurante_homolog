@@ -12,7 +12,6 @@ from ..services.auth_service import (
     authenticate_admin,
     request_password_reset,
     reset_password_with_token,
-    update_kitchen_password,
     update_manager_password,
     verify_manager_password,
 )
@@ -34,6 +33,7 @@ from ..services.order_service import (
     mark_order_payment_error,
     update_order_payment_pending,
     update_order_payment_status,
+    OFFLINE_PAYMENT_PROVIDER,
 )
 from ..services.payment_service import (
     PROVIDER_MERCADO_PAGO,
@@ -784,25 +784,6 @@ def change_manager_password():
 
     return redirect(url_for('client.profile'))
 
-
-@client_bp.route('/perfil/alterar-senha-cozinha', methods=['POST'])
-@login_required
-def change_kitchen_password():
-    try:
-        update_kitchen_password(
-            get_db(),
-            session.get('admin_id'),
-            request.form.get('manager_password'),
-            request.form.get('new_kitchen_password'),
-            request.form.get('new_kitchen_password_confirm'),
-        )
-    except ValueError as exc:
-        flash(str(exc), 'error')
-    else:
-        session.pop('kitchen_authorized', None)
-        flash('Senha da cozinha alterada com sucesso.', 'success')
-
-    return redirect(url_for('client.profile'))
 
 
 @client_bp.route('/esqueci-senha', methods=['GET', 'POST'])
@@ -2372,17 +2353,56 @@ def finalize_order():
 
     payload = _payload() or {}
     notes = normalize_text(payload.get('notes'))
-    customer_name = f'Cliente mesa {table_number}'
+    customer_name = normalize_text(payload.get('customer_name'))
+    payment_method = str(payload.get('payment_method') or 'pix').strip().lower()
 
-    payment_status = payment_connection_summary(db, profile)
-    if payment_status.get('status') != 'connected':
-        message = 'Este restaurante ainda não conectou o Mercado Pago. Avise o responsável antes de finalizar o pedido.'
+    if not customer_name:
+        message = 'Informe o nome para identificar o pedido.'
         if _wants_json():
             return jsonify(success=False, message=message), 400
         flash(message, 'error')
         return redirect(url_for('client.cart'))
 
+    if payment_method not in {'pix', 'offline'}:
+        payment_method = 'pix'
+
     order_id = None
+
+    if payment_method == 'offline':
+        try:
+            order_id = create_order_from_cart(
+                db,
+                restaurant_id,
+                table_number,
+                cart,
+                customer_name,
+                notes,
+                payment_required=True,
+                payment_status='pending',
+                payment_provider=OFFLINE_PAYMENT_PROVIDER,
+            )
+        except ValidationError as exc:
+            message = str(exc)
+            if _wants_json():
+                return jsonify(success=False, message=message), 400
+            flash(message, 'error')
+            return redirect(url_for('client.cart'))
+
+        clear_cart(session)
+        orders_url = url_for('client.order_history')
+        message = f'Pedido #{order_id} criado. Aguarde a confirmação do atendente para enviar à cozinha.'
+        if _wants_json():
+            return jsonify(success=True, message=message, redirect_url=orders_url)
+        flash(message, 'success')
+        return redirect(orders_url)
+
+    payment_status = payment_connection_summary(db, profile)
+    if payment_status.get('status') != 'connected':
+        message = 'Este restaurante ainda não conectou o Mercado Pago. Use a opção pagar no caixa/garçom ou avise o responsável.'
+        if _wants_json():
+            return jsonify(success=False, message=message), 400
+        flash(message, 'error')
+        return redirect(url_for('client.cart'))
 
     try:
         order_id = create_order_from_cart(
