@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}Cupons QRTotem{% endblock %}
+{% block title %}Meus benefícios{% endblock %}
 
 {% block content %}
 <section class="hero-card">
   <div class="hero-card-copy">
-    <p class="eyebrow">Cupons QRTotem</p>
+    <p class="eyebrow">Meus benefícios</p>
     <h2>Cupons rastreáveis</h2>
     <p class="muted">Estes cupons são controlados pelo QRTotem e só podem ser usados uma vez por cliente. Gere o código apenas quando estiver no caixa, pois ele vale por {{ code_minutes }} minutos.</p>
   </div>
@@ -24,6 +24,30 @@
 </section>
 
 
+
+{% if used_history %}
+  <section class="panel">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Histórico individual</p>
+        <h3>Meus usos recentes</h3>
+        <p class="muted">Este histórico aparece somente para o cliente logado nesta conta.</p>
+      </div>
+    </div>
+    <div class="benefit-history-list">
+      {% for item in used_history %}
+        <div class="benefit-history-item">
+          <div>
+            <strong>{{ item['title'] }}</strong>
+            <small>{% if item['restaurant_name'] %}Usado em {{ item['restaurant_name'] }}{% else %}Benefício usado{% endif %}</small>
+          </div>
+          <span>{{ item['used_at'] }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
 {% if campaigns %}
   <section class="section-block">
     <div class="coupon-trackable-grid">
@@ -36,7 +60,7 @@
         <article class="coupon-trackable-card">
           <div class="coupon-trackable-head">
             <div>
-              <p class="eyebrow">{{ 'Cupom de indicação' if campaign['coupon_type'] == 'referral' else ('Cupom do restaurante' if campaign['coupon_type'] == 'restaurant_credit' else 'Cupom QRTotem') }}</p>
+              <p class="eyebrow">{{ 'Cupom de indicação' if campaign['coupon_type'] == 'referral' else ('Cupom do restaurante' if campaign['coupon_type'] == 'restaurant_credit' else 'Benefício QRTotem') }}</p>
               <h3>{{ campaign['title'] }}</h3>
             </div>
             <strong>{{ campaign['value']|currency }}</strong>
@@ -80,8 +104,8 @@
   </section>
 {% else %}
   <section class="panel empty-state">
-    <h3>Nenhum cupom QRTotem disponível</h3>
-    <p class="muted">Quando houver cupons rastreáveis ativos, eles aparecerão aqui.</p>
+    <h3>Nenhum benefício disponível</h3>
+    <p class="muted">Quando houver benefícios rastreáveis ativos para você, eles aparecerão aqui.</p>
   </section>
 {% endif %}
 {% endblock %}
