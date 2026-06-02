@@ -216,7 +216,9 @@
       event.preventDefault();
 
       const notes = form.querySelector('[name="notes"]')?.value || '';
-      const submitButton = form.querySelector('button[type="submit"]');
+      const customerName = form.querySelector('[name="customer_name"]')?.value || '';
+      const submitButton = event.submitter || form.querySelector('button[type="submit"]');
+      const paymentMethod = submitButton?.value || 'pix';
 
       submitButton.disabled = true;
       submitButton.textContent = 'Gerando Pix...';
@@ -224,6 +226,8 @@
       try {
         const { response, data } = await requestJSON('/pedido/finalizar', {
           notes,
+          customer_name: customerName,
+          payment_method: paymentMethod,
         });
 
         if (!response.ok || !data.success) {
