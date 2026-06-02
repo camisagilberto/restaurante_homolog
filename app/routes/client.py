@@ -1145,7 +1145,7 @@ def qrtotem_coupons():
     customer = _current_customer(db, restaurant_id)
     if not customer:
         session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'qrtotem_coupons'
-        flash('Faça login para acessar os cupons QRTotem.', 'warning')
+        flash('Faça login para acessar seus benefícios.', 'warning')
         return redirect(url_for('client.coupon_login'))
 
     _expire_qrtotem_coupon_redemptions(db)
@@ -1179,12 +1179,11 @@ def qrtotem_coupons():
             """
             SELECT cl.campaign_id, cl.used_at, cl.used_restaurant_id, rp.restaurant_name
               FROM qrtotem_coupon_redemptions cl
-              JOIN customer_coupon_users cu ON cu.id = cl.customer_id
               LEFT JOIN restaurant_profiles rp ON rp.id = cl.used_restaurant_id
-             WHERE lower(cu.email) = lower(?)
+             WHERE cl.customer_id = ?
                AND cl.status = 'used'
             """,
-            (customer['email'],),
+            (customer['id'],),
         ).fetchall()
     }
 
@@ -1194,15 +1193,29 @@ def qrtotem_coupons():
             """
             SELECT cl.*
               FROM qrtotem_coupon_redemptions cl
-              JOIN customer_coupon_users cu ON cu.id = cl.customer_id
-             WHERE lower(cu.email) = lower(?)
+             WHERE cl.customer_id = ?
                AND cl.status = 'code_generated'
                AND cl.code_expires_at IS NOT NULL
                AND datetime(cl.code_expires_at) > datetime(?)
             """,
-            (customer['email'], _iso(_utcnow())),
+            (customer['id'], _iso(_utcnow())),
         ).fetchall()
     }
+
+    used_history = db.execute(
+        """
+        SELECT cl.used_at, c.title, rp.restaurant_name
+          FROM qrtotem_coupon_redemptions cl
+          JOIN qrtotem_coupon_campaigns c ON c.id = cl.campaign_id
+          LEFT JOIN restaurant_profiles rp ON rp.id = cl.used_restaurant_id
+         WHERE cl.customer_id = ?
+           AND cl.status = 'used'
+         ORDER BY cl.used_at DESC, cl.id DESC
+         LIMIT 10
+        """,
+        (customer['id'],),
+    ).fetchall()
+
     referrals = db.execute(
         """
         SELECT r.*, rp.restaurant_name AS approved_restaurant_name
@@ -1224,6 +1237,7 @@ def qrtotem_coupons():
         campaigns=campaigns,
         used_by_customer=used_by_customer,
         active_claims=active_claims,
+        used_history=used_history,
         referrals=referrals,
         code_minutes=COUPON_CODE_MINUTES,
         menu_url=_public_menu_url(),
@@ -1354,7 +1368,7 @@ def generate_qrtotem_coupon_code(campaign_id: int):
     ).fetchone()
 
     if not campaign:
-        flash('Cupom QRTotem não encontrado ou inativo.', 'error')
+        flash('Benefício QRTotem não encontrado ou inativo.', 'error')
         return redirect(url_for('client.qrtotem_coupons'))
 
     if int(campaign['total_quantity'] or 0) > 0 and int(campaign['used_count'] or 0) >= int(campaign['total_quantity'] or 0):
