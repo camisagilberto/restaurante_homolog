@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import secrets
 import sqlite3
+from datetime import datetime
 from typing import Any
 
 from werkzeug.security import generate_password_hash
@@ -19,6 +20,50 @@ def _validate_email(email: str) -> str:
     if '@' not in email or '.' not in email.split('@')[-1]:
         raise ValidationError('Informe um e-mail válido.')
     return email
+
+
+
+
+def find_referrer_customer(db, identifier: str):
+    """Localiza o cliente indicado por e-mail ou usuário.
+
+    Usuários de clientes são únicos por restaurante, não globalmente. Por isso,
+    quando o identificador não for e-mail e houver mais de um usuário igual,
+    o cadastro do restaurante deve pedir o e-mail do cliente indicado.
+    """
+    value = normalize_text(identifier).lower()
+    if not value:
+        return None, None
+
+    if '@' in value:
+        row = db.execute(
+            """
+            SELECT *
+              FROM customer_coupon_users
+             WHERE lower(email) = lower(?)
+             ORDER BY datetime(created_at) DESC, id DESC
+             LIMIT 1
+            """,
+            (value,),
+        ).fetchone()
+        return row, None
+
+    rows = db.execute(
+        """
+        SELECT *
+          FROM customer_coupon_users
+         WHERE lower(username) = lower(?)
+         ORDER BY datetime(created_at) DESC, id DESC
+         LIMIT 2
+        """,
+        (value,),
+    ).fetchall()
+
+    if not rows:
+        return None, None
+    if len(rows) > 1:
+        return None, 'Encontramos mais de um cliente com esse usuário. Use o e-mail do cliente indicado.'
+    return rows[0], None
 
 
 def _validate_age(value: Any) -> int:
@@ -117,6 +162,7 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
     password_confirm = str(payload.get('password_confirm') or '').strip()
     kitchen_password = str(payload.get('kitchen_password') or '').strip()
     kitchen_password_confirm = str(payload.get('kitchen_password_confirm') or '').strip()
+    indicated_by = normalize_text(payload.get('indicated_by'))
 
     email = normalize_text(payload.get('email')).lower()
     cnpj = _only_digits(payload.get('cnpj'))
@@ -166,6 +212,7 @@ def validate_onboarding_payload(payload: dict[str, Any]) -> dict[str, Any]:
         'username': username,
         'password': password,
         'kitchen_password': kitchen_password,
+        'indicated_by': indicated_by,
     }
 
 
@@ -173,6 +220,14 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
     data = validate_onboarding_payload(payload)
     password_hash = generate_password_hash(data['password'])
     kitchen_password_hash = generate_password_hash(data['kitchen_password'])
+
+    referrer = None
+    if data.get('indicated_by'):
+        referrer, referral_error = find_referrer_customer(db, data['indicated_by'])
+        if referral_error:
+            raise ValidationError(referral_error)
+        if not referrer:
+            raise ValidationError('Cliente ainda não criado.')
 
     try:
         cursor = db.execute(
@@ -206,6 +261,41 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
                 slug,
             ),
         )
+        if referrer:
+            now = datetime.utcnow().isoformat(timespec='seconds')
+            db.execute(
+                """
+                INSERT INTO qrtotem_referrals (
+                    customer_id,
+                    customer_name,
+                    customer_email,
+                    customer_username,
+                    indicated_restaurant_name,
+                    indicated_contact_name,
+                    indicated_contact_phone,
+                    notes,
+                    status,
+                    approved_restaurant_id,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+                """,
+                (
+                    referrer['id'],
+                    referrer['name'],
+                    str(referrer['email'] or '').strip().lower(),
+                    referrer['username'],
+                    data['restaurant_name'],
+                    data['owner_name'],
+                    data['cell_phone'],
+                    'Indicação informada pelo restaurante no primeiro cadastro.',
+                    profile_cursor.lastrowid,
+                    now,
+                    now,
+                ),
+            )
+
         db.commit()
     except sqlite3.IntegrityError as exc:
         db.rollback()
@@ -224,6 +314,7 @@ def create_restaurant_account(db, payload: dict[str, Any]) -> dict[str, Any]:
         'service_mode': data['service_mode'],
         'order_payment_mode': data['order_payment_mode'],
         'age': data['age'],
+        'indicated_by': data.get('indicated_by', ''),
         'table_count': 0,
         'public_token': public_token,
         'slug': slug,
