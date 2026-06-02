@@ -71,8 +71,9 @@
             <summary><span class="nav-icon" aria-hidden="true">🏠</span><span>Atendimento</span></summary>
             <div class="sidebar-group-links">
               <a href="{{ client_order_url }}"><span class="nav-icon" aria-hidden="true">📱</span><span>Tela do cliente</span></a>
+              <a href="{{ url_for('admin.attendant_orders') }}"><span class="nav-icon" aria-hidden="true">🧾</span><span>Atendente</span></a>
               {% if show_kitchen_navigation %}
-                <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access><span class="nav-icon" aria-hidden="true">👨‍🍳</span><span>Cozinha</span></a>
+                <a href="{{ url_for('kitchen.orders') }}"><span class="nav-icon" aria-hidden="true">👨‍🍳</span><span>Cozinha</span></a>
               {% endif %}
             </div>
           </details>
@@ -129,7 +130,8 @@
               <summary>Atendimento</summary>
               <div>
                 <a href="{{ client_order_url }}">Cliente</a>
-                {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>{% endif %}
+                <a href="{{ url_for('admin.attendant_orders') }}">Atendente</a>
+                {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}">Cozinha</a>{% endif %}
               </div>
             </details>
 
