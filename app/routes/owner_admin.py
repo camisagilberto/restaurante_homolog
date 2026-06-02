@@ -14,6 +14,8 @@ from ..utils import format_currency, normalize_text
 owner_admin_bp = Blueprint('owner_admin', __name__, url_prefix='/ops-qrtotem')
 
 MONTHLY_PRICE = 149.99
+REFERRAL_MONTHLY_AMOUNT = 40.0
+REFERRAL_MONTHS_TOTAL = 3
 
 
 COUPON_TYPE_LABELS = {
@@ -615,6 +617,202 @@ def restaurant_credits():
     )
 
 
+@owner_admin_bp.route('/indicacoes', methods=['GET'])
+@_owner_login_required
+def referrals():
+    db = get_db()
+
+    referrals = db.execute(
+        """
+        SELECT r.*, rp.restaurant_name AS approved_restaurant_name
+          FROM qrtotem_referrals r
+          LEFT JOIN restaurant_profiles rp ON rp.id = r.approved_restaurant_id
+         ORDER BY CASE r.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+                  r.created_at DESC,
+                  r.id DESC
+         LIMIT 200
+        """
+    ).fetchall()
+
+    active_restaurants = db.execute(
+        """
+        SELECT id, restaurant_name, owner_name, email, COALESCE(is_active, 1) AS is_active
+          FROM restaurant_profiles
+         WHERE COALESCE(is_active, 1) = 1
+         ORDER BY restaurant_name ASC
+        """
+    ).fetchall()
+
+    stats = db.execute(
+        """
+        SELECT COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count,
+               COALESCE(SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END), 0) AS approved_count,
+               COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected_count
+          FROM qrtotem_referrals
+        """
+    ).fetchone()
+
+    return render_template(
+        'owner_admin/referrals.html',
+        referrals=referrals,
+        active_restaurants=active_restaurants,
+        stats=stats,
+        monthly_amount=REFERRAL_MONTHLY_AMOUNT,
+        months_total=REFERRAL_MONTHS_TOTAL,
+        csrf=csrf_token(),
+    )
+
+
+@owner_admin_bp.route('/indicacoes/<int:referral_id>/aprovar', methods=['POST'])
+@_owner_login_required
+def approve_referral(referral_id: int):
+    db = get_db()
+    referral = db.execute('SELECT * FROM qrtotem_referrals WHERE id = ? LIMIT 1', (referral_id,)).fetchone()
+
+    if not referral:
+        flash('Indicação não encontrada.', 'error')
+        return redirect(url_for('owner_admin.referrals'))
+
+    if referral['status'] != 'pending':
+        flash('Essa indicação já foi analisada.', 'warning')
+        return redirect(url_for('owner_admin.referrals'))
+
+    try:
+        approved_restaurant_id = int(request.form.get('approved_restaurant_id') or 0)
+    except (TypeError, ValueError):
+        approved_restaurant_id = 0
+
+    restaurant = db.execute(
+        """
+        SELECT id, restaurant_name, COALESCE(is_active, 1) AS is_active
+          FROM restaurant_profiles
+         WHERE id = ?
+         LIMIT 1
+        """,
+        (approved_restaurant_id,),
+    ).fetchone()
+
+    if not restaurant:
+        flash('Selecione o restaurante que entrou no QRTotem.', 'error')
+        return redirect(url_for('owner_admin.referrals'))
+
+    if int(restaurant['is_active'] or 0) != 1:
+        flash('A indicação só pode ser aprovada se o restaurante estiver ativo.', 'error')
+        return redirect(url_for('owner_admin.referrals'))
+
+    now = datetime.utcnow().replace(microsecond=0)
+    customer_email = str(referral['customer_email'] or '').strip().lower()
+    customer_name = str(referral['customer_name'] or '').strip()
+    monthly_amount = REFERRAL_MONTHLY_AMOUNT
+    months_total = REFERRAL_MONTHS_TOTAL
+
+    for month_index in range(months_total):
+        starts_at = now + timedelta(days=30 * month_index)
+        expires_at = starts_at + timedelta(days=30)
+        title = f'Indicação QRTotem R$40 - mês {month_index + 1}/{months_total}'
+        description = (
+            f'Benefício pela indicação do restaurante {referral["indicated_restaurant_name"]}. '
+            'Uso único, código numérico e validação pelo atendente.'
+        )
+        db.execute(
+            """
+            INSERT INTO qrtotem_coupon_campaigns (
+                title,
+                description,
+                coupon_type,
+                value,
+                min_purchase_amount,
+                total_quantity,
+                active,
+                target_customer_id,
+                target_customer_email,
+                target_customer_name,
+                referral_id,
+                starts_at,
+                ends_at,
+                expires_at,
+                created_by,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, 'referral', ?, ?, 1, 1, ?, ?, ?, ?, ?, ?, ?, 'owner', ?, ?)
+            """,
+            (
+                title,
+                description,
+                monthly_amount,
+                round(monthly_amount + 5, 2),
+                referral['customer_id'],
+                customer_email,
+                customer_name,
+                referral_id,
+                _iso(starts_at),
+                _iso(expires_at),
+                _iso(expires_at),
+                _iso(now),
+                _iso(now),
+            ),
+        )
+
+    db.execute(
+        """
+        UPDATE qrtotem_referrals
+           SET status = 'approved',
+               approved_restaurant_id = ?,
+               approved_at = ?,
+               monthly_amount = ?,
+               months_total = ?,
+               campaigns_created = ?,
+               updated_at = ?
+         WHERE id = ?
+        """,
+        (
+            approved_restaurant_id,
+            _iso(now),
+            monthly_amount,
+            months_total,
+            months_total,
+            _iso(now),
+            referral_id,
+        ),
+    )
+    db.commit()
+    flash('Indicação aprovada. Foram criados 3 cupons de R$40, liberados um por mês para o usuário indicado.', 'success')
+    return redirect(url_for('owner_admin.referrals'))
+
+
+@owner_admin_bp.route('/indicacoes/<int:referral_id>/rejeitar', methods=['POST'])
+@_owner_login_required
+def reject_referral(referral_id: int):
+    db = get_db()
+    referral = db.execute('SELECT id, status FROM qrtotem_referrals WHERE id = ? LIMIT 1', (referral_id,)).fetchone()
+
+    if not referral:
+        flash('Indicação não encontrada.', 'error')
+        return redirect(url_for('owner_admin.referrals'))
+
+    if referral['status'] != 'pending':
+        flash('Essa indicação já foi analisada.', 'warning')
+        return redirect(url_for('owner_admin.referrals'))
+
+    reason = str(request.form.get('rejection_reason') or '').strip()
+    now = _iso(datetime.utcnow().replace(microsecond=0))
+    db.execute(
+        """
+        UPDATE qrtotem_referrals
+           SET status = 'rejected',
+               rejected_at = ?,
+               rejection_reason = ?,
+               updated_at = ?
+         WHERE id = ?
+        """,
+        (now, reason, now, referral_id),
+    )
+    db.commit()
+    flash('Indicação rejeitada.', 'success')
+    return redirect(url_for('owner_admin.referrals'))
+
+
 @owner_admin_bp.route('/cupons-qrtotem', methods=['GET', 'POST'])
 @_owner_login_required
 def qrtotem_coupons():
@@ -628,7 +826,7 @@ def qrtotem_coupons():
         total_quantity = _parse_int(request.form.get('total_quantity'))
         active = 1 if request.form.get('active') == '1' else 0
 
-        if coupon_type not in COUPON_TYPE_LABELS:
+        if coupon_type != 'global':
             coupon_type = 'global'
 
         min_order_amount = round(discount_amount + 5, 2) if discount_amount > 0 else 0
