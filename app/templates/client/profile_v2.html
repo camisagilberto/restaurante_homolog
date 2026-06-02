@@ -221,7 +221,7 @@
   <div class="section-heading">
     <div>
       <h3>Segurança e senhas</h3>
-      <p class="muted">Altere a senha principal do usuário e a senha separada da cozinha. Por segurança, use senhas diferentes.</p>
+      <p class="muted">Altere a senha principal do usuário.</p>
     </div>
   </div>
 
@@ -247,29 +247,6 @@
       </div>
 
       <button type="submit" class="btn btn-primary">Alterar senha do usuário</button>
-    </form>
-
-    <form method="post" action="{{ url_for('client.change_kitchen_password') }}" class="stacked-form">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-      <h4>Alterar senha da cozinha</h4>
-
-      <div>
-        <label for="manager_password">Senha do usuário <span class="required-mark">*</span></label>
-        <input id="manager_password" type="password" name="manager_password" autocomplete="current-password" required>
-      </div>
-
-      <div>
-        <label for="new_kitchen_password">Nova senha da cozinha <span class="required-mark">*</span></label>
-        <input id="new_kitchen_password" type="password" name="new_kitchen_password" autocomplete="new-password" minlength="8" required>
-      </div>
-
-      <div>
-        <label for="new_kitchen_password_confirm">Confirmar nova senha da cozinha <span class="required-mark">*</span></label>
-        <input id="new_kitchen_password_confirm" type="password" name="new_kitchen_password_confirm" autocomplete="new-password" minlength="8" required>
-      </div>
-
-      <button type="submit" class="btn btn-primary">Alterar senha da cozinha</button>
     </form>
   </div>
 </section>
