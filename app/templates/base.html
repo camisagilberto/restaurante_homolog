@@ -29,7 +29,10 @@
     'client.coupon_login',
     'client.coupon_signup',
     'client.coupon_menu',
-    'client.customer_profile'
+    'client.customer_profile',
+    'client.qrtotem_coupons',
+    'client.submit_qrtotem_referral',
+    'client.generate_qrtotem_coupon_code'
   ] %}
   {% set is_public_client_flow = request.endpoint in public_flow_endpoints and session.get('public_client_mode') %}
   {% set hidden_navigation_endpoints = ['admin.login', 'client.login', 'client.signup'] %}
@@ -55,8 +58,8 @@
           <img src="{{ url_for('static', filename='img/logo-horizontal-dark.png') }}" alt="QRTotem">
         </a>
 
-        <nav class="sidebar-nav sidebar-nav--grouped" aria-label="Menu principal do restaurante">
-          <details class="sidebar-group" open>
+        <nav class="sidebar-nav sidebar-nav--grouped" aria-label="Menu principal do restaurante" data-nav-accordion>
+          <details class="sidebar-group">
             <summary><span class="nav-icon" aria-hidden="true">🏠</span><span>Início</span></summary>
             <div class="sidebar-group-links">
               <a href="{{ client_order_url }}"><span class="nav-icon" aria-hidden="true">📱</span><span>Tela do cliente</span></a>
@@ -66,7 +69,7 @@
             </div>
           </details>
 
-          <details class="sidebar-group" open>
+          <details class="sidebar-group">
             <summary><span class="nav-icon" aria-hidden="true">🍽️</span><span>Cardápio</span></summary>
             <div class="sidebar-group-links">
               <a href="{{ url_for('admin.products') }}"><span class="nav-icon" aria-hidden="true">▦</span><span>Produtos</span></a>
@@ -74,11 +77,11 @@
             </div>
           </details>
 
-          <details class="sidebar-group" open>
+          <details class="sidebar-group">
             <summary><span class="nav-icon" aria-hidden="true">🎟️</span><span>Cupons</span></summary>
             <div class="sidebar-group-links">
               <a href="{{ url_for('admin.coupons') }}"><span class="nav-icon" aria-hidden="true">🎁</span><span>Promoções</span></a>
-              <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}"><span class="nav-icon" aria-hidden="true">%</span><span>Cupons QRTotem</span></a>
+              <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}"><span class="nav-icon" aria-hidden="true">%</span><span>Benefícios QRTotem</span></a>
               <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}"><span class="nav-icon" aria-hidden="true">#</span><span>Validar cupom</span></a>
             </div>
           </details>
@@ -113,8 +116,8 @@
         </a>
 
         {% if show_navigation %}
-          <nav class="app-nav app-nav--grouped" aria-label="Menu principal do restaurante">
-            <details class="top-nav-group" open>
+          <nav class="app-nav app-nav--grouped" aria-label="Menu principal do restaurante" data-nav-accordion>
+            <details class="top-nav-group">
               <summary>Atendimento</summary>
               <div>
                 <a href="{{ client_order_url }}">Cliente</a>
@@ -134,7 +137,7 @@
               <summary>Cupons</summary>
               <div>
                 <a href="{{ url_for('admin.coupons') }}">Promoções</a>
-                <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}">Cupons QRTotem</a>
+                <a href="{{ url_for('admin.restaurant_qrtotem_coupons') }}">Benefícios QRTotem</a>
                 <a href="{{ url_for('admin.validate_qrtotem_coupon_code') }}">Validar cupom</a>
               </div>
             </details>
