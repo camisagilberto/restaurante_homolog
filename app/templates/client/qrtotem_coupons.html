@@ -18,6 +18,61 @@
   <p class="muted">Escolha um cupom, confirme a geração do código e mostre os 6 números ao atendente. O atendente validará o código no QRTotem antes de aplicar o desconto.</p>
 </section>
 
+<section class="panel">
+  <div class="section-heading">
+    <div>
+      <h3>Indicar restaurante</h3>
+      <p class="muted">Indicou um restaurante para o QRTotem? Envie os dados aqui. A equipe QRTotem valida manualmente e, se o restaurante entrar como cliente ativo, você recebe 3 cupons de R$40, liberados um por mês.</p>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('client.submit_qrtotem_referral') }}" class="stacked-form form-grid-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome do restaurante indicado
+      <input name="indicated_restaurant_name" type="text" placeholder="Ex.: Restaurante Sabor da Praça" required>
+    </label>
+    <label>Nome do contato
+      <input name="indicated_contact_name" type="text" placeholder="Ex.: Carlos, gerente">
+    </label>
+    <label>Telefone/WhatsApp do contato
+      <input name="indicated_contact_phone" type="text" placeholder="Ex.: (31) 99999-9999">
+    </label>
+    <label class="form-full">Observações
+      <textarea name="notes" rows="3" placeholder="Conte como fez a indicação ou qualquer detalhe importante."></textarea>
+    </label>
+    <div class="form-full">
+      <button class="btn btn-secondary" type="submit">Enviar indicação</button>
+    </div>
+  </form>
+
+  {% if referrals %}
+    <div class="simple-table-wrap mt-medium">
+      <table class="simple-table">
+        <thead>
+          <tr>
+            <th>Restaurante</th>
+            <th>Status</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in referrals %}
+            <tr>
+              <td><strong>{{ item['indicated_restaurant_name'] }}</strong></td>
+              <td>
+                {% if item['status'] == 'pending' %}<span class="status-pill status-warning">Em análise</span>{% endif %}
+                {% if item['status'] == 'approved' %}<span class="status-pill status-success">Aprovada</span>{% endif %}
+                {% if item['status'] == 'rejected' %}<span class="status-pill status-muted">Não aprovada</span>{% endif %}
+              </td>
+              <td>{{ item['created_at'] }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>
+
+
 {% if campaigns %}
   <section class="section-block">
     <div class="coupon-trackable-grid">
@@ -30,7 +85,7 @@
         <article class="coupon-trackable-card">
           <div class="coupon-trackable-head">
             <div>
-              <p class="eyebrow">{{ 'Cupom do restaurante' if campaign['coupon_type'] == 'restaurant_credit' else 'Cupom QRTotem' }}</p>
+              <p class="eyebrow">{{ 'Cupom de indicação' if campaign['coupon_type'] == 'referral' else ('Cupom do restaurante' if campaign['coupon_type'] == 'restaurant_credit' else 'Cupom QRTotem') }}</p>
               <h3>{{ campaign['title'] }}</h3>
             </div>
             <strong>{{ campaign['value']|currency }}</strong>
