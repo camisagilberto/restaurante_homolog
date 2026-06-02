@@ -6,7 +6,7 @@
   <div class="hero-card-copy">
     <p class="eyebrow">Painel interno</p>
     <h2>Indicações de restaurantes</h2>
-    <p class="muted">Aprove manualmente as indicações quando o restaurante indicado virar cliente ativo. Ao aprovar, o usuário recebe 3 cupons de R$40, liberados um por mês.</p>
+    <p class="muted">As indicações são registradas quando o restaurante informa o usuário ou e-mail do cliente no campo <strong>Indicado por</strong> durante o primeiro cadastro. Aprove manualmente quando o restaurante estiver ativo. Ao aprovar, o usuário recebe 3 cupons de R$40, liberados um por mês.</p>
   </div>
   <div class="hero-actions">
     <a class="btn btn-secondary" href="{{ url_for('owner_admin.qrtotem_coupons') }}">Cupons QRTotem</a>
@@ -76,7 +76,7 @@
                       <select name="approved_restaurant_id" required>
                         <option value="">Selecione</option>
                         {% for restaurant in active_restaurants %}
-                          <option value="{{ restaurant['id'] }}">{{ restaurant['restaurant_name'] }} — {{ restaurant['owner_name'] }}</option>
+                          <option value="{{ restaurant['id'] }}" {% if item['approved_restaurant_id'] == restaurant['id'] %}selected{% endif %}>{{ restaurant['restaurant_name'] }} — {{ restaurant['owner_name'] }}</option>
                         {% endfor %}
                       </select>
                     </label>
