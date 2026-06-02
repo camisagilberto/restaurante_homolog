@@ -2247,3 +2247,110 @@ summary:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Modo cozinha: som de novos pedidos e tela ativa */
+.kitchen-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kitchen-mode-button:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.kitchen-mode-panel {
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-style: dashed;
+}
+
+.kitchen-mode-panel h3,
+.kitchen-mode-panel p {
+  margin: 0;
+}
+
+.kitchen-mode-panel h3 {
+  margin-bottom: 6px;
+}
+
+.kitchen-mode-status-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.kitchen-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(30, 30, 30, .10);
+  background: #f2f2f2;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: .9rem;
+  white-space: nowrap;
+}
+
+.kitchen-mode-chip[data-state="on"] {
+  background: rgba(22, 163, 74, .12);
+  border-color: rgba(22, 163, 74, .22);
+  color: #15803d;
+}
+
+.kitchen-mode-chip[data-state="warning"] {
+  background: rgba(249, 115, 22, .12);
+  border-color: rgba(249, 115, 22, .24);
+  color: #c2410c;
+}
+
+.order-card.new-order-highlight {
+  animation: kitchenNewOrderPulse 1.1s ease-in-out 0s 5;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, .18), 0 18px 38px rgba(249, 115, 22, .16);
+}
+
+@keyframes kitchenNewOrderPulse {
+  0% {
+    transform: translateY(0);
+    border-color: rgba(249, 115, 22, .26);
+  }
+  50% {
+    transform: translateY(-3px);
+    border-color: rgba(249, 115, 22, .86);
+  }
+  100% {
+    transform: translateY(0);
+    border-color: rgba(249, 115, 22, .26);
+  }
+}
+
+@media (max-width: 760px) {
+  .kitchen-toolbar,
+  .kitchen-mode-panel,
+  .kitchen-mode-status-grid {
+    width: 100%;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .kitchen-toolbar,
+  .kitchen-mode-panel {
+    flex-direction: column;
+  }
+
+  .kitchen-toolbar .btn,
+  .kitchen-mode-status-grid .kitchen-mode-chip {
+    width: 100%;
+    justify-content: center;
+  }
+}
