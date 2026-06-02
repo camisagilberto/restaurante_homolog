@@ -6,7 +6,7 @@
   <div>
     <p class="eyebrow">Resumo do pedido</p>
     <h2>Mesa {{ table_number }}</h2>
-    <p class="muted">Revise os itens e gere o Pix. Não precisa preencher cadastro para pagar.</p>
+    <p class="muted">Revise os itens, informe seu nome e escolha como deseja pagar.</p>
   </div>
   <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
 </section>
@@ -46,8 +46,8 @@
 
   <aside class="panel summary-panel">
     <div class="checkout-info-card">
-      <strong>Pagamento rápido</strong>
-      <p>Depois de gerar o Pix, o pedido só vai para a cozinha quando o Mercado Pago confirmar o pagamento.</p>
+      <strong>Escolha como pagar</strong>
+      <p>No Pix, o pedido vai para a cozinha após a confirmação automática. No caixa/garçom, o atendente confirma antes de enviar para a cozinha.</p>
     </div>
     <h3>Resumo</h3>
     <div class="summary-line"><span>Itens</span><strong id="cart-quantity">{{ cart_quantity }}</strong></div>
@@ -55,10 +55,19 @@
     <form id="finalize-order-form" class="stacked-form" method="post" action="{{ url_for('client.finalize_order') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf }}">
       <input type="hidden" name="table_number" value="{{ table_number }}">
+
+      <label for="customer_name">Nome para identificar o pedido <span class="required-mark">*</span></label>
+      <input id="customer_name" name="customer_name" type="text" autocomplete="name" placeholder="Ex.: Gilberto" required>
+
       <label for="notes">Observações</label>
       <textarea id="notes" name="notes" rows="4" placeholder="Ex.: sem cebola, ponto da carne..."></textarea>
-      <button type="submit" class="btn btn-primary btn-block">Gerar Pix</button>
-      <p class="muted form-hint">Pagamento sem cadastro. O cadastro continua apenas para ver cupons e entrar no radar do restaurante.</p>
+
+      <div class="checkout-actions">
+        <button type="submit" name="payment_method" value="pix" class="btn btn-primary btn-block">Gerar Pix</button>
+        <button type="submit" name="payment_method" value="offline" class="btn btn-secondary btn-block">Pagar no caixa/garçom</button>
+      </div>
+
+      <p class="muted form-hint">O nome aparecerá para o atendente e para a cozinha junto com a mesa.</p>
     </form>
   </aside>
 </div>
