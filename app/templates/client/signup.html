@@ -42,6 +42,17 @@
     font-weight: 900;
   }
 
+  .referral-status {
+    display: block;
+    margin-top: 6px;
+    font-size: .9rem;
+    font-weight: 700;
+  }
+
+  .referral-status.success { color: #15803d; }
+  .referral-status.error { color: #b91c1c; }
+  .referral-status.info { color: #475569; }
+
   @media (max-width: 720px) {
     .mode-choice-grid {
       grid-template-columns: 1fr;
@@ -91,6 +102,14 @@
         <label for="restaurant_address">CEP do estabelecimento <span class="required-mark">*</span></label>
         <input id="restaurant_address" type="text" name="restaurant_address" inputmode="numeric" maxlength="9" placeholder="Ex.: 01001000" required>
       </div>
+    </div>
+
+
+    <div>
+      <label for="indicated_by">Indicado por</label>
+      <input id="indicated_by" type="text" name="indicated_by" placeholder="Usuário ou e-mail de um cliente já cadastrado" data-referrer-lookup-url="{{ url_for('client.validate_referrer_customer') }}">
+      <small class="muted">Opcional. Use o usuário ou e-mail do cliente que indicou o restaurante.</small>
+      <small id="indicated_by_status" class="referral-status info" aria-live="polite"></small>
     </div>
 
     <div>
