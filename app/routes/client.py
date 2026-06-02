@@ -1136,15 +1136,17 @@ def qrtotem_coupons():
            AND (
                 c.coupon_type = 'global'
                 OR (c.coupon_type = 'restaurant_credit' AND c.restaurant_id = ?)
+                OR (c.coupon_type = 'referral' AND lower(COALESCE(c.target_customer_email, '')) = lower(?))
            )
+           AND (c.starts_at IS NULL OR datetime(c.starts_at) <= datetime(?))
            AND (c.expires_at IS NULL OR datetime(c.expires_at) > datetime(?))
          GROUP BY c.id
-         ORDER BY CASE c.coupon_type WHEN 'global' THEN 0 ELSE 1 END,
+         ORDER BY CASE c.coupon_type WHEN 'referral' THEN 0 WHEN 'global' THEN 1 ELSE 2 END,
                   c.value DESC,
                   c.created_at DESC,
                   c.id DESC
         """,
-        (restaurant_id, _iso(_utcnow())),
+        (restaurant_id, customer['email'], _iso(_utcnow()), _iso(_utcnow())),
     ).fetchall()
 
     used_by_customer = {
@@ -1177,6 +1179,18 @@ def qrtotem_coupons():
             (customer['email'], _iso(_utcnow())),
         ).fetchall()
     }
+    referrals = db.execute(
+        """
+        SELECT r.*, rp.restaurant_name AS approved_restaurant_name
+          FROM qrtotem_referrals r
+          LEFT JOIN restaurant_profiles rp ON rp.id = r.approved_restaurant_id
+         WHERE lower(r.customer_email) = lower(?)
+         ORDER BY r.created_at DESC, r.id DESC
+         LIMIT 10
+        """,
+        (customer['email'],),
+    ).fetchall()
+
     db.commit()
 
     return render_template(
@@ -1186,11 +1200,92 @@ def qrtotem_coupons():
         campaigns=campaigns,
         used_by_customer=used_by_customer,
         active_claims=active_claims,
+        referrals=referrals,
         code_minutes=COUPON_CODE_MINUTES,
         menu_url=_public_menu_url(),
         csrf=csrf_token(),
     )
 
+
+
+@client_bp.route('/cupons-qrtotem/indicar-restaurante', methods=['POST'])
+def submit_qrtotem_referral():
+    restaurant_id = _client_restaurant_id()
+
+    if not restaurant_id or not _has_coupon_access(restaurant_id):
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'qrtotem_coupons'
+        flash('Faça login para indicar um restaurante.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    db = get_db()
+    customer = _current_customer(db, restaurant_id)
+    if not customer:
+        session[CUSTOMER_AFTER_LOGIN_TARGET_SESSION_KEY] = 'qrtotem_coupons'
+        flash('Faça login novamente para indicar um restaurante.', 'warning')
+        return redirect(url_for('client.coupon_login'))
+
+    indicated_name = normalize_text(request.form.get('indicated_restaurant_name'))
+    contact_name = normalize_text(request.form.get('indicated_contact_name'))
+    contact_phone = normalize_text(request.form.get('indicated_contact_phone'))
+    notes = normalize_text(request.form.get('notes'))
+
+    if not indicated_name:
+        flash('Informe o nome do restaurante indicado.', 'error')
+        return redirect(url_for('client.qrtotem_coupons'))
+
+    duplicate = db.execute(
+        """
+        SELECT id
+          FROM qrtotem_referrals
+         WHERE lower(customer_email) = lower(?)
+           AND lower(indicated_restaurant_name) = lower(?)
+           AND status = 'pending'
+         LIMIT 1
+        """,
+        (customer['email'], indicated_name),
+    ).fetchone()
+
+    if duplicate:
+        flash('Você já tem uma indicação pendente para esse restaurante.', 'info')
+        return redirect(url_for('client.qrtotem_coupons'))
+
+    now = _iso(_utcnow())
+    db.execute(
+        """
+        INSERT INTO qrtotem_referrals (
+            customer_id,
+            customer_name,
+            customer_email,
+            customer_username,
+            indicated_restaurant_name,
+            indicated_contact_name,
+            indicated_contact_phone,
+            notes,
+            status,
+            monthly_amount,
+            months_total,
+            campaigns_created,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 40, 3, 0, ?, ?)
+        """,
+        (
+            customer['id'],
+            customer['name'],
+            customer['email'],
+            customer['username'],
+            indicated_name,
+            contact_name,
+            contact_phone,
+            notes,
+            now,
+            now,
+        ),
+    )
+    db.commit()
+    flash('Indicação enviada com sucesso. A equipe QRTotem irá validar antes de liberar o benefício.', 'success')
+    return redirect(url_for('client.qrtotem_coupons'))
 
 @client_bp.route('/cupons-qrtotem/<int:campaign_id>/gerar-codigo', methods=['POST'])
 def generate_qrtotem_coupon_code(campaign_id: int):
@@ -1224,12 +1319,14 @@ def generate_qrtotem_coupon_code(campaign_id: int):
            AND (
                 c.coupon_type = 'global'
                 OR (c.coupon_type = 'restaurant_credit' AND c.restaurant_id = ?)
+                OR (c.coupon_type = 'referral' AND lower(COALESCE(c.target_customer_email, '')) = lower(?))
            )
+           AND (c.starts_at IS NULL OR datetime(c.starts_at) <= datetime(?))
            AND (c.expires_at IS NULL OR datetime(c.expires_at) > datetime(?))
          GROUP BY c.id
          LIMIT 1
         """,
-        (campaign_id, restaurant_id, _iso(_utcnow())),
+        (campaign_id, restaurant_id, customer['email'], _iso(_utcnow()), _iso(_utcnow())),
     ).fetchone()
 
     if not campaign:
