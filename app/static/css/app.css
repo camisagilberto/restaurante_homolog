@@ -2114,6 +2114,7 @@ summary:focus-visible {
   .top-nav-group a {
     min-height: 40px;
     color: var(--graphite) !important;
+    background: #f2f2f2;
   }
 
   .client-action-grid {
