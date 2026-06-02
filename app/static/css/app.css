@@ -2354,3 +2354,20 @@ summary:focus-visible {
     justify-content: center;
   }
 }
+
+.checkout-actions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.order-waiting-note {
+  background: #fff7e6;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 14px;
+  padding: 0.75rem 0.9rem;
+  color: #92400e;
+}
+
+.status-actions form {
+  margin: 0;
+}
