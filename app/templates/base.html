@@ -60,20 +60,20 @@
 
         <nav class="sidebar-nav sidebar-nav--grouped" aria-label="Menu principal do restaurante" data-nav-accordion>
           <details class="sidebar-group">
-            <summary><span class="nav-icon" aria-hidden="true">🏠</span><span>Início</span></summary>
+            <summary><span class="nav-icon" aria-hidden="true">🍽️</span><span>Início</span></summary>
+            <div class="sidebar-group-links">
+              <a href="{{ url_for('admin.products') }}"><span class="nav-icon" aria-hidden="true">▦</span><span>Produtos</span></a>
+              <a href="{{ url_for('client.tables_setup') }}"><span class="nav-icon" aria-hidden="true">▣</span><span>Mesas / QR Codes</span></a>
+            </div>
+          </details>
+
+          <details class="sidebar-group">
+            <summary><span class="nav-icon" aria-hidden="true">🏠</span><span>Atendimento</span></summary>
             <div class="sidebar-group-links">
               <a href="{{ client_order_url }}"><span class="nav-icon" aria-hidden="true">📱</span><span>Tela do cliente</span></a>
               {% if show_kitchen_navigation %}
                 <a href="{{ url_for('kitchen.orders') }}" data-kitchen-access><span class="nav-icon" aria-hidden="true">👨‍🍳</span><span>Cozinha</span></a>
               {% endif %}
-            </div>
-          </details>
-
-          <details class="sidebar-group">
-            <summary><span class="nav-icon" aria-hidden="true">🍽️</span><span>Cardápio</span></summary>
-            <div class="sidebar-group-links">
-              <a href="{{ url_for('admin.products') }}"><span class="nav-icon" aria-hidden="true">▦</span><span>Produtos</span></a>
-              <a href="{{ url_for('client.tables_setup') }}"><span class="nav-icon" aria-hidden="true">▣</span><span>Mesas / QR Codes</span></a>
             </div>
           </details>
 
@@ -118,18 +118,18 @@
         {% if show_navigation %}
           <nav class="app-nav app-nav--grouped" aria-label="Menu principal do restaurante" data-nav-accordion>
             <details class="top-nav-group">
-              <summary>Atendimento</summary>
+              <summary>Início</summary>
               <div>
-                <a href="{{ client_order_url }}">Cliente</a>
-                {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>{% endif %}
+                <a href="{{ url_for('admin.products') }}">Produtos</a>
+                <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
               </div>
             </details>
 
             <details class="top-nav-group">
-              <summary>Cardápio</summary>
+              <summary>Atendimento</summary>
               <div>
-                <a href="{{ url_for('admin.products') }}">Produtos</a>
-                <a href="{{ url_for('client.tables_setup') }}">Mesas</a>
+                <a href="{{ client_order_url }}">Cliente</a>
+                {% if show_kitchen_navigation %}<a href="{{ url_for('kitchen.orders') }}" data-kitchen-access>Cozinha</a>{% endif %}
               </div>
             </details>
 
