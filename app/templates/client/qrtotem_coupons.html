@@ -30,7 +30,7 @@
         <article class="coupon-trackable-card">
           <div class="coupon-trackable-head">
             <div>
-              <p class="eyebrow">Cupom QRTotem</p>
+              <p class="eyebrow">{{ 'Cupom do restaurante' if campaign['coupon_type'] == 'restaurant_credit' else 'Cupom QRTotem' }}</p>
               <h3>{{ campaign['title'] }}</h3>
             </div>
             <strong>{{ campaign['value']|currency }}</strong>
