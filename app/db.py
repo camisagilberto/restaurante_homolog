@@ -153,6 +153,10 @@ CREATE TABLE IF NOT EXISTS qrtotem_coupon_campaigns (
     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
     restaurant_id INTEGER,
     credit_allocation_id INTEGER,
+    target_customer_id INTEGER,
+    target_customer_email TEXT NOT NULL DEFAULT '',
+    target_customer_name TEXT NOT NULL DEFAULT '',
+    referral_id INTEGER,
     starts_at TEXT,
     ends_at TEXT,
     expires_at TEXT,
@@ -636,6 +640,10 @@ def _ensure_qrtotem_coupon_tables(db: sqlite3.Connection) -> None:
         "active INTEGER NOT NULL DEFAULT 1",
         "restaurant_id INTEGER",
         "credit_allocation_id INTEGER",
+        "target_customer_id INTEGER",
+        "target_customer_email TEXT NOT NULL DEFAULT ''",
+        "target_customer_name TEXT NOT NULL DEFAULT ''",
+        "referral_id INTEGER",
         "starts_at TEXT",
         "ends_at TEXT",
         "expires_at TEXT",
@@ -676,6 +684,8 @@ def _ensure_qrtotem_coupon_tables(db: sqlite3.Connection) -> None:
                    ELSE 'global'
                END,
                active = CASE WHEN active IN (0, 1) THEN active ELSE 1 END,
+               target_customer_email = lower(COALESCE(target_customer_email, '')),
+               target_customer_name = COALESCE(target_customer_name, ''),
                created_at = COALESCE(created_at, ?),
                updated_at = COALESCE(updated_at, ?)
     """, (now, now))
@@ -696,6 +706,77 @@ def _ensure_qrtotem_coupon_tables(db: sqlite3.Connection) -> None:
                updated_at = COALESCE(updated_at, ?)
     """, (now, now, now, now))
 
+
+
+def _ensure_referral_tables(db: sqlite3.Connection) -> None:
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS qrtotem_referrals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER,
+            customer_name TEXT NOT NULL DEFAULT '',
+            customer_email TEXT NOT NULL DEFAULT '',
+            customer_username TEXT NOT NULL DEFAULT '',
+            indicated_restaurant_name TEXT NOT NULL DEFAULT '',
+            indicated_contact_name TEXT NOT NULL DEFAULT '',
+            indicated_contact_phone TEXT NOT NULL DEFAULT '',
+            notes TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'pending',
+            approved_restaurant_id INTEGER,
+            approved_by TEXT NOT NULL DEFAULT 'owner',
+            approved_at TEXT,
+            rejected_at TEXT,
+            rejection_reason TEXT NOT NULL DEFAULT '',
+            monthly_amount REAL NOT NULL DEFAULT 40,
+            months_total INTEGER NOT NULL DEFAULT 3,
+            campaigns_created INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES customer_coupon_users(id) ON DELETE SET NULL,
+            FOREIGN KEY (approved_restaurant_id) REFERENCES restaurant_profiles(id) ON DELETE SET NULL,
+            CHECK (status IN ('pending', 'approved', 'rejected'))
+        )
+    """)
+
+    for column_def in [
+        "customer_id INTEGER",
+        "customer_name TEXT NOT NULL DEFAULT ''",
+        "customer_email TEXT NOT NULL DEFAULT ''",
+        "customer_username TEXT NOT NULL DEFAULT ''",
+        "indicated_restaurant_name TEXT NOT NULL DEFAULT ''",
+        "indicated_contact_name TEXT NOT NULL DEFAULT ''",
+        "indicated_contact_phone TEXT NOT NULL DEFAULT ''",
+        "notes TEXT NOT NULL DEFAULT ''",
+        "status TEXT NOT NULL DEFAULT 'pending'",
+        "approved_restaurant_id INTEGER",
+        "approved_by TEXT NOT NULL DEFAULT 'owner'",
+        "approved_at TEXT",
+        "rejected_at TEXT",
+        "rejection_reason TEXT NOT NULL DEFAULT ''",
+        "monthly_amount REAL NOT NULL DEFAULT 40",
+        "months_total INTEGER NOT NULL DEFAULT 3",
+        "campaigns_created INTEGER NOT NULL DEFAULT 0",
+        "created_at TEXT",
+        "updated_at TEXT",
+    ]:
+        _ensure_column(db, 'qrtotem_referrals', column_def)
+
+    now = datetime.utcnow().isoformat(timespec='seconds')
+    db.execute("""
+        UPDATE qrtotem_referrals
+           SET customer_name = COALESCE(customer_name, ''),
+               customer_email = lower(COALESCE(customer_email, '')),
+               customer_username = COALESCE(customer_username, ''),
+               indicated_restaurant_name = COALESCE(indicated_restaurant_name, ''),
+               indicated_contact_name = COALESCE(indicated_contact_name, ''),
+               indicated_contact_phone = COALESCE(indicated_contact_phone, ''),
+               notes = COALESCE(notes, ''),
+               status = CASE WHEN status IN ('pending', 'approved', 'rejected') THEN status ELSE 'pending' END,
+               monthly_amount = COALESCE(monthly_amount, 40),
+               months_total = COALESCE(months_total, 3),
+               campaigns_created = COALESCE(campaigns_created, 0),
+               created_at = COALESCE(created_at, ?),
+               updated_at = COALESCE(updated_at, ?)
+    """, (now, now))
 
 
 def _ensure_restaurant_credit_tables(db: sqlite3.Connection) -> None:
@@ -1078,6 +1159,13 @@ def _create_indexes(db: sqlite3.Connection) -> None:
 
 
 
+    if _table_exists(db, 'qrtotem_referrals'):
+        columns = _table_info(db, 'qrtotem_referrals')
+        if {'status', 'created_at'}.issubset(columns):
+            db.execute('CREATE INDEX IF NOT EXISTS idx_qrtotem_referrals_status_created ON qrtotem_referrals(status, created_at)')
+        if 'customer_email' in columns:
+            db.execute('CREATE INDEX IF NOT EXISTS idx_qrtotem_referrals_customer_email ON qrtotem_referrals(customer_email)')
+
     if _table_exists(db, 'qrtotem_restaurant_credit_distributions'):
         columns = _table_info(db, 'qrtotem_restaurant_credit_distributions')
         if 'created_at' in columns:
@@ -1104,6 +1192,7 @@ def migrate_schema(db: sqlite3.Connection) -> None:
     _migrate_customer_coupon_users(db)
     _ensure_coupon_redemptions(db)
     _ensure_qrtotem_coupon_tables(db)
+    _ensure_referral_tables(db)
     _ensure_restaurant_credit_tables(db)
     _migrate_orders(db)
     _ensure_restaurant_payment_accounts(db)
@@ -1150,6 +1239,11 @@ def _backfill_timestamps(db: sqlite3.Connection) -> None:
         columns = _table_info(db, 'qrtotem_coupon_redemptions')
         if 'updated_at' in columns:
             db.execute('UPDATE qrtotem_coupon_redemptions SET updated_at = COALESCE(updated_at, ?)', (now,))
+
+    if _table_exists(db, 'qrtotem_referrals'):
+        columns = _table_info(db, 'qrtotem_referrals')
+        if 'updated_at' in columns:
+            db.execute('UPDATE qrtotem_referrals SET updated_at = COALESCE(updated_at, ?)', (now,))
 
     if _table_exists(db, 'qrtotem_restaurant_credit_distributions'):
         columns = _table_info(db, 'qrtotem_restaurant_credit_distributions')
