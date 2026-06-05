@@ -2371,3 +2371,253 @@ summary:focus-visible {
 .status-actions form {
   margin: 0;
 }
+
+/* Ajuste 50: UX mobile da página pública da mesa */
+.client-fixed-actions {
+  position: fixed;
+  top: 18px;
+  right: 34px;
+  z-index: 360;
+  width: 164px;
+  display: grid;
+  gap: 5px;
+  pointer-events: auto;
+}
+
+.client-fixed-actions-top {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.client-fixed-action,
+.client-fixed-radar-toggle {
+  border: 1px solid rgba(249,115,22,.16);
+  background: rgba(255,247,237,.94);
+  color: var(--graphite);
+  box-shadow: 0 10px 24px rgba(30,30,30,.07);
+  backdrop-filter: blur(12px);
+}
+
+.client-fixed-action {
+  min-height: 45px;
+  padding: 5px 6px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  text-align: center;
+  line-height: 1;
+}
+
+.client-fixed-action span {
+  font-size: 1.13rem;
+  line-height: 1;
+}
+
+.client-fixed-action strong {
+  font-size: .62rem;
+  font-weight: 850;
+  letter-spacing: -.035em;
+  white-space: nowrap;
+}
+
+.client-fixed-radar-form {
+  margin: 0;
+}
+
+.client-fixed-radar-toggle {
+  min-height: 28px;
+  padding: 4px 7px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.client-fixed-radar-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radar-checkbox {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border-radius: 4px;
+  border: 2px solid var(--graphite);
+  background: #FFFFFF;
+  position: relative;
+}
+
+.client-fixed-radar-toggle input:checked + .radar-checkbox::after {
+  content: "✓";
+  position: absolute;
+  left: 1px;
+  top: -8px;
+  color: var(--graphite);
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.client-fixed-radar-toggle strong {
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: -.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.client-order-shortcuts {
+  width: min(100%, 380px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.client-order-shortcut {
+  min-height: 52px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: #FFFFFF;
+  color: var(--graphite);
+  box-shadow: 0 12px 26px rgba(30,30,30,.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-align: center;
+}
+
+.client-order-shortcut-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  font-size: 1rem;
+}
+
+.client-order-shortcut strong {
+  font-size: .92rem;
+  font-weight: 850;
+  line-height: 1.05;
+  letter-spacing: -.04em;
+}
+
+.client-action-grid:empty {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .public-client-layout .brand-area {
+    min-width: 0;
+    max-width: 170px;
+  }
+
+  .public-client-layout .brand-title,
+  .public-client-layout .brand-subtitle {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .public-client-layout .app-main {
+    padding-top: 92px;
+  }
+
+  .public-client-layout .brand-logo {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    border-radius: 14px;
+  }
+
+  .public-client-layout .brand-area {
+    gap: 9px;
+    max-width: 160px;
+  }
+
+  .public-client-layout .brand-title {
+    font-size: 1.03rem;
+  }
+
+  .public-client-layout .brand-subtitle {
+    font-size: .79rem;
+  }
+
+  .client-fixed-actions {
+    top: 20px;
+    right: 22px;
+    width: 142px;
+  }
+
+  .client-fixed-action {
+    min-height: 42px;
+    border-radius: 15px;
+  }
+
+  .client-fixed-action strong {
+    font-size: .58rem;
+  }
+
+  .client-fixed-radar-toggle {
+    min-height: 25px;
+    padding-inline: 5px;
+  }
+
+  .client-fixed-radar-toggle strong {
+    font-size: .58rem;
+  }
+
+  .radar-checkbox {
+    width: 14px;
+    height: 14px;
+    flex-basis: 14px;
+  }
+
+  .client-order-shortcuts {
+    width: 100%;
+  }
+
+  .client-order-shortcut {
+    min-height: 48px;
+    padding: 8px;
+    gap: 5px;
+  }
+
+  .client-order-shortcut-icon {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+
+  .client-order-shortcut strong {
+    font-size: .82rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .public-client-layout .brand-text {
+    display: none;
+  }
+
+  .public-client-layout .brand-area {
+    max-width: 52px;
+  }
+
+  .client-fixed-actions {
+    right: 20px;
+    width: 150px;
+  }
+}
