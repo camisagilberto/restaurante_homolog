@@ -540,6 +540,19 @@ def _client_table_redirect(table_number: int | str):
     return redirect(url_for('client.home'))
 
 
+
+def _client_fixed_actions_context(db, restaurant_id: int | None = None) -> dict:
+    restaurant_id = restaurant_id or _client_restaurant_id()
+    current_customer = _current_customer(db, restaurant_id) if restaurant_id else None
+    return {
+        'coupon_url': _coupon_entry_url(),
+        'profile_url': url_for('client.customer_profile'),
+        'qrtotem_url': url_for('client.qrtotem_coupons'),
+        'radar_action_url': url_for('client.toggle_radar'),
+        'radar_enabled': bool(current_customer and current_customer['radar_enabled']),
+        'show_radar_flag': (not session.get('admin_logged_in') or _is_public_client_mode()) and bool(restaurant_id),
+    }
+
 def _render_client_menu(
     profile,
     table_number: str,
@@ -571,20 +584,14 @@ def _render_client_menu(
     if can_order and not is_client_mirror:
         open_orders_count = count_open_orders_for_table(db, profile['id'], table_number)
 
-    current_customer = _current_customer(db, profile['id'])
-    radar_enabled = bool(current_customer and current_customer['radar_enabled'])
+    fixed_actions_context = _client_fixed_actions_context(db, profile['id'])
     # A página acessada pelo botão "Cupons" é, no MVP, uma página de PROMOÇÕES
     # cadastradas livremente pelo restaurante. Estas promoções não expiram, não geram
     # código e não têm rastreio de uso. Cupons rastreáveis do QRTotem serão tratados
     # em um módulo separado, para não misturar regras diferentes.
     coupon_redemptions = {}
 
-    show_radar_flag = (
-        (not session.get('admin_logged_in') or _is_public_client_mode())
-        and not is_client_mirror
-        and not is_coupon_page
-        and str(table_number).lower() != 'espelho'
-    )
+    show_radar_flag = fixed_actions_context['show_radar_flag'] and not is_client_mirror and str(table_number).lower() != 'espelho'
 
     return render_template(
         'client/menu.html',
@@ -598,11 +605,12 @@ def _render_client_menu(
         can_manage_table=can_manage_table,
         is_client_mirror=is_client_mirror,
         is_coupon_page=is_coupon_page,
-        coupon_url=_coupon_entry_url(),
+        coupon_url=fixed_actions_context['coupon_url'],
         menu_url=_public_menu_url(table_number),
-        profile_url=url_for('client.customer_profile'),
-        radar_action_url=url_for('client.toggle_radar'),
-        radar_enabled=radar_enabled,
+        profile_url=fixed_actions_context['profile_url'],
+        qrtotem_url=fixed_actions_context['qrtotem_url'],
+        radar_action_url=fixed_actions_context['radar_action_url'],
+        radar_enabled=fixed_actions_context['radar_enabled'],
         show_radar_flag=show_radar_flag,
         can_order=can_order,
         service_mode=_service_mode_from_profile(profile),
@@ -1210,6 +1218,7 @@ def qrtotem_coupons():
     ).fetchall()
 
     db.commit()
+    fixed_actions_context = _client_fixed_actions_context(db, restaurant_id)
 
     return render_template(
         'client/qrtotem_coupons.html',
@@ -1223,6 +1232,7 @@ def qrtotem_coupons():
         code_minutes=COUPON_CODE_MINUTES,
         menu_url=_public_menu_url(),
         csrf=csrf_token(),
+        **fixed_actions_context,
     )
 
 
@@ -2137,6 +2147,7 @@ def cart():
         return _orders_unavailable_response(profile)
 
     cart_total, cart_quantity = totals(cart_items)
+    fixed_actions_context = _client_fixed_actions_context(db, restaurant_id)
 
     return render_template(
         'client/cart.html',
@@ -2146,6 +2157,7 @@ def cart():
         table_number=table_number,
         csrf=csrf_token(),
         menu_url=_public_menu_url(table_number),
+        **fixed_actions_context,
     )
 
 @client_bp.route('/carrinho/adicionar', methods=['POST'])
@@ -2711,5 +2723,13 @@ def order_history():
         return _orders_unavailable_response(profile)
 
     orders = list_orders_for_table(db, restaurant_id, table_number)
+    fixed_actions_context = _client_fixed_actions_context(db, restaurant_id)
 
-    return render_template('client/orders.html', orders=orders, menu_url=_public_menu_url(), csrf=csrf_token())
+    return render_template(
+        'client/orders.html',
+        orders=orders,
+        table_number=table_number,
+        menu_url=_public_menu_url(),
+        csrf=csrf_token(),
+        **fixed_actions_context,
+    )
