@@ -2,8 +2,49 @@
 {% block title %}{% if is_coupon_page %}Promoções{% elif is_client_mirror %}Cliente Espelho{% else %}Mesa {{ table_number }}{% endif %}{% endblock %}
 
 {% block content %}
+{% if show_radar_flag %}
+  <div class="client-fixed-actions" aria-label="Ações rápidas do cliente">
+    <div class="client-fixed-actions-top">
+      <a class="client-fixed-action" href="{{ coupon_url }}" aria-label="Ver promoções">
+        <span aria-hidden="true">🎁</span>
+        <strong>Promoções</strong>
+      </a>
+
+      <a class="client-fixed-action" href="{{ profile_url }}" aria-label="Abrir meu perfil">
+        <span aria-hidden="true">👤</span>
+        <strong>Meu perfil</strong>
+      </a>
+    </div>
+
+    <form method="post" action="{{ radar_action_url }}" class="client-fixed-radar-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="client-fixed-radar-toggle">
+        <input type="checkbox" name="radar_enabled" value="1" {% if radar_enabled %}checked{% endif %} onchange="this.form.submit()">
+        <span class="radar-checkbox" aria-hidden="true"></span>
+        <strong>Deixar no radar</strong>
+      </label>
+    </form>
+  </div>
+{% endif %}
+
 <section class="hero-card hero-card--table client-hub-hero">
   <div class="hero-card-copy">
+    {% if can_order and not is_coupon_page %}
+      <div class="client-order-shortcuts" aria-label="Resumo do pedido">
+        <a class="client-order-shortcut" href="{{ url_for('client.order_history') }}">
+          <span class="client-order-shortcut-icon" aria-hidden="true">🧾</span>
+          <strong>Meus pedidos</strong>
+          <span class="badge-inline" id="open-orders-count">{{ open_orders_count|default(0) }}</span>
+        </a>
+
+        <a class="client-order-shortcut" href="{{ url_for('client.cart') }}">
+          <span class="client-order-shortcut-icon" aria-hidden="true">🛒</span>
+          <strong>Ver carrinho</strong>
+          <span class="badge-inline" id="cart-count">{{ cart_quantity }}</span>
+        </a>
+      </div>
+    {% endif %}
+
     <p class="eyebrow">{% if is_coupon_page %}Promoções do restaurante{% elif is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
 
     <div class="table-title-row">
@@ -67,44 +108,20 @@
           <small>Dados e preferências</small>
         </a>
       {% endif %}
-    {% else %}
-      <a class="action-card action-card-featured" href="{{ coupon_url }}">
-        <span class="action-card-icon" aria-hidden="true">🎁</span>
-        <strong>Promoções</strong>
-        <small>Ofertas especiais do restaurante</small>
-      </a>
     {% endif %}
 
-    {% if show_radar_flag %}
-      <form method="post" action="{{ radar_action_url }}" class="radar-inline-form action-card action-card-radar">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label class="radar-toggle">
-          <input type="checkbox" name="radar_enabled" value="1" {% if radar_enabled %}checked{% endif %} onchange="this.form.submit()">
-          <span class="action-card-icon" aria-hidden="true">📡</span>
-          <strong>Deixar no radar</strong>
-          <small>Receba novidades deste restaurante</small>
-        </label>
-      </form>
+    {% if is_coupon_page or is_client_mirror %}
+      {% if can_order %}
+        <a class="action-card action-card-secondary" href="{{ url_for('client.cart') }}">
+          <span class="action-card-icon" aria-hidden="true">🛒</span>
+          <strong>Ver carrinho <span class="badge-inline">{{ cart_quantity }}</span></strong>
+        </a>
 
-      <a class="action-card action-card-secondary" href="{{ profile_url }}">
-        <span class="action-card-icon" aria-hidden="true">👤</span>
-        <strong>Meu perfil</strong>
-        <small>Seus dados e ofertas</small>
-      </a>
-    {% endif %}
-
-    {% if can_order %}
-      <a class="action-card action-card-secondary" href="{{ url_for('client.cart') }}">
-        <span class="action-card-icon" aria-hidden="true">🛒</span>
-        <strong>Ver carrinho <span class="badge-inline" id="cart-count">{{ cart_quantity }}</span></strong>
-        <small>Conferir antes de finalizar</small>
-      </a>
-
-      <a class="action-card action-card-secondary" href="{{ url_for('client.order_history') }}">
-        <span class="action-card-icon" aria-hidden="true">🧾</span>
-        <strong>Meus pedidos <span class="badge-inline" id="open-orders-count">{{ open_orders_count|default(0) }}</span></strong>
-        <small>Acompanhe o preparo</small>
-      </a>
+        <a class="action-card action-card-secondary" href="{{ url_for('client.order_history') }}">
+          <span class="action-card-icon" aria-hidden="true">🧾</span>
+          <strong>Meus pedidos <span class="badge-inline">{{ open_orders_count|default(0) }}</span></strong>
+        </a>
+      {% endif %}
     {% endif %}
   </div>
 </section>
