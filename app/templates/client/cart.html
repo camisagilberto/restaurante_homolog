@@ -2,13 +2,15 @@
 {% block title %}Carrinho da Mesa {{ table_number }}{% endblock %}
 
 {% block content %}
+{% set client_actions_mode = 'cart' %}
+{% include 'client/_fixed_actions.html' %}
+
 <section class="hero-card">
   <div>
     <p class="eyebrow">Resumo do pedido</p>
     <h2>Mesa {{ table_number }}</h2>
     <p class="muted">Revise os itens, informe seu nome e escolha como deseja pagar.</p>
   </div>
-  <a class="btn btn-secondary" href="{{ menu_url }}">Voltar ao cardápio</a>
 </section>
 
 <div class="cart-layout">
