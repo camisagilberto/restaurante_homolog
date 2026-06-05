@@ -1,0 +1,31 @@
+{% if show_radar_flag %}
+  <div class="client-fixed-actions" aria-label="Ações rápidas do cliente">
+    <div class="client-fixed-actions-top">
+      {% if client_actions_mode == 'promotions' %}
+        <a class="client-fixed-action" href="{{ qrtotem_url }}" aria-label="Ver meus cupons">
+          <span aria-hidden="true">🎟️</span>
+          <strong>Meus cupons</strong>
+        </a>
+      {% else %}
+        <a class="client-fixed-action" href="{{ coupon_url }}" aria-label="Ver promoções">
+          <span aria-hidden="true">🎁</span>
+          <strong>Promoções</strong>
+        </a>
+      {% endif %}
+
+      <a class="client-fixed-action" href="{{ profile_url }}" aria-label="Abrir meu perfil">
+        <span aria-hidden="true">👤</span>
+        <strong>Meu perfil</strong>
+      </a>
+    </div>
+
+    <form method="post" action="{{ radar_action_url }}" class="client-fixed-radar-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="client-fixed-radar-toggle">
+        <input type="checkbox" name="radar_enabled" value="1" {% if radar_enabled %}checked{% endif %} onchange="this.form.submit()">
+        <span class="radar-checkbox" aria-hidden="true"></span>
+        <strong>Deixar no radar</strong>
+      </label>
+    </form>
+  </div>
+{% endif %}
