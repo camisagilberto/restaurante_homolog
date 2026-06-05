@@ -1425,6 +1425,582 @@
       font-weight: 800;
     }
 
+
+    .impact-section {
+      padding-top: 36px;
+    }
+
+    .impact-head {
+      max-width: 900px;
+      margin: 0 auto 26px;
+      text-align: center;
+    }
+
+    .impact-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      color: var(--orange-dark);
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .impact-head h2 {
+      margin: 0;
+      color: #0F172A;
+      font-size: clamp(2.25rem, 4.6vw, 4.15rem);
+      line-height: 1.02;
+      letter-spacing: -0.075em;
+      font-weight: 800;
+    }
+
+    .impact-head h2 span {
+      color: var(--orange);
+    }
+
+    .impact-head p {
+      max-width: 760px;
+      margin: 16px auto 0;
+      color: var(--muted);
+      font-size: clamp(.98rem, 1.3vw, 1.12rem);
+      font-weight: 500;
+      line-height: 1.7;
+    }
+
+    .impact-shell {
+      border-radius: 34px;
+      background: linear-gradient(180deg, #FFFFFF, #FBFBFB);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      padding: 28px;
+      overflow: hidden;
+    }
+
+    .impact-toggle {
+      width: min(620px, 100%);
+      margin: 0 auto 22px;
+      padding: 7px;
+      border-radius: 999px;
+      background: #FFFFFF;
+      border: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, .05);
+    }
+
+    .impact-toggle-btn {
+      border: 0;
+      min-height: 48px;
+      border-radius: 999px;
+      background: transparent;
+      color: #0F172A;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: .96rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .impact-toggle-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .impact-toggle-btn.is-active[data-impact-mode="optimization"] {
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #8B5CF6, #5B21B6);
+      box-shadow: 0 16px 28px rgba(91, 33, 182, .20);
+    }
+
+    .impact-toggle-btn.is-active[data-impact-mode="communication"] {
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #22C55E, #047857);
+      box-shadow: 0 16px 28px rgba(4, 120, 87, .18);
+    }
+
+    .impact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .impact-card {
+      position: relative;
+      min-height: 448px;
+      padding: 28px;
+      border-radius: 30px;
+      border: 1px solid var(--line);
+      background: #FFFFFF;
+      overflow: hidden;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, opacity .2s ease;
+    }
+
+    .impact-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .94;
+    }
+
+    .impact-card.optimization {
+      border-color: rgba(139, 92, 246, .18);
+    }
+
+    .impact-card.optimization::before {
+      background: radial-gradient(circle at 15% 15%, rgba(139, 92, 246, .16), transparent 32%), linear-gradient(135deg, rgba(139, 92, 246, .08), rgba(255,255,255,0) 48%);
+    }
+
+    .impact-card.communication {
+      border-color: rgba(34, 197, 94, .18);
+    }
+
+    .impact-card.communication::before {
+      background: radial-gradient(circle at 82% 18%, rgba(34, 197, 94, .14), transparent 30%), linear-gradient(135deg, rgba(34, 197, 94, .08), rgba(255,255,255,0) 48%);
+    }
+
+    .impact-card.is-dimmed {
+      opacity: .62;
+      filter: saturate(.82);
+    }
+
+    .impact-card.is-highlighted {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+      opacity: 1;
+      filter: none;
+    }
+
+    .impact-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(260px, 1fr);
+      gap: 22px;
+      align-items: center;
+    }
+
+    .impact-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+
+    .optimization .impact-icon {
+      background: rgba(139, 92, 246, .12);
+      color: #6D28D9;
+      border: 1px solid rgba(139, 92, 246, .18);
+    }
+
+    .communication .impact-icon {
+      background: rgba(34, 197, 94, .12);
+      color: #047857;
+      border: 1px solid rgba(34, 197, 94, .18);
+    }
+
+    .impact-card h3 {
+      margin: 0;
+      font-size: clamp(1.55rem, 2vw, 2.05rem);
+      line-height: 1.08;
+      letter-spacing: -0.055em;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    .impact-card p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: .95rem;
+      font-weight: 500;
+      line-height: 1.65;
+    }
+
+    .impact-list {
+      margin: 22px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .impact-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: #374151;
+      font-size: .92rem;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .impact-list li::before {
+      content: "✓";
+      flex: 0 0 22px;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: .78rem;
+      font-weight: 800;
+      margin-top: 1px;
+    }
+
+    .optimization .impact-list li::before {
+      background: #7C3AED;
+    }
+
+    .communication .impact-list li::before {
+      background: #16A34A;
+    }
+
+    .impact-result {
+      margin-top: 22px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: .92rem;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .impact-result b {
+      font-weight: 800;
+    }
+
+    .optimization .impact-result {
+      background: rgba(139, 92, 246, .08);
+      border: 1px solid rgba(139, 92, 246, .15);
+      color: #3B0764;
+    }
+
+    .communication .impact-result {
+      background: rgba(34, 197, 94, .08);
+      border: 1px solid rgba(34, 197, 94, .15);
+      color: #064E3B;
+    }
+
+    .impact-result-icon {
+      flex: 0 0 42px;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: 1.2rem;
+    }
+
+    .optimization .impact-result-icon {
+      background: #7C3AED;
+    }
+
+    .communication .impact-result-icon {
+      background: #16A34A;
+    }
+
+    .impact-visual {
+      position: relative;
+      min-height: 326px;
+    }
+
+    .impact-device {
+      position: absolute;
+      border-radius: 28px;
+      background: #111827;
+      padding: 10px;
+      box-shadow: 0 26px 42px rgba(15, 23, 42, .22);
+    }
+
+    .impact-device.phone {
+      width: 142px;
+      height: 278px;
+      left: 0;
+      bottom: 8px;
+      transform: rotate(-3deg);
+      z-index: 2;
+    }
+
+    .impact-device.tablet {
+      width: 255px;
+      height: 190px;
+      right: 0;
+      top: 28px;
+      border-radius: 24px;
+      transform: rotate(1deg);
+      z-index: 1;
+    }
+
+    .impact-device.promo-phone {
+      width: 168px;
+      height: 312px;
+      right: 62px;
+      top: 4px;
+      z-index: 2;
+    }
+
+    .impact-device-screen {
+      height: 100%;
+      border-radius: 20px;
+      background: #FFFFFF;
+      overflow: hidden;
+      padding: 13px;
+    }
+
+    .impact-device-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      color: #111827;
+      font-size: .74rem;
+      font-weight: 800;
+    }
+
+    .impact-device-pill {
+      width: 38px;
+      height: 5px;
+      border-radius: 999px;
+      background: #E5E7EB;
+    }
+
+    .mini-product,
+    .mini-ticket,
+    .mini-promo-field {
+      border-radius: 12px;
+      background: #F9FAFB;
+      border: 1px solid #F1F5F9;
+    }
+
+    .mini-product {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 8px;
+      padding: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .mini-product::before {
+      content: "";
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #F97316, #7C2D12);
+    }
+
+    .mini-line {
+      display: block;
+      height: 6px;
+      border-radius: 999px;
+      background: #CBD5E1;
+      margin-bottom: 6px;
+    }
+
+    .mini-line.short {
+      width: 62%;
+      background: #E5E7EB;
+    }
+
+    .mini-cart-bar {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      min-height: 34px;
+      border-radius: 11px;
+      background: #7C3AED;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .7rem;
+      font-weight: 800;
+    }
+
+    .mini-ticket {
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .mini-ticket-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: .75rem;
+      font-weight: 800;
+    }
+
+    .mini-status {
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, .12);
+      color: var(--orange-dark);
+      font-size: .65rem;
+      font-weight: 800;
+    }
+
+    .mini-ticket-row {
+      height: 7px;
+      border-radius: 999px;
+      background: #E5E7EB;
+      margin-top: 7px;
+    }
+
+    .impact-people {
+      position: absolute;
+      left: 4px;
+      top: 30px;
+      display: grid;
+      gap: 12px;
+      z-index: 1;
+    }
+
+    .impact-person {
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #D1FAE5, #FFFFFF);
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 10px 20px rgba(6, 78, 59, .10);
+      position: relative;
+    }
+
+    .impact-person::before {
+      content: "";
+      position: absolute;
+      left: 13px;
+      top: 8px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: #FBD38D;
+    }
+
+    .impact-person::after {
+      content: "";
+      position: absolute;
+      left: 10px;
+      bottom: 7px;
+      width: 26px;
+      height: 15px;
+      border-radius: 999px 999px 8px 8px;
+      background: #047857;
+    }
+
+    .impact-connection {
+      position: absolute;
+      left: 48px;
+      top: 54px;
+      width: 250px;
+      height: 130px;
+      border: 2px dashed rgba(34, 197, 94, .46);
+      border-left: 0;
+      border-bottom: 0;
+      border-radius: 0 80px 0 0;
+      z-index: 0;
+    }
+
+    .promo-card-floating {
+      position: absolute;
+      right: 0;
+      bottom: 20px;
+      width: 142px;
+      padding: 14px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #16A34A, #047857);
+      color: #FFFFFF;
+      box-shadow: 0 22px 34px rgba(4, 120, 87, .22);
+      z-index: 3;
+    }
+
+    .promo-card-floating strong {
+      display: block;
+      font-size: .95rem;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    .promo-card-floating span {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.25rem;
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    .mini-promo-field {
+      height: 34px;
+      margin-top: 10px;
+      background: #FFFFFF;
+    }
+
+    .mini-promo-button {
+      min-height: 36px;
+      margin-top: 12px;
+      border-radius: 12px;
+      background: #16A34A;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .72rem;
+      font-weight: 800;
+    }
+
+    .impact-bottom {
+      width: min(840px, 100%);
+      margin: 22px auto 0;
+      padding: 16px 22px;
+      border-radius: 20px;
+      background: #FFFFFF;
+      border: 1px solid rgba(249, 115, 22, .18);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, .05);
+      color: #111827;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .impact-bottom span {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(249, 115, 22, .08);
+      color: var(--orange);
+      border: 1px solid rgba(249, 115, 22, .16);
+    }
+
+    .impact-bottom b {
+      color: var(--orange);
+    }
+
     .steps {
       background: var(--light);
       border-top: 1px solid var(--line);
@@ -1527,6 +2103,85 @@
       font-size: .92rem;
       font-weight: 500;
       text-align: center;
+    }
+
+
+    @media (max-width: 1180px) {
+      .impact-content {
+        grid-template-columns: 1fr;
+      }
+
+      .impact-card {
+        min-height: auto;
+      }
+
+      .impact-visual {
+        min-height: 286px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .impact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .impact-card.is-dimmed {
+        opacity: 1;
+        filter: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .impact-shell {
+        padding: 18px;
+        border-radius: 26px;
+      }
+
+      .impact-toggle {
+        grid-template-columns: 1fr;
+        border-radius: 22px;
+      }
+
+      .impact-toggle-btn {
+        border-radius: 16px;
+        min-height: 46px;
+      }
+
+      .impact-card {
+        padding: 22px;
+        border-radius: 24px;
+      }
+
+      .impact-visual {
+        min-height: 300px;
+      }
+
+      .impact-device.phone {
+        width: 132px;
+        height: 260px;
+      }
+
+      .impact-device.tablet {
+        width: 210px;
+        height: 168px;
+        right: -8px;
+      }
+
+      .impact-device.promo-phone {
+        right: 32px;
+        width: 154px;
+        height: 292px;
+      }
+
+      .promo-card-floating {
+        width: 126px;
+        right: -4px;
+      }
+
+      .impact-bottom {
+        align-items: flex-start;
+        text-align: left;
+      }
     }
 
     @media (max-width: 1100px) {
@@ -2517,6 +3172,141 @@
       </div>
     </section>
 
+
+    <section id="ganhos" class="landing-shell section impact-section" data-impact-root>
+      <div class="impact-head">
+        <span class="impact-eyebrow">Dois impactos em uma única ferramenta</span>
+        <h2>Mais organização no atendimento. <span>Mais clientes voltando depois.</span></h2>
+        <p>
+          O QRTotem melhora a operação dentro do restaurante e cria um canal direto para você se comunicar com quem já conhece o seu negócio.
+        </p>
+      </div>
+
+      <div class="impact-shell">
+        <div class="impact-toggle" aria-label="Escolha o principal ganho do QRTotem">
+          <button class="impact-toggle-btn is-active" type="button" data-impact-mode="optimization">
+            <span aria-hidden="true">🚀</span>
+            Otimização do atendimento
+          </button>
+          <button class="impact-toggle-btn" type="button" data-impact-mode="communication">
+            <span aria-hidden="true">📣</span>
+            Comunicação com o cliente
+          </button>
+        </div>
+
+        <div class="impact-grid">
+          <article class="impact-card optimization is-highlighted" data-impact-card="optimization">
+            <div class="impact-content">
+              <div>
+                <div class="impact-icon">🚀</div>
+                <h3>Otimização do atendimento</h3>
+                <p>
+                  Mais agilidade, menos erros e mais controle no dia a dia, principalmente nos horários de pico.
+                </p>
+
+                <ul class="impact-list">
+                  <li>Cliente pede direto pelo celular</li>
+                  <li>Pedidos organizados por mesa</li>
+                  <li>Cozinha recebe tudo em tempo real</li>
+                  <li>Menos erros e retrabalho</li>
+                  <li>Cliente acompanha o pedido</li>
+                  <li>Mais agilidade mesmo nos horários de pico</li>
+                </ul>
+
+                <div class="impact-result">
+                  <span class="impact-result-icon">↗</span>
+                  <span><b>Resultado:</b> operação mais leve, equipe mais produtiva e clientes mais satisfeitos.</span>
+                </div>
+              </div>
+
+              <div class="impact-visual" aria-hidden="true">
+                <div class="impact-device phone">
+                  <div class="impact-device-screen">
+                    <div class="impact-device-header"><span>Cardápio</span><span class="impact-device-pill"></span></div>
+                    <div class="mini-product"><span><i class="mini-line"></i><i class="mini-line short"></i></span></div>
+                    <div class="mini-product"><span><i class="mini-line"></i><i class="mini-line short"></i></span></div>
+                    <div class="mini-product"><span><i class="mini-line"></i><i class="mini-line short"></i></span></div>
+                    <div class="mini-cart-bar">Ver carrinho</div>
+                  </div>
+                </div>
+
+                <div class="impact-device tablet">
+                  <div class="impact-device-screen">
+                    <div class="impact-device-header"><span>Cozinha</span><span class="impact-device-pill"></span></div>
+                    <div class="mini-ticket">
+                      <div class="mini-ticket-top"><span>Mesa 05</span><span class="mini-status">Em preparo</span></div>
+                      <div class="mini-ticket-row"></div><div class="mini-ticket-row"></div>
+                    </div>
+                    <div class="mini-ticket">
+                      <div class="mini-ticket-top"><span>Mesa 12</span><span class="mini-status">Novo</span></div>
+                      <div class="mini-ticket-row"></div><div class="mini-ticket-row"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="impact-card communication" data-impact-card="communication">
+            <div class="impact-content">
+              <div>
+                <div class="impact-icon">📣</div>
+                <h3>Comunicação com o cliente</h3>
+                <p>
+                  Um canal direto para trazer o cliente de volta ao seu restaurante depois da visita.
+                </p>
+
+                <ul class="impact-list">
+                  <li>Cliente se cadastra para ver promoções</li>
+                  <li>Você cria sua própria base de clientes</li>
+                  <li>Envie promoções e novidades</li>
+                  <li>Movimente horários mais fracos</li>
+                  <li>Cliente deixa o restaurante no radar</li>
+                  <li>Mais retorno e vendas recorrentes</li>
+                </ul>
+
+                <div class="impact-result">
+                  <span class="impact-result-icon">👥</span>
+                  <span><b>Resultado:</b> mais relacionamento, mais frequência e mais clientes retornando.</span>
+                </div>
+              </div>
+
+              <div class="impact-visual" aria-hidden="true">
+                <div class="impact-people">
+                  <span class="impact-person"></span>
+                  <span class="impact-person"></span>
+                  <span class="impact-person"></span>
+                </div>
+                <div class="impact-connection"></div>
+
+                <div class="impact-device promo-phone">
+                  <div class="impact-device-screen">
+                    <div class="impact-device-header"><span>Promoções</span><span class="impact-device-pill"></span></div>
+                    <strong style="display:block;font-size:.92rem;line-height:1.2;margin-top:12px;">Promoções exclusivas</strong>
+                    <p style="margin:8px 0 0;color:#64748B;font-size:.72rem;font-weight:700;line-height:1.4;">Cadastre-se e receba ofertas especiais do restaurante.</p>
+                    <div class="mini-promo-field"></div>
+                    <div class="mini-promo-field"></div>
+                    <div class="mini-promo-button">Quero receber ofertas</div>
+                  </div>
+                </div>
+
+                <div class="promo-card-floating">
+                  <strong>Promoção Especial!</strong>
+                  <span>20% OFF</span>
+                  <small>em pizzas hoje</small>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="impact-bottom">
+          <span aria-hidden="true">★</span>
+          <strong>Atendimento mais eficiente + clientes voltando sempre = <b>mais resultado para o seu restaurante.</b></strong>
+        </div>
+      </div>
+    </section>
+
     <section id="implantacao" class="steps section">
       <div class="landing-shell">
         <div class="section-head">
@@ -2647,6 +3437,67 @@
 
       update();
     })();
+
+    (function () {
+      const root = document.querySelector('[data-impact-root]');
+      if (!root) return;
+
+      const buttons = Array.from(root.querySelectorAll('[data-impact-mode]'));
+      const cards = Array.from(root.querySelectorAll('[data-impact-card]'));
+      let active = 'optimization';
+      let timer = null;
+
+      function setActive(mode) {
+        active = mode;
+        buttons.forEach((button) => {
+          const isActive = button.dataset.impactMode === mode;
+          button.classList.toggle('is-active', isActive);
+          button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        cards.forEach((card) => {
+          const isActive = card.dataset.impactCard === mode;
+          card.classList.toggle('is-highlighted', isActive);
+          card.classList.toggle('is-dimmed', !isActive);
+        });
+      }
+
+      function startAuto() {
+        stopAuto();
+        timer = window.setInterval(() => {
+          setActive(active === 'optimization' ? 'communication' : 'optimization');
+        }, 4500);
+      }
+
+      function stopAuto() {
+        if (timer) window.clearInterval(timer);
+      }
+
+      buttons.forEach((button) => {
+        const activate = () => {
+          setActive(button.dataset.impactMode);
+          startAuto();
+        };
+        button.addEventListener('mouseenter', activate);
+        button.addEventListener('focus', activate);
+        button.addEventListener('click', activate);
+      });
+
+      cards.forEach((card) => {
+        const activate = () => {
+          setActive(card.dataset.impactCard);
+          startAuto();
+        };
+        card.addEventListener('mouseenter', activate);
+        card.addEventListener('focusin', activate);
+      });
+
+      root.addEventListener('mouseenter', stopAuto);
+      root.addEventListener('mouseleave', startAuto);
+
+      setActive(active);
+      startAuto();
+    })();
+
   </script>
 </body>
 </html>
