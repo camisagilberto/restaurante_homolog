@@ -59,6 +59,10 @@
       max-width: 100%;
     }
 
+    button {
+      font: inherit;
+    }
+
     .landing-shell {
       width: min(var(--container), calc(100% - 40px));
       margin: 0 auto;
@@ -283,6 +287,7 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       transition: transform .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+      cursor: pointer;
     }
 
     .btn-primary {
@@ -559,6 +564,844 @@
       font-weight: 500;
     }
 
+    .journey-section {
+      padding-top: 18px;
+    }
+
+    .journey-wrap {
+      border-radius: 34px;
+      background: linear-gradient(180deg, #FFF8F2, #FFFFFF 38%);
+      border: 1px solid rgba(249, 115, 22, .10);
+      box-shadow: var(--shadow-soft);
+      padding: 34px;
+    }
+
+    .journey-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, .08);
+      color: var(--orange-dark);
+      font-size: .78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .journey-kicker::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--orange);
+    }
+
+    .journey-desktop {
+      display: block;
+    }
+
+    .journey-mobile {
+      display: none;
+    }
+
+    .journey-tabs {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .journey-tab {
+      min-height: 94px;
+      padding: 16px 14px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: var(--white);
+      color: var(--graphite);
+      text-align: left;
+      display: grid;
+      gap: 6px;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+      cursor: pointer;
+    }
+
+    .journey-tab:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .journey-tab.is-active {
+      border-color: rgba(249, 115, 22, .28);
+      background: linear-gradient(180deg, rgba(249, 115, 22, .12), rgba(249, 115, 22, .04));
+      box-shadow: var(--shadow-soft);
+    }
+
+    .journey-step-index {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(30, 30, 30, .06);
+      color: var(--graphite);
+      font-size: .86rem;
+      font-weight: 800;
+    }
+
+    .journey-tab.is-active .journey-step-index {
+      background: var(--orange);
+      color: var(--white);
+    }
+
+    .journey-tab strong {
+      display: block;
+      font-size: .95rem;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    .journey-tab span:last-child {
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.35;
+      font-weight: 600;
+    }
+
+    .journey-panels {
+      margin-top: 22px;
+    }
+
+    .journey-panel {
+      display: none;
+    }
+
+    .journey-panel.is-active {
+      display: grid;
+      grid-template-columns: minmax(280px, 370px) minmax(0, 1fr);
+      gap: 26px;
+      align-items: stretch;
+    }
+
+    .journey-copy-card,
+    .journey-visual-card {
+      border-radius: 28px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .journey-copy-card {
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .journey-copy-card h3 {
+      margin: 18px 0 10px;
+      font-size: clamp(1.6rem, 2vw, 2.2rem);
+      line-height: 1.05;
+      letter-spacing: -0.055em;
+      font-weight: 800;
+    }
+
+    .journey-copy-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .98rem;
+      font-weight: 500;
+      line-height: 1.68;
+    }
+
+    .journey-panel-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(249, 115, 22, .08);
+      color: var(--orange-dark);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .journey-list {
+      margin: 22px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .journey-list li {
+      position: relative;
+      padding-left: 18px;
+      color: var(--gray);
+      font-size: .92rem;
+      font-weight: 600;
+      line-height: 1.55;
+    }
+
+    .journey-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: .62em;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--orange);
+    }
+
+    .journey-panel-note {
+      margin-top: auto;
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: var(--light);
+      border: 1px solid var(--line);
+      color: var(--gray);
+      font-size: .9rem;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .journey-visual-card {
+      padding: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 430px;
+      overflow: hidden;
+    }
+
+    .journey-visual-frame {
+      width: 100%;
+      height: 100%;
+      min-height: 386px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #fffdfb 0%, #fff 100%);
+      border: 1px solid rgba(30, 30, 30, .06);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .journey-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .journey-nav-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .journey-nav-btn {
+      min-height: 48px;
+      padding: 12px 18px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--white);
+      color: var(--graphite);
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, background-color .18s ease;
+    }
+
+    .journey-nav-btn:hover {
+      background: var(--light);
+      transform: translateY(-1px);
+    }
+
+    .journey-nav-btn.is-primary {
+      background: var(--orange);
+      border-color: transparent;
+      color: var(--white);
+      box-shadow: 0 14px 30px rgba(249, 115, 22, .16);
+    }
+
+    .journey-nav-btn.is-primary:hover {
+      background: var(--orange-dark);
+    }
+
+    .journey-counter {
+      color: var(--gray);
+      font-size: .92rem;
+      font-weight: 800;
+    }
+
+    .journey-restaurant {
+      background:
+        radial-gradient(circle at 14% 18%, rgba(255,255,255,.92) 0 5px, transparent 6px),
+        linear-gradient(180deg, #4A2E1F, #8A5437 46%, #E9D5C2 46%, #E9D5C2 100%);
+    }
+
+    .journey-restaurant::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0 9%, rgba(255,255,255,.12) 9% 10%, transparent 10% 22%, rgba(255,255,255,.12) 22% 23%, transparent 23% 35%, rgba(255,255,255,.12) 35% 36%, transparent 36%),
+        linear-gradient(180deg, rgba(255,255,255,.18), transparent 22%);
+      pointer-events: none;
+    }
+
+    .restaurant-lights {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-evenly;
+      z-index: 1;
+    }
+
+    .restaurant-lights span {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(255,236,196,.95), rgba(255,181,84,.7) 40%, rgba(255,181,84,0) 70%);
+      filter: blur(.3px);
+    }
+
+    .table {
+      position: absolute;
+      width: 146px;
+      height: 72px;
+      border-radius: 20px;
+      background: rgba(91, 59, 37, .88);
+      box-shadow: 0 18px 26px rgba(30,30,30,.18);
+    }
+
+    .table.one { left: 44px; top: 120px; }
+    .table.two { right: 58px; top: 132px; }
+    .table.three { left: 132px; bottom: 72px; width: 176px; }
+
+    .table::before,
+    .table::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #FACC15;
+      top: 27px;
+      left: 26px;
+      box-shadow: 32px 0 0 #FDBA74, 64px 0 0 #FACC15;
+    }
+
+    .guests {
+      position: absolute;
+      inset: 0;
+    }
+
+    .guest {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #FFE8C7;
+      box-shadow: 0 18px 0 4px rgba(31, 41, 55, .62);
+    }
+
+    .g1 { left: 58px; top: 96px; }
+    .g2 { left: 148px; top: 96px; }
+    .g3 { left: 76px; top: 178px; }
+    .g4 { left: 158px; top: 178px; }
+    .g5 { right: 140px; top: 108px; }
+    .g6 { right: 60px; top: 108px; }
+    .g7 { right: 144px; top: 188px; }
+    .g8 { right: 66px; top: 188px; }
+    .g9 { left: 148px; bottom: 128px; }
+    .g10 { left: 236px; bottom: 128px; }
+    .g11 { left: 176px; bottom: 46px; }
+    .g12 { left: 256px; bottom: 46px; }
+
+    .restaurant-overlay {
+      position: absolute;
+      right: 22px;
+      bottom: 22px;
+      width: 226px;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.94);
+      border: 1px solid rgba(30, 30, 30, .06);
+      box-shadow: var(--shadow-soft);
+      z-index: 2;
+    }
+
+    .restaurant-overlay strong {
+      display: block;
+      font-size: 2rem;
+      line-height: 1;
+      letter-spacing: -0.06em;
+    }
+
+    .restaurant-overlay span {
+      display: block;
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .restaurant-chart {
+      margin-top: 14px;
+      height: 68px;
+      border-radius: 14px;
+      background:
+        linear-gradient(180deg, rgba(249,115,22,.1), rgba(249,115,22,0)),
+        linear-gradient(135deg, transparent 0 12%, rgba(249,115,22,.15) 12% 13%, transparent 13% 30%, rgba(249,115,22,.15) 30% 31%, transparent 31% 53%, rgba(249,115,22,.15) 53% 54%, transparent 54% 72%, rgba(249,115,22,.15) 72% 73%, transparent 73%),
+        linear-gradient(180deg, #fff, #fff);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .restaurant-chart::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 34px;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #FDBA74, #F97316 36%, #EA580C);
+      transform: skewX(-18deg);
+    }
+
+    .screen-shell {
+      position: absolute;
+      top: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(390px, calc(100% - 48px));
+      height: calc(100% - 52px);
+      border-radius: 26px;
+      background: #1E1E1E;
+      padding: 10px;
+      box-shadow: 0 26px 40px rgba(30, 30, 30, .22);
+    }
+
+    .screen-inner {
+      height: 100%;
+      border-radius: 20px;
+      background: #FFFFFF;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .screen-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px 12px;
+      font-size: .83rem;
+      font-weight: 800;
+      color: var(--graphite);
+    }
+
+    .screen-topbar .dots {
+      width: 48px;
+      height: 5px;
+      border-radius: 999px;
+      background: #DBDBDB;
+    }
+
+    .preview-menu-layout {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 14px;
+      height: calc(100% - 56px);
+      padding: 0 16px 16px;
+    }
+
+    .preview-menu-sidebar {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .preview-menu-sidebar span {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #FAFAFA;
+      border: 1px solid #F0F0F0;
+      color: var(--gray);
+      font-size: .76rem;
+      font-weight: 700;
+    }
+
+    .preview-menu-sidebar span.active {
+      background: rgba(249,115,22,.09);
+      color: var(--orange-dark);
+      border-color: rgba(249,115,22,.12);
+    }
+
+    .preview-menu-products {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .preview-product {
+      display: grid;
+      grid-template-columns: 64px 1fr auto;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 18px;
+      background: #FCFCFC;
+      border: 1px solid #F0F0F0;
+      align-items: center;
+    }
+
+    .food-thumb {
+      width: 64px;
+      height: 56px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 45% 42%, #FED7AA 0 22%, transparent 23%),
+        linear-gradient(135deg, #F97316, #2D1B12);
+    }
+
+    .preview-product strong,
+    .cart-item strong,
+    .ticket strong {
+      display: block;
+      font-size: .9rem;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    .preview-product span,
+    .cart-item span,
+    .ticket span,
+    .timeline-item span {
+      display: block;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .preview-product b,
+    .cart-price,
+    .ticket b {
+      color: var(--orange-dark);
+      font-size: .82rem;
+      font-weight: 800;
+    }
+
+    .cart-layout {
+      padding: 0 18px 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .cart-item {
+      display: grid;
+      grid-template-columns: 54px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid #F0F0F0;
+      background: #FCFCFC;
+    }
+
+    .cart-qty {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(249,115,22,.1);
+      color: var(--orange-dark);
+      font-size: .86rem;
+      font-weight: 800;
+    }
+
+    .cart-summary {
+      padding: 16px;
+      border-radius: 20px;
+      background: #FFF8F2;
+      border: 1px solid rgba(249,115,22,.12);
+      display: grid;
+      gap: 10px;
+    }
+
+    .cart-summary-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--gray);
+      font-size: .85rem;
+      font-weight: 700;
+    }
+
+    .cart-summary-row.total {
+      color: var(--graphite);
+      font-size: 1rem;
+      font-weight: 800;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(30,30,30,.12);
+    }
+
+    .pay-button {
+      min-height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--orange);
+      color: var(--white);
+      font-size: .88rem;
+      font-weight: 800;
+    }
+
+    .kitchen-layout {
+      padding: 0 18px 18px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .kitchen-tabs {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .kitchen-tabs span {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: #F5F5F5;
+      color: var(--gray);
+      font-size: .74rem;
+      font-weight: 800;
+    }
+
+    .kitchen-tabs span.active {
+      background: rgba(249,115,22,.1);
+      color: var(--orange-dark);
+    }
+
+    .ticket-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .ticket {
+      padding: 14px;
+      border-radius: 20px;
+      background: #FCFCFC;
+      border: 1px solid #F0F0F0;
+      box-shadow: 0 10px 22px rgba(30, 30, 30, .04);
+    }
+
+    .ticket-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .ticket-pill {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(249,115,22,.1);
+      color: var(--orange-dark);
+      font-size: .72rem;
+      font-weight: 800;
+    }
+
+    .ticket ul {
+      margin: 0;
+      padding-left: 16px;
+      color: var(--gray);
+      font-size: .8rem;
+      font-weight: 700;
+      display: grid;
+      gap: 5px;
+    }
+
+    .tracking-layout {
+      padding: 0 18px 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .tracking-header {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: #FFF8F2;
+      border: 1px solid rgba(249,115,22,.12);
+    }
+
+    .tracking-header strong {
+      display: block;
+      font-size: 1rem;
+      letter-spacing: -0.03em;
+    }
+
+    .tracking-header span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 22px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 999px;
+      background: rgba(249,115,22,.18);
+    }
+
+    .timeline-item {
+      position: relative;
+      padding: 14px 14px 14px 16px;
+      border-radius: 18px;
+      border: 1px solid #F0F0F0;
+      background: #FCFCFC;
+    }
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -18px;
+      top: 18px;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--orange);
+      border: 4px solid #FFF8F2;
+      box-shadow: 0 0 0 1px rgba(249,115,22,.2);
+    }
+
+    .timeline-item.pending::before {
+      background: #D1D5DB;
+      border-color: #F8FAFC;
+      box-shadow: 0 0 0 1px rgba(30,30,30,.1);
+    }
+
+    .timeline-item strong {
+      display: block;
+      font-size: .9rem;
+      line-height: 1.15;
+    }
+
+    .happy-scene {
+      background: linear-gradient(180deg, #FFF8F2 0%, #FFFFFF 70%);
+    }
+
+    .happy-panel {
+      position: absolute;
+      inset: 30px;
+      border-radius: 28px;
+      background: radial-gradient(circle at top, rgba(249,115,22,.12), transparent 34%), #FFFFFF;
+      border: 1px solid rgba(30, 30, 30, .06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .avatar {
+      position: relative;
+      width: 114px;
+      height: 114px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #F97316 0%, #EA580C 100%);
+      box-shadow: 0 18px 36px rgba(249,115,22,.22);
+    }
+
+    .avatar::before {
+      content: "";
+      position: absolute;
+      left: 29px;
+      top: 18px;
+      width: 56px;
+      height: 56px;
+      border-radius: 999px;
+      background: #FFE3C2;
+    }
+
+    .avatar::after {
+      content: "";
+      position: absolute;
+      left: 18px;
+      bottom: 12px;
+      width: 78px;
+      height: 42px;
+      border-radius: 40px 40px 22px 22px;
+      background: #FFE3C2;
+    }
+
+    .stars {
+      display: flex;
+      gap: 8px;
+      color: #F59E0B;
+      font-size: 1.28rem;
+      letter-spacing: .08em;
+    }
+
+    .happy-panel h4 {
+      margin: 0;
+      font-size: 1.7rem;
+      line-height: 1.05;
+      letter-spacing: -0.05em;
+    }
+
+    .happy-panel p {
+      margin: 0;
+      max-width: 340px;
+      color: var(--muted);
+      font-size: .95rem;
+      font-weight: 600;
+      line-height: 1.6;
+    }
+
+    .happy-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    .happy-chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #FFF8F2;
+      border: 1px solid rgba(249,115,22,.12);
+      color: var(--orange-dark);
+      font-size: .82rem;
+      font-weight: 800;
+    }
+
     .steps {
       background: var(--light);
       border-top: 1px solid var(--line);
@@ -663,817 +1506,14 @@
       text-align: center;
     }
 
-
-
-    /* Ajuste 51: carrossel guiado da jornada do cliente na landing page */
-    .experience-section {
-      padding: 72px 0;
-      background:
-        radial-gradient(circle at 12% 12%, rgba(249, 115, 22, .07), transparent 34%),
-        radial-gradient(circle at 88% 24%, rgba(249, 115, 22, .045), transparent 30%),
-        var(--white);
-    }
-
-    .experience-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 340px;
-      gap: 34px;
-      align-items: start;
-    }
-
-    .experience-kicker {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(249, 115, 22, .18);
-      background: rgba(249, 115, 22, .08);
-      color: var(--orange-dark);
-      font-size: .78rem;
-      font-weight: 800;
-    }
-
-    .experience-kicker::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--orange);
-    }
-
-    .experience-head {
-      max-width: 790px;
-      margin-bottom: 26px;
-    }
-
-    .experience-head h2 {
-      margin: 0;
-      font-size: clamp(2rem, 4vw, 3.7rem);
-      line-height: 1.02;
-      letter-spacing: -0.07em;
-      font-weight: 800;
-    }
-
-    .experience-head p {
-      margin: 14px 0 0;
-      max-width: 680px;
-      color: var(--muted);
-      font-size: 1.04rem;
-      font-weight: 500;
-    }
-
-    .journey-tabs {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 22px;
-    }
-
-    .journey-tab {
-      min-height: 102px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 8px;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: var(--white);
-      color: var(--graphite);
-      box-shadow: 0 10px 26px rgba(30, 30, 30, .04);
-      cursor: pointer;
-      text-align: left;
-      font-family: inherit;
-      transition: transform .18s ease, border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
-    }
-
-    .journey-tab:hover,
-    .journey-tab.is-active {
-      transform: translateY(-2px);
-      border-color: rgba(249, 115, 22, .36);
-      background: rgba(249, 115, 22, .055);
-      box-shadow: 0 18px 42px rgba(249, 115, 22, .10);
-    }
-
-    .journey-tab-icon {
-      width: 38px;
-      height: 38px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 14px;
-      background: var(--light);
-      font-size: 1.2rem;
-    }
-
-    .journey-tab.is-active .journey-tab-icon {
-      background: rgba(249, 115, 22, .13);
-    }
-
-    .journey-tab-title {
-      display: block;
-      font-size: .78rem;
-      font-weight: 800;
-      line-height: 1.16;
-      letter-spacing: -0.035em;
-    }
-
-    .journey-stage {
-      position: relative;
-      display: grid;
-      grid-template-columns: 120px minmax(0, 1fr) 120px;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .journey-main-card {
-      min-height: 430px;
-      display: grid;
-      grid-template-columns: minmax(0, 1.12fr) minmax(260px, .88fr);
-      gap: 22px;
-      padding: 26px;
-      border-radius: 30px;
-      background: var(--white);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .journey-preview-side {
-      min-height: 260px;
-      padding: 16px;
-      border-radius: 22px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, .74);
-      color: var(--muted);
-      opacity: .62;
-      filter: grayscale(.15);
-      display: grid;
-      align-content: center;
-      gap: 12px;
-    }
-
-    .journey-side-icon {
-      width: 44px;
-      height: 44px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 15px;
-      background: var(--light);
-      font-size: 1.2rem;
-    }
-
-    .journey-preview-side strong {
-      display: block;
-      color: var(--graphite);
-      font-size: .96rem;
-      line-height: 1.18;
-      letter-spacing: -0.035em;
-    }
-
-    .journey-preview-side span {
-      font-size: .82rem;
-      font-weight: 600;
-      line-height: 1.45;
-    }
-
-    .journey-arrow {
-      position: absolute;
-      z-index: 5;
-      top: 50%;
-      width: 48px;
-      height: 48px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--white);
-      color: var(--graphite);
-      font-size: 1.4rem;
-      line-height: 1;
-      cursor: pointer;
-      box-shadow: var(--shadow-soft);
-      transition: transform .18s ease, background-color .18s ease, color .18s ease;
-    }
-
-    .journey-arrow:hover {
-      transform: translateY(-50%) scale(1.04);
-      background: var(--orange);
-      color: var(--white);
-    }
-
-    .journey-arrow.prev {
-      left: 96px;
-      transform: translateY(-50%);
-    }
-
-    .journey-arrow.next {
-      right: 96px;
-      transform: translateY(-50%);
-    }
-
-    .journey-visual {
-      min-height: 260px;
-      position: relative;
-      border-radius: 24px;
-      overflow: hidden;
-      background: linear-gradient(135deg, rgba(249, 115, 22, .16), rgba(30, 30, 30, .08));
-      border: 1px solid rgba(249, 115, 22, .12);
-    }
-
-    .journey-visual::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, .92) 0 2px, transparent 3px),
-        radial-gradient(circle at 72% 32%, rgba(255, 255, 255, .82) 0 2px, transparent 3px),
-        linear-gradient(135deg, rgba(30, 30, 30, .64), rgba(30, 30, 30, .10));
-      opacity: .9;
-    }
-
-    .journey-visual[data-step="0"] {
-      background: linear-gradient(135deg, #2a1f18, #f59e0b);
-    }
-
-    .journey-visual[data-step="1"] {
-      background: linear-gradient(135deg, #fff7ed, #fed7aa);
-    }
-
-    .journey-visual[data-step="2"] {
-      background: linear-gradient(135deg, #fff7ed, #fdba74);
-    }
-
-    .journey-visual[data-step="3"] {
-      background: linear-gradient(135deg, #1f2937, #9ca3af);
-    }
-
-    .journey-visual[data-step="4"] {
-      background: linear-gradient(135deg, #ecfdf5, #fed7aa);
-    }
-
-    .journey-visual[data-step="5"] {
-      background: linear-gradient(135deg, #fff7ed, #fef3c7);
-    }
-
-    .restaurant-scene {
-      position: absolute;
-      inset: 18px;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      align-content: end;
-      opacity: .96;
-    }
-
-    .restaurant-table {
-      min-height: 72px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, .18);
-      border: 1px solid rgba(255,255,255,.23);
-      position: relative;
-    }
-
-    .restaurant-table::before,
-    .restaurant-table::after {
-      content: "";
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.72);
-      top: -8px;
-    }
-
-    .restaurant-table::before { left: 20px; }
-    .restaurant-table::after { right: 20px; }
-
-    .journey-phone {
-      position: absolute;
-      z-index: 2;
-      right: 24px;
-      bottom: -24px;
-      width: 178px;
-      height: 330px;
-      padding: 9px;
-      border-radius: 32px;
-      background: var(--graphite);
-      box-shadow: 0 26px 50px rgba(30,30,30,.22);
-    }
-
-    .journey-phone-screen {
-      height: 100%;
-      padding: 16px 12px;
-      border-radius: 24px;
-      background: var(--white);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .journey-phone-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      font-size: .65rem;
-      font-weight: 800;
-    }
-
-    .journey-phone-bar {
-      width: 42px;
-      height: 5px;
-      border-radius: 999px;
-      background: #E5E7EB;
-    }
-
-    .journey-phone-title {
-      margin: 0 0 11px;
-      font-size: .9rem;
-      line-height: 1.1;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-    }
-
-    .screen-row {
-      display: grid;
-      grid-template-columns: 34px 1fr;
-      gap: 8px;
-      align-items: center;
-      padding: 7px 0;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .screen-thumb {
-      width: 34px;
-      height: 34px;
-      border-radius: 11px;
-      background: linear-gradient(135deg, var(--orange), #111827);
-    }
-
-    .screen-line {
-      display: grid;
-      gap: 5px;
-    }
-
-    .screen-line span {
-      height: 6px;
-      border-radius: 999px;
-      background: #E5E7EB;
-    }
-
-    .screen-line span:first-child {
-      width: 92%;
-      background: #CFCFCF;
-    }
-
-    .screen-line span:last-child {
-      width: 58%;
-    }
-
-    .screen-button {
-      position: absolute;
-      left: 14px;
-      right: 14px;
-      bottom: 14px;
-      min-height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 13px;
-      background: var(--orange);
-      color: var(--white);
-      font-size: .74rem;
-      font-weight: 800;
-    }
-
-    .qr-card {
-      position: absolute;
-      left: 26px;
-      top: 38px;
-      z-index: 2;
-      width: 130px;
-      padding: 16px 12px;
-      border-radius: 22px;
-      background: rgba(255,255,255,.94);
-      border: 1px solid rgba(30,30,30,.08);
-      box-shadow: var(--shadow-soft);
-      text-align: center;
-    }
-
-    .qr-drawing {
-      width: 76px;
-      height: 76px;
-      margin: 0 auto 10px;
-      border-radius: 10px;
-      background:
-        linear-gradient(90deg, #111 10px, transparent 10px 18px, #111 18px 28px, transparent 28px 38px, #111 38px 48px, transparent 48px),
-        linear-gradient(#111 10px, transparent 10px 18px, #111 18px 28px, transparent 28px 38px, #111 38px 48px, transparent 48px);
-      background-size: 48px 48px;
-      background-color: #fff;
-      border: 7px solid #fff;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
-    }
-
-    .qr-card strong {
-      display: block;
-      font-size: .7rem;
-      line-height: 1.25;
-    }
-
-    .kitchen-board {
-      position: absolute;
-      inset: 28px;
-      z-index: 2;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
-    }
-
-    .kitchen-ticket {
-      min-height: 126px;
-      padding: 14px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.92);
-      border: 1px solid rgba(255,255,255,.45);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .kitchen-ticket strong {
-      display: block;
-      margin-bottom: 8px;
-      font-size: .92rem;
-    }
-
-    .tracking-list {
-      position: absolute;
-      z-index: 2;
-      left: 28px;
-      top: 34px;
-      width: 210px;
-      padding: 18px;
-      border-radius: 22px;
-      background: rgba(255,255,255,.94);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .track-item {
-      display: grid;
-      grid-template-columns: 18px 1fr;
-      gap: 10px;
-      padding: 10px 0;
-      font-weight: 700;
-      font-size: .82rem;
-    }
-
-    .track-dot {
-      width: 14px;
-      height: 14px;
-      margin-top: 4px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 0 4px rgba(34, 197, 94, .13);
-    }
-
-    .happy-client {
-      position: absolute;
-      z-index: 2;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 210px;
-      padding: 22px;
-      border-radius: 28px;
-      background: rgba(255,255,255,.94);
-      box-shadow: var(--shadow-soft);
-      text-align: center;
-    }
-
-    .happy-face {
-      width: 86px;
-      height: 86px;
-      margin: 0 auto 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 999px;
-      background: rgba(249, 115, 22, .12);
-      font-size: 2.6rem;
-    }
-
-    .journey-copy {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      min-width: 0;
-    }
-
-    .journey-badge {
-      width: fit-content;
-      margin-bottom: 14px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      background: rgba(249, 115, 22, .09);
-      color: var(--orange-dark);
-      font-size: .76rem;
-      font-weight: 800;
-    }
-
-    .journey-copy h3 {
-      margin: 0;
-      font-size: clamp(1.65rem, 2.6vw, 2.55rem);
-      line-height: 1.05;
-      letter-spacing: -0.065em;
-      font-weight: 800;
-    }
-
-    .journey-copy p {
-      margin: 14px 0 0;
-      color: var(--muted);
-      font-size: 1rem;
-      font-weight: 500;
-      line-height: 1.62;
-    }
-
-    .journey-benefit {
-      display: grid;
-      grid-template-columns: 48px 1fr;
-      gap: 14px;
-      align-items: center;
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: 20px;
-      background: var(--light);
-      border: 1px solid var(--line);
-    }
-
-    .journey-benefit-icon {
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 16px;
-      background: rgba(249, 115, 22, .10);
-      color: var(--orange-dark);
-      font-size: 1.35rem;
-    }
-
-    .journey-benefit strong {
-      display: block;
-      line-height: 1.18;
-      font-weight: 800;
-    }
-
-    .journey-benefit span {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: .9rem;
-      font-weight: 500;
-      line-height: 1.36;
-    }
-
-    .journey-value-strip {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0;
-      margin-top: 22px;
-      border-radius: 24px;
-      background: var(--white);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-    }
-
-    .journey-value {
-      display: grid;
-      grid-template-columns: 42px 1fr;
-      gap: 12px;
-      align-items: center;
-      padding: 18px;
-      border-right: 1px solid var(--line);
-    }
-
-    .journey-value:last-child {
-      border-right: 0;
-    }
-
-    .journey-value-icon {
-      width: 42px;
-      height: 42px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 14px;
-      background: rgba(249, 115, 22, .09);
-      color: var(--orange-dark);
-      font-size: 1.16rem;
-    }
-
-    .journey-value strong {
-      display: block;
-      font-size: .96rem;
-      line-height: 1.1;
-      font-weight: 800;
-    }
-
-    .journey-value span {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: .78rem;
-      font-weight: 500;
-      line-height: 1.3;
-    }
-
-    .journey-dots {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 18px;
-    }
-
-    .journey-dot {
-      width: 9px;
-      height: 9px;
-      border: 0;
-      border-radius: 999px;
-      background: #D9D9D9;
-      cursor: pointer;
-      padding: 0;
-      transition: width .18s ease, background-color .18s ease;
-    }
-
-    .journey-dot.is-active {
-      width: 26px;
-      background: var(--orange);
-    }
-
-    .journey-phone-shell {
-      position: sticky;
-      top: 105px;
-      padding: 16px;
-      border-radius: 38px;
-      background: var(--white);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-    }
-
-    .journey-mobile-preview {
-      min-height: 650px;
-      padding: 24px 18px;
-      border-radius: 30px;
-      background: linear-gradient(180deg, #FAFAFA, #FFFFFF);
-      border: 1px solid var(--line);
-    }
-
-    .journey-mobile-status {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-      font-size: .8rem;
-      font-weight: 800;
-    }
-
-    .journey-mobile-preview h3 {
-      margin: 10px 0 8px;
-      font-size: 1.62rem;
-      line-height: 1.05;
-      letter-spacing: -0.06em;
-      font-weight: 800;
-    }
-
-    .journey-mobile-preview p {
-      margin: 0;
-      color: var(--muted);
-      font-size: .9rem;
-      font-weight: 500;
-      line-height: 1.52;
-    }
-
-    .mobile-step-icons {
-      display: flex;
-      gap: 10px;
-      margin: 20px 0;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .mobile-step-icons::-webkit-scrollbar {
-      display: none;
-    }
-
-    .mobile-step-button {
-      flex: 0 0 auto;
-      width: 42px;
-      height: 42px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--white);
-      cursor: pointer;
-      font-size: 1rem;
-    }
-
-    .mobile-step-button.is-active {
-      border-color: rgba(249, 115, 22, .45);
-      background: rgba(249, 115, 22, .10);
-    }
-
-    .mobile-slide-card {
-      border-radius: 26px;
-      background: var(--white);
-      border: 1px solid var(--line);
-      overflow: hidden;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .mobile-slide-visual {
-      min-height: 190px;
-      position: relative;
-      background: linear-gradient(135deg, rgba(249, 115, 22, .16), rgba(30, 30, 30, .08));
-      overflow: hidden;
-    }
-
-    .mobile-slide-content {
-      padding: 18px;
-    }
-
-    .mobile-slide-content strong {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 1.02rem;
-      line-height: 1.18;
-      letter-spacing: -0.035em;
-    }
-
-    .mobile-slide-content span {
-      display: block;
-      color: var(--muted);
-      font-size: .86rem;
-      font-weight: 500;
-      line-height: 1.45;
-    }
-
-    .mobile-nav-arrows {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 18px;
-    }
-
-    .mobile-nav-arrows button {
-      width: 44px;
-      height: 44px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--white);
-      cursor: pointer;
-      font-size: 1.15rem;
-      box-shadow: 0 8px 20px rgba(30,30,30,.05);
-    }
-
-    .experience-cta {
-      margin-top: 26px;
-      padding: 20px;
-      border-radius: 24px;
-      border: 1px solid var(--line);
-      background: var(--white);
-      box-shadow: var(--shadow-soft);
-      display: grid;
-      grid-template-columns: 54px 1fr auto;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .experience-cta-icon {
-      width: 54px;
-      height: 54px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 16px;
-      background: rgba(249, 115, 22, .08);
-      color: var(--orange-dark);
-      font-size: 1.5rem;
-    }
-
-    .experience-cta strong {
-      display: block;
-      font-size: 1.05rem;
-      line-height: 1.2;
-      font-weight: 800;
-    }
-
-    .experience-cta span {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: .9rem;
-      font-weight: 500;
+    @media (max-width: 1100px) {
+      .journey-tabs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .journey-panel.is-active {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 980px) {
@@ -1514,64 +1554,104 @@
         grid-template-columns: 1fr;
       }
 
-      .experience-layout {
-        grid-template-columns: 1fr;
+      .final-cta .btn {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .journey-wrap {
+        padding: 24px 18px;
+        border-radius: 26px;
       }
 
-      .journey-phone-shell {
-        position: static;
-        max-width: 430px;
-        margin: 12px auto 0;
-      }
-
-      .journey-tabs {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .journey-stage {
-        grid-template-columns: 1fr;
-      }
-
-      .journey-preview-side {
+      .journey-desktop {
         display: none;
       }
 
-      .journey-main-card {
+      .journey-mobile {
+        display: block;
+        margin-top: 22px;
+      }
+
+      .journey-mobile-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .journey-mobile-tabs .journey-tab {
+        min-height: 88px;
+      }
+
+      .journey-mobile-panel {
+        display: none;
+      }
+
+      .journey-mobile-panel.is-active {
+        display: block;
+      }
+
+      .journey-mobile-card {
+        margin-top: 16px;
+        padding: 18px;
+        border-radius: 24px;
+        background: var(--white);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .journey-mobile-card .journey-visual-card {
+        min-height: 290px;
+        padding: 14px;
+        border-radius: 22px;
+        box-shadow: none;
+      }
+
+      .journey-mobile-card .journey-visual-frame {
+        min-height: 260px;
+      }
+
+      .journey-mobile-card h3 {
+        margin: 14px 0 8px;
+        font-size: 1.46rem;
+        line-height: 1.1;
+        letter-spacing: -0.05em;
+      }
+
+      .journey-mobile-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: .92rem;
+        font-weight: 500;
+        line-height: 1.65;
+      }
+
+      .journey-mobile-card .journey-list {
+        margin-top: 16px;
+      }
+
+      .journey-mobile-card .journey-panel-note {
+        margin-top: 16px;
+      }
+
+      .journey-mobile-nav {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .journey-mobile-nav .journey-nav-btn {
+        flex: 1;
+      }
+
+      .screen-shell {
+        width: min(340px, calc(100% - 24px));
+      }
+
+      .ticket-grid {
         grid-template-columns: 1fr;
-      }
-
-      .journey-arrow.prev {
-        left: 12px;
-      }
-
-      .journey-arrow.next {
-        right: 12px;
-      }
-
-      .journey-value-strip {
-        grid-template-columns: 1fr;
-      }
-
-      .journey-value {
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .journey-value:last-child {
-        border-bottom: 0;
-      }
-
-      .experience-cta {
-        grid-template-columns: 54px 1fr;
-      }
-
-      .experience-cta .btn {
-        grid-column: 1 / -1;
-        width: 100%;
-      }
-
-      .final-cta .btn {
-        width: 100%;
       }
     }
 
@@ -1639,74 +1719,53 @@
         width: 100%;
       }
 
-      .experience-section {
-        padding: 44px 0;
+      .journey-mobile-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .journey-tabs {
-        display: flex;
+      .table.one { left: 14px; top: 114px; }
+      .table.two { right: 16px; top: 126px; }
+      .table.three { left: 80px; bottom: 74px; width: 150px; }
+      .restaurant-overlay {
+        right: 12px;
+        bottom: 12px;
+        width: 180px;
+        padding: 14px;
+      }
+      .restaurant-overlay strong {
+        font-size: 1.5rem;
+      }
+      .g5 { right: 96px; }
+      .g6 { right: 34px; }
+      .g7 { right: 100px; }
+      .g8 { right: 34px; }
+      .g9 { left: 94px; bottom: 126px; }
+      .g10 { left: 168px; bottom: 126px; }
+      .g11 { left: 122px; bottom: 48px; }
+      .g12 { left: 192px; bottom: 48px; }
+      .preview-menu-layout {
+        grid-template-columns: 94px 1fr;
         gap: 10px;
-        overflow-x: auto;
-        padding-bottom: 8px;
-        scrollbar-width: none;
       }
-
-      .journey-tabs::-webkit-scrollbar {
-        display: none;
+      .preview-product {
+        grid-template-columns: 52px 1fr;
       }
-
-      .journey-tab {
-        flex: 0 0 132px;
-        min-height: 92px;
-        padding: 12px;
+      .preview-product b {
+        grid-column: 2;
+        margin-top: 4px;
       }
-
-      .journey-main-card {
-        min-height: auto;
-        padding: 18px;
-        border-radius: 24px;
+      .food-thumb {
+        width: 52px;
+        height: 50px;
       }
-
-      .journey-visual {
-        min-height: 250px;
+      .screen-topbar {
+        padding-inline: 14px;
       }
-
-      .journey-copy h3 {
-        font-size: 1.7rem;
-      }
-
-      .journey-arrow {
-        width: 42px;
-        height: 42px;
-      }
-
-      .journey-phone {
-        right: 14px;
-        width: 148px;
-        height: 286px;
-      }
-
-      .qr-card,
-      .tracking-list {
-        left: 16px;
-      }
-
-      .kitchen-board {
-        inset: 18px;
-        grid-template-columns: 1fr;
-      }
-
-      .journey-phone-shell {
-        display: none;
-      }
-
-      .experience-cta {
-        grid-template-columns: 1fr;
-        text-align: center;
-      }
-
-      .experience-cta-icon {
-        margin-inline: auto;
+      .preview-menu-layout,
+      .cart-layout,
+      .kitchen-layout,
+      .tracking-layout {
+        padding-inline: 14px;
       }
     }
   </style>
@@ -1887,179 +1946,623 @@
       </div>
     </section>
 
-    <section id="como-funciona" class="experience-section" data-journey-carousel>
-      <div class="landing-shell experience-layout">
-        <div>
-          <div class="experience-head">
-            <span class="experience-kicker">Carrossel guiado</span>
-            <h2>Veja a experiência do cliente na prática</h2>
-            <p>
-              Do restaurante cheio ao cliente satisfeito: mostre para o dono do restaurante como o QRTotem organiza cada etapa do atendimento em poucos segundos.
-            </p>
+    <section id="como-funciona" class="landing-shell section journey-section">
+      <div class="section-head">
+        <h2>Veja a experiência do cliente na prática.</h2>
+        <p>
+          Mostre ao dono do restaurante, passo a passo, como o QRTotem funciona desde o salão cheio até o cliente saindo satisfeito. No notebook aparece o carrossel desktop; no celular, a versão mobile.
+        </p>
+      </div>
+
+      <div class="journey-wrap" data-journey-root>
+        <span class="journey-kicker">Carrossel guiado</span>
+
+        <div class="journey-desktop">
+          <div class="journey-tabs" role="tablist" aria-label="Jornada do cliente com o QRTotem">
+            <button class="journey-tab is-active" type="button" role="tab" aria-selected="true" data-journey-step="0">
+              <span class="journey-step-index">1</span>
+              <strong>Restaurante cheio</strong>
+              <span>Pico de movimento no salão.</span>
+            </button>
+            <button class="journey-tab" type="button" role="tab" aria-selected="false" data-journey-step="1">
+              <span class="journey-step-index">2</span>
+              <strong>Escaneia o QR Code</strong>
+              <span>Abre o cardápio do QRTotem.</span>
+            </button>
+            <button class="journey-tab" type="button" role="tab" aria-selected="false" data-journey-step="2">
+              <span class="journey-step-index">3</span>
+              <strong>Pedido e pagamento</strong>
+              <span>Carrinho e fechamento do pedido.</span>
+            </button>
+            <button class="journey-tab" type="button" role="tab" aria-selected="false" data-journey-step="3">
+              <span class="journey-step-index">4</span>
+              <strong>Cozinha recebe</strong>
+              <span>Pedido cai na tela da cozinha.</span>
+            </button>
+            <button class="journey-tab" type="button" role="tab" aria-selected="false" data-journey-step="4">
+              <span class="journey-step-index">5</span>
+              <strong>Cliente acompanha</strong>
+              <span>Status do pedido em andamento.</span>
+            </button>
+            <button class="journey-tab" type="button" role="tab" aria-selected="false" data-journey-step="5">
+              <span class="journey-step-index">6</span>
+              <strong>Cliente satisfeito</strong>
+              <span>Experiência prática e moderna.</span>
+            </button>
           </div>
 
-          <div class="journey-tabs" role="tablist" aria-label="Etapas da jornada QRTotem">
-            <button class="journey-tab is-active" type="button" data-journey-tab="0" role="tab" aria-selected="true">
-              <span class="journey-tab-icon">👥</span>
-              <span class="journey-tab-title">Restaurante cheio</span>
-            </button>
-            <button class="journey-tab" type="button" data-journey-tab="1" role="tab" aria-selected="false">
-              <span class="journey-tab-icon">▦</span>
-              <span class="journey-tab-title">Escaneia o QR Code</span>
-            </button>
-            <button class="journey-tab" type="button" data-journey-tab="2" role="tab" aria-selected="false">
-              <span class="journey-tab-icon">💳</span>
-              <span class="journey-tab-title">Pedido e pagamento</span>
-            </button>
-            <button class="journey-tab" type="button" data-journey-tab="3" role="tab" aria-selected="false">
-              <span class="journey-tab-icon">🍽️</span>
-              <span class="journey-tab-title">Cozinha recebe</span>
-            </button>
-            <button class="journey-tab" type="button" data-journey-tab="4" role="tab" aria-selected="false">
-              <span class="journey-tab-icon">📱</span>
-              <span class="journey-tab-title">Cliente acompanha</span>
-            </button>
-            <button class="journey-tab" type="button" data-journey-tab="5" role="tab" aria-selected="false">
-              <span class="journey-tab-icon">😊</span>
-              <span class="journey-tab-title">Cliente satisfeito</span>
-            </button>
-          </div>
-
-          <div class="journey-stage">
-            <div class="journey-preview-side" aria-hidden="true">
-              <span class="journey-side-icon" data-journey-prev-icon>😊</span>
-              <strong data-journey-prev-title>Cliente sai satisfeito</strong>
-              <span data-journey-prev-text>Uma experiência moderna, rápida e sem filas.</span>
-            </div>
-
-            <button class="journey-arrow prev" type="button" data-journey-prev aria-label="Ver etapa anterior">‹</button>
-
-            <article class="journey-main-card" aria-live="polite">
-              <div class="journey-visual" data-journey-visual data-step="0">
-                <div class="restaurant-scene" data-visual-scene>
-                  <div class="restaurant-table"></div>
-                  <div class="restaurant-table"></div>
-                  <div class="restaurant-table"></div>
-                  <div class="restaurant-table"></div>
-                  <div class="restaurant-table"></div>
-                  <div class="restaurant-table"></div>
-                </div>
+          <div class="journey-panels">
+            <article class="journey-panel is-active" data-journey-panel="0">
+              <div class="journey-copy-card">
+                <span class="journey-panel-badge">Etapa 1 de 6</span>
+                <h3>Restaurante cheio</h3>
+                <p>
+                  Imagine o salão cheio: várias mesas ocupadas, pedidos acontecendo ao mesmo tempo e a operação precisando ser rápida. É exatamente nesse cenário que o QRTotem mais ajuda.
+                </p>
+                <ul class="journey-list">
+                  <li>O cliente já encontra o QR Code na mesa e não precisa esperar o garçom levar cardápio.</li>
+                  <li>Menos fila visual na operação e mais velocidade para o restaurante atender.</li>
+                  <li>O dono entende imediatamente o contexto antes de ver as próximas etapas.</li>
+                </ul>
+                <div class="journey-panel-note">A imagem principal desta etapa mostra um restaurante cheio, com várias pessoas sentadas e a operação em alta demanda.</div>
               </div>
 
-              <div class="journey-copy">
-                <span class="journey-badge" data-journey-count>Etapa 1 de 6</span>
-                <h3 data-journey-title>Restaurante cheio</h3>
-                <p data-journey-description>
-                  O restaurante está com muitas mesas ocupadas e precisa manter o atendimento organizado, rápido e sem depender apenas do garçom.
-                </p>
-
-                <div class="journey-benefit">
-                  <span class="journey-benefit-icon" data-journey-benefit-icon>⏱️</span>
-                  <div>
-                    <strong data-journey-benefit-title>Reduza filas e tempo de espera.</strong>
-                    <span data-journey-benefit-text>O QRTotem distribui a demanda e agiliza o atendimento nos horários de pico.</span>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame journey-restaurant">
+                  <div class="restaurant-lights"><span></span><span></span><span></span><span></span></div>
+                  <div class="table one"></div>
+                  <div class="table two"></div>
+                  <div class="table three"></div>
+                  <div class="guests">
+                    <span class="guest g1"></span><span class="guest g2"></span><span class="guest g3"></span><span class="guest g4"></span>
+                    <span class="guest g5"></span><span class="guest g6"></span><span class="guest g7"></span><span class="guest g8"></span>
+                    <span class="guest g9"></span><span class="guest g10"></span><span class="guest g11"></span><span class="guest g12"></span>
+                  </div>
+                  <div class="restaurant-overlay">
+                    <strong>19 mesas</strong>
+                    <span>ocupadas neste momento</span>
+                    <div class="restaurant-chart"></div>
                   </div>
                 </div>
               </div>
             </article>
 
-            <button class="journey-arrow next" type="button" data-journey-next aria-label="Ver próxima etapa">›</button>
+            <article class="journey-panel" data-journey-panel="1">
+              <div class="journey-copy-card">
+                <span class="journey-panel-badge">Etapa 2 de 6</span>
+                <h3>Cliente escaneia o QR Code</h3>
+                <p>
+                  Depois de sentar, o cliente aponta a câmera para o QR Code da mesa e abre a página do cardápio do QRTotem. Aqui o dono do restaurante já consegue visualizar como o atendimento começa de forma simples.
+                </p>
+                <ul class="journey-list">
+                  <li>A visualização mostrada no carrossel representa a página inicial do cliente com categorias e itens do cardápio.</li>
+                  <li>O acesso é direto no celular do cliente, sem instalar aplicativo.</li>
+                  <li>Uma boa tela para explicar a experiência digital logo no primeiro contato.</li>
+                </ul>
+                <div class="journey-panel-note">Nesta etapa, a imagem aberta é a tela do cliente do QRTotem: categorias à esquerda e itens do cardápio à direita.</div>
+              </div>
 
-            <div class="journey-preview-side" aria-hidden="true">
-              <span class="journey-side-icon" data-journey-next-icon>▦</span>
-              <strong data-journey-next-title>Escaneia o QR Code</strong>
-              <span data-journey-next-text>O cliente acessa o cardápio digital pelo celular.</span>
-            </div>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar">
+                        <span>QRTotem · Cardápio</span>
+                        <span class="dots"></span>
+                      </div>
+                      <div class="preview-menu-layout">
+                        <div class="preview-menu-sidebar">
+                          <span class="active">Destaques</span>
+                          <span>Entradas</span>
+                          <span>Pratos</span>
+                          <span>Bebidas</span>
+                          <span>Sobremesas</span>
+                        </div>
+                        <div class="preview-menu-products">
+                          <div class="preview-product">
+                            <div class="food-thumb"></div>
+                            <div>
+                              <strong>Picanha na chapa</strong>
+                              <span>Serve 1 pessoa</span>
+                            </div>
+                            <b>R$ 89,90</b>
+                          </div>
+                          <div class="preview-product">
+                            <div class="food-thumb"></div>
+                            <div>
+                              <strong>Parmegiana</strong>
+                              <span>Prato principal</span>
+                            </div>
+                            <b>R$ 64,90</b>
+                          </div>
+                          <div class="preview-product">
+                            <div class="food-thumb"></div>
+                            <div>
+                              <strong>Caipirinha clássica</strong>
+                              <span>Bebida</span>
+                            </div>
+                            <b>R$ 19,90</b>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="journey-panel" data-journey-panel="2">
+              <div class="journey-copy-card">
+                <span class="journey-panel-badge">Etapa 3 de 6</span>
+                <h3>Pedido e pagamento</h3>
+                <p>
+                  O cliente escolhe os itens, revisa o carrinho e finaliza o pedido. Essa etapa do carrossel usa uma imagem inspirada na tela de carrinho do QRTotem para deixar o fluxo claro na apresentação.
+                </p>
+                <ul class="journey-list">
+                  <li>Itens aparecem organizados, com quantidade e valores.</li>
+                  <li>O total fica visível e o cliente entende o fluxo de pagamento.</li>
+                  <li>É uma etapa importante para mostrar autonomia e praticidade.</li>
+                </ul>
+                <div class="journey-panel-note">A imagem aberta nesta etapa representa a página de carrinho do QRTotem, com resumo do pedido e botão para pagar.</div>
+              </div>
+
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar">
+                        <span>Meu pedido</span>
+                        <span class="dots"></span>
+                      </div>
+                      <div class="cart-layout">
+                        <div class="cart-item">
+                          <div class="cart-qty">2x</div>
+                          <div>
+                            <strong>Hambúrguer clássico</strong>
+                            <span>Sem cebola</span>
+                          </div>
+                          <div class="cart-price">R$ 69,80</div>
+                        </div>
+                        <div class="cart-item">
+                          <div class="cart-qty">1x</div>
+                          <div>
+                            <strong>Batata rústica</strong>
+                            <span>Porção individual</span>
+                          </div>
+                          <div class="cart-price">R$ 16,90</div>
+                        </div>
+                        <div class="cart-item">
+                          <div class="cart-qty">1x</div>
+                          <div>
+                            <strong>Refrigerante</strong>
+                            <span>Lata 350 ml</span>
+                          </div>
+                          <div class="cart-price">R$ 7,90</div>
+                        </div>
+                        <div class="cart-summary">
+                          <div class="cart-summary-row"><span>Subtotal</span><strong>R$ 94,60</strong></div>
+                          <div class="cart-summary-row"><span>Taxa</span><strong>R$ 0,00</strong></div>
+                          <div class="cart-summary-row total"><span>Total</span><strong>R$ 94,60</strong></div>
+                          <div class="pay-button">Ir para pagamento</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="journey-panel" data-journey-panel="3">
+              <div class="journey-copy-card">
+                <span class="journey-panel-badge">Etapa 4 de 6</span>
+                <h3>Cozinha recebe o pedido</h3>
+                <p>
+                  Assim que o pedido é confirmado, ele aparece na tela da cozinha. No carrossel, esta etapa foi construída para lembrar a página de cozinha do QRTotem, com pedidos separados e fáceis de acompanhar.
+                </p>
+                <ul class="journey-list">
+                  <li>O time visualiza novos pedidos rapidamente.</li>
+                  <li>As informações aparecem organizadas por mesa e por itens.</li>
+                  <li>O restaurante percebe que o fluxo até a cozinha é automático.</li>
+                </ul>
+                <div class="journey-panel-note">A imagem aberta nesta etapa representa a tela da cozinha do QRTotem, com tickets e status dos pedidos.</div>
+              </div>
+
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar">
+                        <span>Cozinha · Pedidos ativos</span>
+                        <span class="dots"></span>
+                      </div>
+                      <div class="kitchen-layout">
+                        <div class="kitchen-tabs">
+                          <span class="active">Novos</span>
+                          <span>Preparando</span>
+                          <span>Prontos</span>
+                        </div>
+                        <div class="ticket-grid">
+                          <div class="ticket">
+                            <div class="ticket-top">
+                              <div>
+                                <strong>#1025 · Mesa 12</strong>
+                                <span>12:35</span>
+                              </div>
+                              <span class="ticket-pill">Novo</span>
+                            </div>
+                            <ul>
+                              <li>1x Picanha na chapa</li>
+                              <li>1x Batata rústica</li>
+                              <li>1x Caipirinha</li>
+                            </ul>
+                          </div>
+                          <div class="ticket">
+                            <div class="ticket-top">
+                              <div>
+                                <strong>#1024 · Mesa 07</strong>
+                                <span>12:31</span>
+                              </div>
+                              <span class="ticket-pill">Preparando</span>
+                            </div>
+                            <ul>
+                              <li>2x Hambúrguer clássico</li>
+                              <li>1x Refrigerante</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="journey-panel" data-journey-panel="4">
+              <div class="journey-copy-card">
+                <span class="journey-panel-badge">Etapa 5 de 6</span>
+                <h3>Cliente acompanha o andamento</h3>
+                <p>
+                  Depois de pedir, o cliente pode acompanhar o status do pedido em andamento. A imagem desta etapa foi pensada para lembrar a página “Meus pedidos” do QRTotem.
+                </p>
+                <ul class="journey-list">
+                  <li>O cliente vê em que etapa o pedido está, sem precisar chamar o garçom.</li>
+                  <li>O restaurante reduz ansiedade e dúvidas no salão.</li>
+                  <li>É um diferencial de experiência digital percebido com facilidade.</li>
+                </ul>
+                <div class="journey-panel-note">A imagem aberta nesta etapa representa a tela de pedidos em andamento do QRTotem, com linha do tempo e horários.</div>
+              </div>
+
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar">
+                        <span>Meus pedidos</span>
+                        <span class="dots"></span>
+                      </div>
+                      <div class="tracking-layout">
+                        <div class="tracking-header">
+                          <strong>Mesa 12 · Pedido #1025</strong>
+                          <span>Acompanhe cada etapa do seu pedido em tempo real.</span>
+                        </div>
+                        <div class="timeline">
+                          <div class="timeline-item">
+                            <strong>Pedido recebido</strong>
+                            <span>12:35</span>
+                          </div>
+                          <div class="timeline-item">
+                            <strong>Em preparo</strong>
+                            <span>12:38</span>
+                          </div>
+                          <div class="timeline-item pending">
+                            <strong>Pronto</strong>
+                            <span>Aguardando conclusão</span>
+                          </div>
+                          <div class="timeline-item pending">
+                            <strong>Entregue na mesa</strong>
+                            <span>Última etapa</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="journey-panel" data-journey-panel="5">
+              <div class="journey-copy-card">
+                <span class="journey-panel-badge">Etapa 6 de 6</span>
+                <h3>Cliente sai satisfeito</h3>
+                <p>
+                  No fim da jornada, o cliente percebe praticidade, menos espera e uma experiência moderna. Essa última etapa fecha o carrossel com uma imagem positiva e simples de entender.
+                </p>
+                <ul class="journey-list">
+                  <li>O restaurante transmite inovação e organização.</li>
+                  <li>Uma boa experiência aumenta a chance de retorno do cliente.</li>
+                  <li>O dono do restaurante entende o impacto do QRTotem do começo ao fim.</li>
+                </ul>
+                <div class="journey-panel-note">A etapa final mantém uma imagem de cliente satisfeito, reforçando praticidade e boa experiência.</div>
+              </div>
+
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame happy-scene">
+                  <div class="happy-panel">
+                    <div class="avatar"></div>
+                    <div class="stars">★ ★ ★ ★ ★</div>
+                    <h4>Experiência rápida e sem filas.</h4>
+                    <p>O cliente agradece a praticidade, acompanha o pedido com facilidade e sai com uma percepção moderna do seu restaurante.</p>
+                    <div class="happy-actions">
+                      <span class="happy-chip">Mais agilidade</span>
+                      <span class="happy-chip">Mais organização</span>
+                      <span class="happy-chip">Mais satisfação</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
           </div>
 
-          <div class="journey-dots" aria-label="Navegação do carrossel">
-            <button class="journey-dot is-active" type="button" data-journey-dot="0" aria-label="Ir para etapa 1"></button>
-            <button class="journey-dot" type="button" data-journey-dot="1" aria-label="Ir para etapa 2"></button>
-            <button class="journey-dot" type="button" data-journey-dot="2" aria-label="Ir para etapa 3"></button>
-            <button class="journey-dot" type="button" data-journey-dot="3" aria-label="Ir para etapa 4"></button>
-            <button class="journey-dot" type="button" data-journey-dot="4" aria-label="Ir para etapa 5"></button>
-            <button class="journey-dot" type="button" data-journey-dot="5" aria-label="Ir para etapa 6"></button>
-          </div>
-
-          <div class="journey-value-strip">
-            <div class="journey-value">
-              <span class="journey-value-icon">⚡</span>
-              <div>
-                <strong>Menos espera</strong>
-                <span>Pedido direto pelo celular, sem travar o atendimento.</span>
-              </div>
+          <div class="journey-nav">
+            <div class="journey-counter" data-journey-counter>Etapa 1 de 6</div>
+            <div class="journey-nav-group">
+              <button class="journey-nav-btn" type="button" data-journey-prev>← Voltar</button>
+              <button class="journey-nav-btn is-primary" type="button" data-journey-next>Próxima etapa →</button>
             </div>
-            <div class="journey-value">
-              <span class="journey-value-icon">🧾</span>
-              <div>
-                <strong>Mais organização</strong>
-                <span>Pedidos centralizados e cozinha mais eficiente.</span>
-              </div>
-            </div>
-            <div class="journey-value">
-              <span class="journey-value-icon">😊</span>
-              <div>
-                <strong>Cliente mais satisfeito</strong>
-                <span>Experiência moderna que faz o cliente voltar.</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="experience-cta">
-            <span class="experience-cta-icon">▦</span>
-            <div>
-              <strong>Pronto para transformar a experiência no seu restaurante?</strong>
-              <span>Mais agilidade para sua equipe. Mais satisfação para seus clientes.</span>
-            </div>
-            <a class="btn btn-primary" href="{{ url_for('client.signup') }}">
-              Começar agora
-              <span aria-hidden="true">→</span>
-            </a>
           </div>
         </div>
 
-        <aside class="journey-phone-shell" aria-label="Prévia mobile do carrossel guiado">
-          <div class="journey-mobile-preview">
-            <div class="journey-mobile-status">
-              <span>17:37</span>
-              <span>●●● 47%</span>
-            </div>
-            <span class="experience-kicker">Carrossel guiado</span>
-            <h3>Veja a experiência do cliente na prática</h3>
-            <p>Toque em cada etapa e entenda como o fluxo acontece no celular do cliente.</p>
-
-            <div class="mobile-step-icons">
-              <button class="mobile-step-button is-active" type="button" data-journey-tab="0">👥</button>
-              <button class="mobile-step-button" type="button" data-journey-tab="1">▦</button>
-              <button class="mobile-step-button" type="button" data-journey-tab="2">💳</button>
-              <button class="mobile-step-button" type="button" data-journey-tab="3">🍽️</button>
-              <button class="mobile-step-button" type="button" data-journey-tab="4">📱</button>
-              <button class="mobile-step-button" type="button" data-journey-tab="5">😊</button>
-            </div>
-
-            <div class="mobile-slide-card">
-              <div class="mobile-slide-visual" data-mobile-visual></div>
-              <div class="mobile-slide-content">
-                <strong data-mobile-title>Restaurante cheio</strong>
-                <span data-mobile-text>O QRTotem distribui a demanda e agiliza o atendimento nos horários de pico.</span>
-              </div>
-            </div>
-
-            <div class="journey-dots">
-              <button class="journey-dot is-active" type="button" data-journey-dot="0" aria-label="Ir para etapa 1"></button>
-              <button class="journey-dot" type="button" data-journey-dot="1" aria-label="Ir para etapa 2"></button>
-              <button class="journey-dot" type="button" data-journey-dot="2" aria-label="Ir para etapa 3"></button>
-              <button class="journey-dot" type="button" data-journey-dot="3" aria-label="Ir para etapa 4"></button>
-              <button class="journey-dot" type="button" data-journey-dot="4" aria-label="Ir para etapa 5"></button>
-              <button class="journey-dot" type="button" data-journey-dot="5" aria-label="Ir para etapa 6"></button>
-            </div>
-
-            <div class="mobile-nav-arrows">
-              <button type="button" data-journey-prev aria-label="Ver etapa anterior">‹</button>
-              <button type="button" data-journey-next aria-label="Ver próxima etapa">›</button>
-            </div>
+        <div class="journey-mobile">
+          <div class="journey-mobile-tabs" role="tablist" aria-label="Jornada do cliente no mobile">
+            <button class="journey-tab is-active" type="button" aria-selected="true" data-journey-step="0">
+              <span class="journey-step-index">1</span>
+              <strong>Restaurante cheio</strong>
+              <span>Pico de movimento.</span>
+            </button>
+            <button class="journey-tab" type="button" aria-selected="false" data-journey-step="1">
+              <span class="journey-step-index">2</span>
+              <strong>Escaneia QR Code</strong>
+              <span>Abre o cardápio.</span>
+            </button>
+            <button class="journey-tab" type="button" aria-selected="false" data-journey-step="2">
+              <span class="journey-step-index">3</span>
+              <strong>Pedido e pagamento</strong>
+              <span>Vai ao carrinho.</span>
+            </button>
+            <button class="journey-tab" type="button" aria-selected="false" data-journey-step="3">
+              <span class="journey-step-index">4</span>
+              <strong>Cozinha recebe</strong>
+              <span>Pedido entra na cozinha.</span>
+            </button>
+            <button class="journey-tab" type="button" aria-selected="false" data-journey-step="4">
+              <span class="journey-step-index">5</span>
+              <strong>Cliente acompanha</strong>
+              <span>Status em andamento.</span>
+            </button>
+            <button class="journey-tab" type="button" aria-selected="false" data-journey-step="5">
+              <span class="journey-step-index">6</span>
+              <strong>Cliente satisfeito</strong>
+              <span>Final positivo.</span>
+            </button>
           </div>
-        </aside>
+
+          <article class="journey-mobile-panel is-active" data-journey-panel="0">
+            <div class="journey-mobile-card">
+              <span class="journey-panel-badge">Etapa 1 de 6</span>
+              <h3>Restaurante cheio</h3>
+              <p>Primeiro, o dono visualiza um restaurante cheio. É o cenário ideal para mostrar onde o QRTotem agiliza atendimento e evita gargalos.</p>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame journey-restaurant">
+                  <div class="restaurant-lights"><span></span><span></span><span></span></div>
+                  <div class="table one"></div>
+                  <div class="table two"></div>
+                  <div class="table three"></div>
+                  <div class="guests">
+                    <span class="guest g1"></span><span class="guest g2"></span><span class="guest g3"></span><span class="guest g4"></span>
+                    <span class="guest g5"></span><span class="guest g6"></span><span class="guest g7"></span><span class="guest g8"></span>
+                    <span class="guest g9"></span><span class="guest g10"></span><span class="guest g11"></span><span class="guest g12"></span>
+                  </div>
+                  <div class="restaurant-overlay"><strong>19 mesas</strong><span>ocupadas</span><div class="restaurant-chart"></div></div>
+                </div>
+              </div>
+              <ul class="journey-list">
+                <li>Mostra alta demanda e necessidade de agilidade.</li>
+                <li>Ajuda a contextualizar o restante do fluxo.</li>
+              </ul>
+              <div class="journey-panel-note">Imagem principal: restaurante cheio de pessoas.</div>
+            </div>
+          </article>
+
+          <article class="journey-mobile-panel" data-journey-panel="1">
+            <div class="journey-mobile-card">
+              <span class="journey-panel-badge">Etapa 2 de 6</span>
+              <h3>Cliente escaneia o QR Code</h3>
+              <p>O cliente abre a página do cardápio do QRTotem diretamente pela câmera do celular.</p>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar"><span>QRTotem · Cardápio</span><span class="dots"></span></div>
+                      <div class="preview-menu-layout">
+                        <div class="preview-menu-sidebar">
+                          <span class="active">Destaques</span><span>Entradas</span><span>Pratos</span><span>Bebidas</span>
+                        </div>
+                        <div class="preview-menu-products">
+                          <div class="preview-product"><div class="food-thumb"></div><div><strong>Picanha</strong><span>Prato principal</span></div><b>R$ 89,90</b></div>
+                          <div class="preview-product"><div class="food-thumb"></div><div><strong>Parmegiana</strong><span>Prato principal</span></div><b>R$ 64,90</b></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <ul class="journey-list">
+                <li>Representa a página do cliente do QRTotem.</li>
+                <li>Cardápio organizado e fácil de explorar.</li>
+              </ul>
+              <div class="journey-panel-note">Imagem principal: tela do cardápio do cliente.</div>
+            </div>
+          </article>
+
+          <article class="journey-mobile-panel" data-journey-panel="2">
+            <div class="journey-mobile-card">
+              <span class="journey-panel-badge">Etapa 3 de 6</span>
+              <h3>Pedido e pagamento</h3>
+              <p>O cliente revisa o carrinho e avança para o pagamento com poucos toques.</p>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar"><span>Meu pedido</span><span class="dots"></span></div>
+                      <div class="cart-layout">
+                        <div class="cart-item"><div class="cart-qty">2x</div><div><strong>Hambúrguer</strong><span>Sem cebola</span></div><div class="cart-price">R$ 69,80</div></div>
+                        <div class="cart-summary">
+                          <div class="cart-summary-row"><span>Subtotal</span><strong>R$ 94,60</strong></div>
+                          <div class="cart-summary-row total"><span>Total</span><strong>R$ 94,60</strong></div>
+                          <div class="pay-button">Ir para pagamento</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <ul class="journey-list">
+                <li>Representa a tela de carrinho do QRTotem.</li>
+                <li>Resumo claro e ação objetiva para pagar.</li>
+              </ul>
+              <div class="journey-panel-note">Imagem principal: página de carrinho / pagamento.</div>
+            </div>
+          </article>
+
+          <article class="journey-mobile-panel" data-journey-panel="3">
+            <div class="journey-mobile-card">
+              <span class="journey-panel-badge">Etapa 4 de 6</span>
+              <h3>Cozinha recebe</h3>
+              <p>Assim que o pedido é confirmado, ele aparece na tela da cozinha de forma automática.</p>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar"><span>Cozinha</span><span class="dots"></span></div>
+                      <div class="kitchen-layout">
+                        <div class="kitchen-tabs"><span class="active">Novos</span><span>Preparando</span></div>
+                        <div class="ticket-grid">
+                          <div class="ticket"><div class="ticket-top"><div><strong>Mesa 12</strong><span>12:35</span></div><span class="ticket-pill">Novo</span></div><ul><li>Picanha</li><li>Batata</li></ul></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <ul class="journey-list">
+                <li>Representa a página da cozinha do QRTotem.</li>
+                <li>Pedido visível e organizado para preparo.</li>
+              </ul>
+              <div class="journey-panel-note">Imagem principal: tela da cozinha.</div>
+            </div>
+          </article>
+
+          <article class="journey-mobile-panel" data-journey-panel="4">
+            <div class="journey-mobile-card">
+              <span class="journey-panel-badge">Etapa 5 de 6</span>
+              <h3>Cliente acompanha o andamento</h3>
+              <p>Depois do envio à cozinha, o cliente acompanha o status do pedido em andamento.</p>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame">
+                  <div class="screen-shell">
+                    <div class="screen-inner">
+                      <div class="screen-topbar"><span>Meus pedidos</span><span class="dots"></span></div>
+                      <div class="tracking-layout">
+                        <div class="tracking-header"><strong>Pedido #1025</strong><span>Status do pedido em tempo real.</span></div>
+                        <div class="timeline">
+                          <div class="timeline-item"><strong>Pedido recebido</strong><span>12:35</span></div>
+                          <div class="timeline-item"><strong>Em preparo</strong><span>12:38</span></div>
+                          <div class="timeline-item pending"><strong>Pronto</strong><span>Aguardando</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <ul class="journey-list">
+                <li>Representa a tela de pedidos em andamento.</li>
+                <li>Reduz dúvidas no salão.</li>
+              </ul>
+              <div class="journey-panel-note">Imagem principal: página “Meus pedidos”.</div>
+            </div>
+          </article>
+
+          <article class="journey-mobile-panel" data-journey-panel="5">
+            <div class="journey-mobile-card">
+              <span class="journey-panel-badge">Etapa 6 de 6</span>
+              <h3>Cliente satisfeito</h3>
+              <p>O fluxo termina com um cliente satisfeito com a praticidade do atendimento.</p>
+              <div class="journey-visual-card">
+                <div class="journey-visual-frame happy-scene">
+                  <div class="happy-panel">
+                    <div class="avatar"></div>
+                    <div class="stars">★ ★ ★ ★ ★</div>
+                    <h4>Mais satisfação</h4>
+                    <p>Uma experiência moderna aumenta a chance de retorno do cliente.</p>
+                  </div>
+                </div>
+              </div>
+              <ul class="journey-list">
+                <li>Mantém a imagem positiva de cliente satisfeito.</li>
+                <li>Fecha o fluxo com uma percepção profissional.</li>
+              </ul>
+              <div class="journey-panel-note">Imagem principal: cliente satisfeito.</div>
+            </div>
+          </article>
+
+          <div class="journey-mobile-nav">
+            <button class="journey-nav-btn" type="button" data-journey-prev>← Voltar</button>
+            <button class="journey-nav-btn is-primary" type="button" data-journey-next>Próxima etapa →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="implantacao" class="steps section">
+      <div class="landing-shell">
+        <div class="section-head">
+          <h2>Comece sua operação em 5 minutos.</h2>
+          <p>
+            Um processo otimizado para colocar seu restaurante em operação rapidamente.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <article class="step-card">
+            <span class="step-number">1</span>
+            <h3>Crie sua conta</h3>
+            <p>Faça o cadastro do restaurante e acesse o painel.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">2</span>
+            <h3>Escaneie seu cardápio físico</h3>
+            <p>Inclua produtos, preços, descrições e categorias.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">3</span>
+            <h3>Configure mesas</h3>
+            <p>Informe a quantidade de mesas do restaurante.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">4</span>
+            <h3>Gere QR Codes</h3>
+            <p>Use os QR Codes para direcionar os clientes ao pedido.</p>
+          </article>
+
+          <article class="step-card">
+            <span class="step-number">5</span>
+            <h3>Receba pedidos</h3>
+            <p>Acompanhe os pedidos e envie para a cozinha.</p>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -2090,170 +2593,62 @@
 
   <script>
     (function () {
-      const root = document.querySelector('[data-journey-carousel]');
+      const root = document.querySelector('[data-journey-root]');
       if (!root) return;
 
-      const steps = [
-        {
-          icon: '👥',
-          title: 'Restaurante cheio',
-          description: 'O restaurante está com muitas mesas ocupadas e precisa manter o atendimento organizado, rápido e sem depender apenas do garçom.',
-          benefitIcon: '⏱️',
-          benefitTitle: 'Reduza filas e tempo de espera.',
-          benefitText: 'O QRTotem distribui a demanda e agiliza o atendimento nos horários de pico.',
-          visual: 'scene'
-        },
-        {
-          icon: '▦',
-          title: 'Cliente escaneia o QR Code',
-          description: 'O cliente chega na mesa, escaneia o QR Code e abre o cardápio digital do restaurante direto no celular.',
-          benefitIcon: '📲',
-          benefitTitle: 'Acesso rápido, simples e sem instalação.',
-          benefitText: 'O cliente vê o cardápio em poucos segundos, sem baixar aplicativo e sem esperar atendimento inicial.',
-          visual: 'qr'
-        },
-        {
-          icon: '💳',
-          title: 'Faz o pedido e o pagamento',
-          description: 'O cliente escolhe os itens, revisa o carrinho, informa o nome e conclui o pedido com o fluxo de pagamento configurado.',
-          benefitIcon: '🛒',
-          benefitTitle: 'Menos erro no pedido.',
-          benefitText: 'O próprio cliente revisa os itens e quantidades antes de confirmar, deixando o atendimento mais claro.',
-          visual: 'cart'
-        },
-        {
-          icon: '🍽️',
-          title: 'Pedido vai para a cozinha',
-          description: 'Depois de confirmado, o pedido chega organizado para a cozinha, com mesa, nome do cliente, itens e observações.',
-          benefitIcon: '🧾',
-          benefitTitle: 'Cozinha mais organizada.',
-          benefitText: 'A equipe visualiza os pedidos em uma tela simples e consegue preparar tudo com mais controle.',
-          visual: 'kitchen'
-        },
-        {
-          icon: '📱',
-          title: 'Cliente acompanha o andamento',
-          description: 'O cliente vê o status do pedido em tempo real e sabe se está aguardando, em preparo, pronto ou entregue.',
-          benefitIcon: '🔔',
-          benefitTitle: 'Menos dúvidas e menos chamadas ao garçom.',
-          benefitText: 'O acompanhamento dá segurança ao cliente e reduz perguntas repetidas durante o atendimento.',
-          visual: 'tracking'
-        },
-        {
-          icon: '😊',
-          title: 'Cliente sai satisfeito',
-          description: 'Com menos espera, pedido organizado e experiência digital moderna, o cliente percebe mais praticidade no restaurante.',
-          benefitIcon: '⭐',
-          benefitTitle: 'Experiência que aumenta a chance de retorno.',
-          benefitText: 'O atendimento fica mais fluido e o restaurante ganha uma imagem mais profissional.',
-          visual: 'happy'
-        }
-      ];
-
+      const total = 6;
       let current = 0;
 
-      const title = root.querySelector('[data-journey-title]');
-      const description = root.querySelector('[data-journey-description]');
-      const count = root.querySelector('[data-journey-count]');
-      const benefitIcon = root.querySelector('[data-journey-benefit-icon]');
-      const benefitTitle = root.querySelector('[data-journey-benefit-title]');
-      const benefitText = root.querySelector('[data-journey-benefit-text]');
-      const visual = root.querySelector('[data-journey-visual]');
-      const mobileVisual = root.querySelector('[data-mobile-visual]');
-      const mobileTitle = root.querySelector('[data-mobile-title]');
-      const mobileText = root.querySelector('[data-mobile-text]');
-      const prevTitle = root.querySelector('[data-journey-prev-title]');
-      const prevText = root.querySelector('[data-journey-prev-text]');
-      const prevIcon = root.querySelector('[data-journey-prev-icon]');
-      const nextTitle = root.querySelector('[data-journey-next-title]');
-      const nextText = root.querySelector('[data-journey-next-text]');
-      const nextIcon = root.querySelector('[data-journey-next-icon]');
-      const tabButtons = root.querySelectorAll('[data-journey-tab]');
-      const dotButtons = root.querySelectorAll('[data-journey-dot]');
+      const tabs = Array.from(root.querySelectorAll('[data-journey-step]'));
+      const panels = Array.from(root.querySelectorAll('.journey-desktop [data-journey-panel]'));
+      const mobilePanels = Array.from(root.querySelectorAll('.journey-mobile [data-journey-panel]'));
+      const counters = Array.from(root.querySelectorAll('[data-journey-counter]'));
+      const prevButtons = Array.from(root.querySelectorAll('[data-journey-prev]'));
+      const nextButtons = Array.from(root.querySelectorAll('[data-journey-next]'));
 
-      function renderVisual(target, step) {
-        if (!target) return;
-        target.dataset.step = String(step);
-        const item = steps[step];
-        if (item.visual === 'scene') {
-          target.innerHTML = '<div class="restaurant-scene"><div class="restaurant-table"></div><div class="restaurant-table"></div><div class="restaurant-table"></div><div class="restaurant-table"></div><div class="restaurant-table"></div><div class="restaurant-table"></div></div>';
-        }
-        if (item.visual === 'qr') {
-          target.innerHTML = '<div class="qr-card"><div class="qr-drawing"></div><strong>Escaneie o QR Code<br>e abra o cardápio</strong></div><div class="journey-phone"><div class="journey-phone-screen"><div class="journey-phone-top"><span>QRTotem</span><span class="journey-phone-bar"></span></div><h4 class="journey-phone-title">Cardápio digital</h4><div class="screen-row"><div class="screen-thumb"></div><div class="screen-line"><span></span><span></span></div></div><div class="screen-row"><div class="screen-thumb"></div><div class="screen-line"><span></span><span></span></div></div><div class="screen-row"><div class="screen-thumb"></div><div class="screen-line"><span></span><span></span></div></div></div></div>';
-        }
-        if (item.visual === 'cart') {
-          target.innerHTML = '<div class="journey-phone"><div class="journey-phone-screen"><div class="journey-phone-top"><span>Meu pedido</span><span class="journey-phone-bar"></span></div><h4 class="journey-phone-title">Revise seu carrinho</h4><div class="screen-row"><div class="screen-thumb"></div><div class="screen-line"><span></span><span></span></div></div><div class="screen-row"><div class="screen-thumb"></div><div class="screen-line"><span></span><span></span></div></div><div class="mock-total"><span>Total</span><strong>R$ 80,70</strong></div><div class="screen-button">Pagar pedido</div></div></div>';
-        }
-        if (item.visual === 'kitchen') {
-          target.innerHTML = '<div class="kitchen-board"><div class="kitchen-ticket"><strong>#1025 · Mesa 12</strong><div class="screen-line"><span></span><span></span><span></span></div></div><div class="kitchen-ticket"><strong>#1026 · Mesa 07</strong><div class="screen-line"><span></span><span></span><span></span></div></div><div class="kitchen-ticket"><strong>#1027 · Mesa 04</strong><div class="screen-line"><span></span><span></span><span></span></div></div><div class="kitchen-ticket"><strong>#1028 · Mesa 03</strong><div class="screen-line"><span></span><span></span><span></span></div></div></div>';
-        }
-        if (item.visual === 'tracking') {
-          target.innerHTML = '<div class="tracking-list"><strong>Acompanhando seu pedido</strong><div class="track-item"><span class="track-dot"></span><span>Pedido recebido</span></div><div class="track-item"><span class="track-dot"></span><span>Em preparo</span></div><div class="track-item"><span class="track-dot"></span><span>Pronto</span></div></div>';
-        }
-        if (item.visual === 'happy') {
-          target.innerHTML = '<div class="happy-client"><div class="happy-face">😊</div><strong>Obrigado!</strong><p style="margin:8px 0 0;color:rgba(64,64,64,.74);font-weight:700;font-size:.86rem;">Experiência rápida, prática e moderna.</p><div style="margin-top:12px;color:#f59e0b;font-size:1.25rem;">★★★★★</div></div>';
-        }
-      }
-
-      function setActive(index) {
-        current = (index + steps.length) % steps.length;
-        const item = steps[current];
-        const prev = steps[(current - 1 + steps.length) % steps.length];
-        const next = steps[(current + 1) % steps.length];
-
-        count.textContent = 'Etapa ' + (current + 1) + ' de 6';
-        title.textContent = item.title;
-        description.textContent = item.description;
-        benefitIcon.textContent = item.benefitIcon;
-        benefitTitle.textContent = item.benefitTitle;
-        benefitText.textContent = item.benefitText;
-        mobileTitle.textContent = item.title;
-        mobileText.textContent = item.benefitText;
-        prevIcon.textContent = prev.icon;
-        prevTitle.textContent = prev.title;
-        prevText.textContent = prev.benefitText;
-        nextIcon.textContent = next.icon;
-        nextTitle.textContent = next.title;
-        nextText.textContent = next.benefitText;
-
-        renderVisual(visual, current);
-        renderVisual(mobileVisual, current);
-
-        tabButtons.forEach((button) => {
-          const active = Number(button.dataset.journeyTab) === current;
-          button.classList.toggle('is-active', active);
-          button.setAttribute('aria-selected', active ? 'true' : 'false');
+      function update() {
+        tabs.forEach((tab) => {
+          const isActive = Number(tab.dataset.journeyStep) === current;
+          tab.classList.toggle('is-active', isActive);
+          tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
         });
 
-        dotButtons.forEach((button) => {
-          button.classList.toggle('is-active', Number(button.dataset.journeyDot) === current);
+        panels.forEach((panel) => {
+          panel.classList.toggle('is-active', Number(panel.dataset.journeyPanel) === current);
+        });
+
+        mobilePanels.forEach((panel) => {
+          panel.classList.toggle('is-active', Number(panel.dataset.journeyPanel) === current);
+        });
+
+        counters.forEach((counter) => {
+          counter.textContent = `Etapa ${current + 1} de ${total}`;
         });
       }
 
-      root.querySelectorAll('[data-journey-prev]').forEach((button) => {
-        button.addEventListener('click', () => setActive(current - 1));
-      });
-
-      root.querySelectorAll('[data-journey-next]').forEach((button) => {
-        button.addEventListener('click', () => setActive(current + 1));
-      });
-
-      tabButtons.forEach((button) => {
-        button.addEventListener('click', () => setActive(Number(button.dataset.journeyTab)));
-        button.addEventListener('mouseenter', () => {
-          if (window.matchMedia('(hover: hover)').matches) {
-            setActive(Number(button.dataset.journeyTab));
-          }
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          current = Number(tab.dataset.journeyStep) || 0;
+          update();
         });
       });
 
-      dotButtons.forEach((button) => {
-        button.addEventListener('click', () => setActive(Number(button.dataset.journeyDot)));
+      prevButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          current = (current - 1 + total) % total;
+          update();
+        });
       });
 
-      setActive(0);
+      nextButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          current = (current + 1) % total;
+          update();
+        });
+      });
+
+      update();
     })();
   </script>
-
 </body>
 </html>
