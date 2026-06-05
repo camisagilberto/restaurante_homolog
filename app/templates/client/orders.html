@@ -2,19 +2,8 @@
 {% block title %}Pedidos da Mesa {{ table_number }}{% endblock %}
 
 {% block content %}
-<section class="hero-card">
-  <div>
-    <p class="eyebrow">Acompanhamento do cliente</p>
-    <h2>Pedidos em andamento</h2>
-    <p class="muted">
-      Veja os pedidos feitos na mesa {{ table_number }}.
-    </p>
-  </div>
-
-  <a class="btn btn-secondary" href="{{ menu_url }}">
-    Voltar ao cardápio
-  </a>
-</section>
+{% set client_actions_mode = 'orders' %}
+{% include 'client/_fixed_actions.html' %}
 
 <div id="client-orders-wrapper">
   <div class="orders-grid">
