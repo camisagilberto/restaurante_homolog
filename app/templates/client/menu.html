@@ -2,34 +2,13 @@
 {% block title %}{% if is_coupon_page %}Promoções{% elif is_client_mirror %}Cliente Espelho{% else %}Mesa {{ table_number }}{% endif %}{% endblock %}
 
 {% block content %}
-{% if show_radar_flag %}
-  <div class="client-fixed-actions" aria-label="Ações rápidas do cliente">
-    <div class="client-fixed-actions-top">
-      <a class="client-fixed-action" href="{{ coupon_url }}" aria-label="Ver promoções">
-        <span aria-hidden="true">🎁</span>
-        <strong>Promoções</strong>
-      </a>
+{% set client_actions_mode = 'promotions' if is_coupon_page else 'menu' %}
+{% set qrtotem_url = url_for('client.qrtotem_coupons') %}
+{% include 'client/_fixed_actions.html' %}
 
-      <a class="client-fixed-action" href="{{ profile_url }}" aria-label="Abrir meu perfil">
-        <span aria-hidden="true">👤</span>
-        <strong>Meu perfil</strong>
-      </a>
-    </div>
-
-    <form method="post" action="{{ radar_action_url }}" class="client-fixed-radar-form">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label class="client-fixed-radar-toggle">
-        <input type="checkbox" name="radar_enabled" value="1" {% if radar_enabled %}checked{% endif %} onchange="this.form.submit()">
-        <span class="radar-checkbox" aria-hidden="true"></span>
-        <strong>Deixar no radar</strong>
-      </label>
-    </form>
-  </div>
-{% endif %}
-
-<section class="hero-card hero-card--table client-hub-hero">
+<section class="hero-card hero-card--table client-hub-hero {% if is_coupon_page %}client-hub-hero--compact{% endif %}">
   <div class="hero-card-copy">
-    {% if can_order and not is_coupon_page %}
+    {% if can_order and not is_client_mirror %}
       <div class="client-order-shortcuts" aria-label="Resumo do pedido">
         <a class="client-order-shortcut" href="{{ url_for('client.order_history') }}">
           <span class="client-order-shortcut-icon" aria-hidden="true">🧾</span>
@@ -45,83 +24,32 @@
       </div>
     {% endif %}
 
-    <p class="eyebrow">{% if is_coupon_page %}Promoções do restaurante{% elif is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
+    {% if not is_coupon_page %}
+      <p class="eyebrow">{% if is_client_mirror %}Cliente espelho{% else %}Atendimento da mesa{% endif %}</p>
 
-    <div class="table-title-row">
-      {% if is_coupon_page and is_client_mirror %}
-        <h2>Promoções Espelho</h2>
-      {% elif is_coupon_page %}
-        <h2>Promoções</h2>
-      {% elif is_client_mirror %}
-        <h2>Cliente Espelho</h2>
-      {% else %}
-        <h2>Mesa <span id="table-number-label">{{ table_number }}</span></h2>
-      {% endif %}
+      <div class="table-title-row">
+        {% if is_client_mirror %}
+          <h2>Cliente Espelho</h2>
+        {% else %}
+          <h2>Mesa <span id="table-number-label">{{ table_number }}</span></h2>
+        {% endif %}
 
-      {% if can_manage_table %}
-        <button type="button" class="btn btn-secondary btn-sm table-edit-trigger" data-open-table-editor>
-          Editar mesa
-        </button>
-      {% endif %}
-    </div>
+        {% if can_manage_table %}
+          <button type="button" class="btn btn-secondary btn-sm table-edit-trigger" data-open-table-editor>
+            Editar mesa
+          </button>
+        {% endif %}
+      </div>
 
-    <p class="muted">
-      {% if is_coupon_page and is_client_mirror %}
-        Esta é a página espelho das promoções. Os mesmos itens promocionais aparecerão para os clientes que acessarem as promoções pelo QR Code.
-      {% elif is_coupon_page and can_order %}
-        Veja as promoções disponíveis neste restaurante. Elas não precisam de código e podem ser usadas livremente conforme a regra informada pela equipe.
-      {% elif is_coupon_page %}
-        Veja as promoções disponíveis. O acesso às promoções mantém o restaurante conectado aos clientes cadastrados.
-      {% elif is_client_mirror %}
-        Esta é a página de cliente sem mesa atrelada. O cardápio exibido aqui é o mesmo usado nos QR Codes das mesas.
-      {% elif can_order %}
-        Escolha os itens, ajuste quantidades e finalize quando estiver pronto.
-      {% else %}
-        Consulte o cardápio digital. Para fazer pedidos, fale com a equipe do restaurante.
-      {% endif %}
-    </p>
-  </div>
-
-  <div class="hero-actions client-action-grid">
-    {% if is_coupon_page %}
-      <a class="action-card action-card-secondary" href="{{ menu_url }}">
-        <span class="action-card-icon" aria-hidden="true">🍽️</span>
-        <strong>Voltar ao cardápio</strong>
-        <small>Continuar vendo os itens</small>
-      </a>
-
-      {% if can_send_promotions %}
-        <a class="action-card action-card-featured" href="{{ send_promotions_url }}">
-          <span class="action-card-icon" aria-hidden="true">📣</span>
-          <strong>Enviar promoções</strong>
-          <small>Fale com clientes no radar</small>
-        </a>
-      {% elif not is_client_mirror %}
-        <a class="action-card action-card-featured" href="{{ url_for('client.qrtotem_coupons') }}">
-          <span class="action-card-icon" aria-hidden="true">🎟️</span>
-          <strong>Meus benefícios</strong>
-          <small>Ver cupons rastreáveis</small>
-        </a>
-        <a class="action-card action-card-secondary" href="{{ profile_url }}">
-          <span class="action-card-icon" aria-hidden="true">👤</span>
-          <strong>Meu perfil</strong>
-          <small>Dados e preferências</small>
-        </a>
-      {% endif %}
-    {% endif %}
-
-    {% if is_coupon_page or is_client_mirror %}
-      {% if can_order %}
-        <a class="action-card action-card-secondary" href="{{ url_for('client.cart') }}">
-          <span class="action-card-icon" aria-hidden="true">🛒</span>
-          <strong>Ver carrinho <span class="badge-inline">{{ cart_quantity }}</span></strong>
-        </a>
-
-        <a class="action-card action-card-secondary" href="{{ url_for('client.order_history') }}">
-          <span class="action-card-icon" aria-hidden="true">🧾</span>
-          <strong>Meus pedidos <span class="badge-inline">{{ open_orders_count|default(0) }}</span></strong>
-        </a>
-      {% endif %}
+      <p class="muted">
+        {% if is_client_mirror %}
+          Esta é a página de cliente sem mesa atrelada. O cardápio exibido aqui é o mesmo usado nos QR Codes das mesas.
+        {% elif can_order %}
+          Escolha os itens, ajuste quantidades e finalize quando estiver pronto.
+        {% else %}
+          Consulte o cardápio digital. Para fazer pedidos, fale com a equipe do restaurante.
+        {% endif %}
+      </p>
     {% endif %}
   </div>
 </section>
@@ -169,9 +97,11 @@
             {% if is_coupon_page %}
               <div class="coupon-action-box">
                 <span class="status-pill status-success">Promoção disponível</span>
-                <p class="muted small-text">Oferta especial do restaurante. Consulte a equipe para usar no atendimento.</p>
+                <p class="muted small-text">Oferta especial do restaurante.</p>
               </div>
-            {% elif can_order %}
+            {% endif %}
+
+            {% if can_order %}
               <div class="quantity-control">
                 <button type="button" class="icon-btn" data-qty-dec aria-label="Diminuir">−</button>
                 <input type="number" min="0" value="{{ (cart_quantities|default({})).get(product['id'], 0) }}" class="qty-input" data-qty-input>
