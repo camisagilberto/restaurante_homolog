@@ -838,8 +838,10 @@
 
     .journey-restaurant {
       background:
-        radial-gradient(circle at 14% 18%, rgba(255,255,255,.92) 0 5px, transparent 6px),
-        linear-gradient(180deg, #4A2E1F, #8A5437 46%, #E9D5C2 46%, #E9D5C2 100%);
+        radial-gradient(circle at 18% 14%, rgba(255, 232, 194, .85) 0 0.7rem, transparent 0.75rem),
+        radial-gradient(circle at 48% 12%, rgba(255, 232, 194, .82) 0 0.9rem, transparent 0.95rem),
+        radial-gradient(circle at 78% 15%, rgba(255, 232, 194, .85) 0 0.7rem, transparent 0.75rem),
+        linear-gradient(180deg, #2F211A 0%, #6F442D 45%, #F6E6D6 45%, #F6E6D6 100%);
     }
 
     .journey-restaurant::before {
@@ -847,9 +849,26 @@
       position: absolute;
       inset: 0;
       background:
-        linear-gradient(90deg, transparent 0 9%, rgba(255,255,255,.12) 9% 10%, transparent 10% 22%, rgba(255,255,255,.12) 22% 23%, transparent 23% 35%, rgba(255,255,255,.12) 35% 36%, transparent 36%),
-        linear-gradient(180deg, rgba(255,255,255,.18), transparent 22%);
+        linear-gradient(90deg, transparent 0 8%, rgba(255,255,255,.10) 8% 9%, transparent 9% 20%, rgba(255,255,255,.10) 20% 21%, transparent 21% 33%, rgba(255,255,255,.10) 33% 34%, transparent 34% 46%, rgba(255,255,255,.10) 46% 47%, transparent 47%),
+        radial-gradient(circle at 50% 100%, rgba(249, 115, 22, .18), transparent 44%),
+        linear-gradient(180deg, rgba(255,255,255,.16), transparent 24%);
       pointer-events: none;
+    }
+
+    .journey-restaurant::after {
+      content: "Restaurante cheio";
+      position: absolute;
+      left: 22px;
+      top: 22px;
+      z-index: 3;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .92);
+      border: 1px solid rgba(30, 30, 30, .06);
+      color: var(--graphite);
+      font-size: .86rem;
+      font-weight: 800;
+      box-shadow: var(--shadow-soft);
     }
 
     .restaurant-lights {
@@ -874,9 +893,13 @@
       position: absolute;
       width: 146px;
       height: 72px;
-      border-radius: 20px;
-      background: rgba(91, 59, 37, .88);
-      box-shadow: 0 18px 26px rgba(30,30,30,.18);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 23% 50%, rgba(255, 255, 255, .20) 0 9%, transparent 10%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .16) 0 9%, transparent 10%),
+        radial-gradient(circle at 76% 50%, rgba(255, 255, 255, .20) 0 9%, transparent 10%),
+        linear-gradient(135deg, #7C4A2D, #3D281E);
+      box-shadow: 0 18px 28px rgba(30,30,30,.22);
     }
 
     .table.one { left: 44px; top: 120px; }
@@ -1778,7 +1801,6 @@
     </a>
 
     <nav class="landing-nav" aria-label="Navegação principal">
-      <a href="#beneficios">Benefícios</a>
       <a href="#como-funciona">Como funciona</a>
       <a href="{{ url_for('admin.login') }}">Entrar</a>
       <a class="nav-cta" href="{{ url_for('client.signup') }}">Começar agora</a>
@@ -1805,9 +1827,9 @@
             <span class="price-subtitle">Preço fixo, simples de entender e feito para restaurantes.</span>
           </div>
 
-          <div class="price-value" aria-label="R$ 149,99 por mês">
+          <div class="price-value" aria-label="R$ 199,99 por mês">
             <small>R$</small>
-            <strong>149,99</strong>
+            <strong>199,99</strong>
             <span>/mês</span>
           </div>
         </div>
@@ -1919,33 +1941,6 @@
       </div>
     </section>
 
-    <section id="beneficios" class="landing-shell section">
-      <div class="section-head">
-        <h2>Uma experiência limpa, rápida e profissional.</h2>
-        <p>
-          O visual minimalista ajuda o cliente a pedir com facilidade e dá ao restaurante uma imagem mais sólida, moderna e confiável.
-        </p>
-      </div>
-
-      <div class="benefits-grid">
-        <article class="benefit-card">
-          <div class="benefit-icon">⚡</div>
-          <h3>PEDIDOS RÁPIDO</h3>
-          <p>
-            Menos fila, menos erro e mais agilidade: o cliente faz o pedido pelo QR Code em poucos toques e sua cozinha recebe tudo organizado.
-          </p>
-        </article>
-
-        <article class="benefit-card">
-          <div class="benefit-icon">📣</div>
-          <h3>FALE COM SEUS CLIENTES</h3>
-          <p>
-            Envie promoções nos horários de menor movimento e transforme clientes parados em novas vendas para o seu restaurante.
-          </p>
-        </article>
-      </div>
-    </section>
-
     <section id="como-funciona" class="landing-shell section journey-section">
       <div class="section-head">
         <h2>Veja a experiência do cliente na prática.</h2>
@@ -1955,7 +1950,6 @@
       </div>
 
       <div class="journey-wrap" data-journey-root>
-        <span class="journey-kicker">Carrossel guiado</span>
 
         <div class="journey-desktop">
           <div class="journey-tabs" role="tablist" aria-label="Jornada do cliente com o QRTotem">
@@ -2575,7 +2569,7 @@
           </p>
 
           <div class="final-price">
-            Plano único por <strong>R$ 149,99/mês</strong>
+            Plano único por <strong>R$ 199,99/mês</strong>
           </div>
         </div>
 
@@ -2627,10 +2621,14 @@
       }
 
       tabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
+        const activateTab = () => {
           current = Number(tab.dataset.journeyStep) || 0;
           update();
-        });
+        };
+
+        tab.addEventListener('click', activateTab);
+        tab.addEventListener('mouseenter', activateTab);
+        tab.addEventListener('focus', activateTab);
       });
 
       prevButtons.forEach((button) => {
