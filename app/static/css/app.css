@@ -2621,3 +2621,74 @@ summary:focus-visible {
     width: 150px;
   }
 }
+
+/* Ajuste 51: ações fixas do cliente no bloco do logo */
+.public-client-layout .app-header {
+  min-height: 104px;
+  align-items: flex-start;
+}
+
+.client-fixed-actions {
+  top: 22px;
+  right: 38px;
+  width: 176px;
+  gap: 6px;
+}
+
+.client-fixed-action {
+  min-height: 42px;
+  padding: 5px 7px;
+}
+
+.client-fixed-radar-toggle {
+  min-height: 31px;
+  padding: 5px 8px;
+  border-radius: 14px;
+}
+
+.client-hub-hero--compact {
+  padding-block: 14px;
+}
+
+.client-hub-hero--compact .client-order-shortcuts {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .public-client-layout .app-main {
+    padding-top: 118px;
+  }
+
+  .public-client-layout .app-header {
+    min-height: 103px;
+  }
+
+  .client-fixed-actions {
+    top: 22px;
+    right: 22px;
+    width: 154px;
+    gap: 5px;
+  }
+
+  .client-fixed-actions-top {
+    gap: 5px;
+  }
+
+  .client-fixed-action {
+    min-height: 40px;
+    border-radius: 15px;
+    padding-inline: 5px;
+  }
+
+  .client-fixed-radar-toggle {
+    min-height: 30px;
+    padding-inline: 6px;
+  }
+}
+
+@media (max-width: 380px) {
+  .client-fixed-actions {
+    right: 18px;
+    width: 150px;
+  }
+}
